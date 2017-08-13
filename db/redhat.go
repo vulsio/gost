@@ -4,24 +4,46 @@ import (
 	"fmt"
 
 	"github.com/jinzhu/gorm"
+	"github.com/knqyf263/go-security-tracker/log"
 	"github.com/knqyf263/go-security-tracker/models"
+	"github.com/knqyf263/go-security-tracker/util"
 	pb "gopkg.in/cheggaaa/pb.v1"
 )
+
+func (r *RDBDriver) GetAllRedhat() (allCves []models.RedhatCVE, err error) {
+	all := []models.RedhatCVE{}
+	if err = r.conn.Find(&all).Error; err != nil {
+		return nil, err
+	}
+
+	// TODO: insufficient
+	// for _, a := range all {
+	// 	r.conn.Model(&a).Related(&a.Cvss3).Related(&a.Bugzilla)
+	// 	allCves = append(allCves, a)
+	// }
+	return all, nil
+}
 
 func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	c := models.RedhatCVE{}
 	r.conn.Where(&models.RedhatCVE{Name: cveID}).First(&c)
-	r.conn.Model(&c).Related(&c.Details).Related(&c.References).Related(&c.Bugzilla).Related(&c.Cvss)
-	r.conn.Model(&c).Related(&c.Cvss3).Related(&c.AffectedRelease).Related(&c.PackageState)
+	r.conn.Model(&c).Related(&c.Details)
+	r.conn.Model(&c).Related(&c.References)
+	r.conn.Model(&c).Related(&c.Bugzilla)
+	r.conn.Model(&c).Related(&c.Cvss)
+	r.conn.Model(&c).Related(&c.Cvss3)
+	r.conn.Model(&c).Related(&c.AffectedRelease)
+	r.conn.Model(&c).Related(&c.PackageState)
 	return &c
 }
 
 func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
-	cves := convertRedhat(cveJSONs)
+	cves := ConvertRedhat(cveJSONs)
 	bar := pb.StartNew(len(cves))
 
+	log.Infof("Insert %d CVEs", len(cves))
 	for _, cve := range cves {
-		if err := deleteAndInsertRedhat(r.conn, cve); err != nil {
+		if err := r.deleteAndInsertRedhat(r.conn, cve); err != nil {
 			return fmt.Errorf("Failed to insert. cve: %s, err: %s",
 				cve.Name, err)
 		}
@@ -31,7 +53,7 @@ func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
 	return nil
 }
 
-func deleteAndInsertRedhat(conn *gorm.DB, cve models.RedhatCVE) (err error) {
+func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cve models.RedhatCVE) (err error) {
 	tx := conn.Begin()
 	defer func() {
 		if err != nil {
@@ -78,17 +100,22 @@ func deleteAndInsertRedhat(conn *gorm.DB, cve models.RedhatCVE) (err error) {
 	return nil
 }
 
-func convertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE) {
+func ConvertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE) {
 	for _, cve := range cveJSONs {
 		var details []models.RedhatDetail
 		for _, d := range cve.Details {
+			d = util.TrimSpaceNewline(d)
 			details = append(details, models.RedhatDetail{Detail: d})
 		}
 
 		var references []models.RedhatReference
 		for _, r := range cve.References {
+			r = util.TrimSpaceNewline(r)
 			references = append(references, models.RedhatReference{Reference: r})
 		}
+
+		cve.Bugzilla.Description = util.TrimSpaceNewline(cve.Bugzilla.Description)
+		cve.Statement = util.TrimSpaceNewline(cve.Statement)
 
 		// TODO: more efficient
 		c := models.RedhatCVE{
@@ -113,4 +140,40 @@ func convertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE) {
 		cves = append(cves, c)
 	}
 	return cves
+}
+
+func ClearIDRedhat(cve *models.RedhatCVE) {
+	cve.ID = 0
+	cve.Bugzilla.RedhatCVEID = 0
+	cve.Cvss.RedhatCVEID = 0
+	cve.Cvss3.RedhatCVEID = 0
+
+	affectedReleases := cve.AffectedRelease
+	cve.AffectedRelease = []models.RedhatAffectedRelease{}
+	for _, a := range affectedReleases {
+		a.RedhatCVEID = 0
+		cve.AffectedRelease = append(cve.AffectedRelease, a)
+	}
+
+	packageState := cve.PackageState
+	cve.PackageState = []models.RedhatPackageState{}
+	for _, p := range packageState {
+		p.RedhatCVEID = 0
+		cve.PackageState = append(cve.PackageState, p)
+	}
+
+	details := cve.Details
+	cve.Details = []models.RedhatDetail{}
+	for _, d := range details {
+		d.RedhatCVEID = 0
+		cve.Details = append(cve.Details, d)
+	}
+
+	references := cve.References
+	cve.References = []models.RedhatReference{}
+	for _, r := range references {
+		r.RedhatCVEID = 0
+		cve.References = append(cve.References, r)
+	}
+
 }

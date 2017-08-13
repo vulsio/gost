@@ -23,13 +23,13 @@ func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 }
 
 func (r *RDBDriver) InsertDebian(cveJSON models.DebianJSON) (err error) {
-	cves := convertDebian(cveJSON)
-	if err = deleteAndInsertDebian(r.conn, cves); err != nil {
+	cves := ConvertDebian(cveJSON)
+	if err = r.deleteAndInsertDebian(r.conn, cves); err != nil {
 		return fmt.Errorf("Failed to insert Debian CVE data. err: %s", err)
 	}
 	return nil
 }
-func deleteAndInsertDebian(conn *gorm.DB, cves []models.DebianCVE) (err error) {
+func (r *RDBDriver) deleteAndInsertDebian(conn *gorm.DB, cves []models.DebianCVE) (err error) {
 	bar := pb.StartNew(len(cves))
 	tx := conn.Begin()
 
@@ -62,7 +62,7 @@ func deleteAndInsertDebian(conn *gorm.DB, cves []models.DebianCVE) (err error) {
 	return nil
 }
 
-func convertDebian(cveJSONs models.DebianJSON) (cves []models.DebianCVE) {
+func ConvertDebian(cveJSONs models.DebianJSON) (cves []models.DebianCVE) {
 	uniqCve := map[string]models.DebianCVE{}
 	for pkgName, cveMap := range cveJSONs {
 		for cveID, cve := range cveMap {

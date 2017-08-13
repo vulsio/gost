@@ -13,6 +13,8 @@ type DB interface {
 	Name() string
 	OpenDB(string, string, bool) error
 	MigrateDB() error
+	GetAllRedhat() ([]models.RedhatCVE, error)
+	// GetAllDebian() *[]models.DebianCVE
 	GetRedhat(string) *models.RedhatCVE
 	GetDebian(string) *models.DebianCVE
 	InsertRedhat([]models.RedhatCVEJSON) error

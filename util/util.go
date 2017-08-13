@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
-	"github.com/labstack/gommon/log"
 	"github.com/parnurzeal/gorequest"
 	"github.com/spf13/viper"
 	pb "gopkg.in/cheggaaa/pb.v1"
@@ -43,6 +43,12 @@ func DeleteNil(errs []error) (new []error) {
 		}
 	}
 	return new
+}
+
+// TrimSpaceNewline deletes space character and newline character(CR/LF)
+func TrimSpaceNewline(str string) string {
+	str = strings.TrimSpace(str)
+	return strings.Trim(str, "\r\n")
 }
 
 // FetchURL returns HTTP response body
@@ -88,7 +94,6 @@ func FetchConcurrently(urls []string, concurrency int) (responses []string, err 
 		bar.Increment()
 	}
 	bar.Finish()
-	log.Infof("fuga")
 
 	errs := []error{}
 	timeout := time.After(10 * 60 * time.Second)

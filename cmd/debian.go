@@ -21,10 +21,10 @@ func init() {
 }
 
 func fetchDebian(cmd *cobra.Command, args []string) (err error) {
-	log.Infof("Fetched all CVEs from Debian")
+	log.Info("Fetched all CVEs from Debian")
 	cves, err := fetcher.RetrieveDebianCveDetails()
 
-	log.Infof("Initialize Database")
+	log.Info("Initialize Database")
 	driver, err := db.InitDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		return err

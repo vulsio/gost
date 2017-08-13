@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type RedhatEntry struct {
 	CveID             string        `json:"CVE"`
@@ -57,6 +60,14 @@ type RedhatCVE struct {
 
 	Details    []RedhatDetail
 	References []RedhatReference
+}
+
+func (r RedhatCVE) GetDetail(sep string) string {
+	var details []string
+	for _, d := range r.Details {
+		details = append(details, d.Detail)
+	}
+	return strings.Join(details, sep)
 }
 
 type RedhatDetail struct {

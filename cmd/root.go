@@ -54,6 +54,10 @@ func init() {
 	viper.BindPFlag("dbtype", RootCmd.PersistentFlags().Lookup("dbtype"))
 	viper.SetDefault("dbtype", "sqlite3")
 
+	RootCmd.PersistentFlags().String("http-proxy", "", "http://proxy-url:port (default: empty)")
+	viper.BindPFlag("http-proxy", RootCmd.PersistentFlags().Lookup("http-proxy"))
+	viper.SetDefault("http-proxy", "")
+
 	log.Initialize(viper.GetString("log-dir"))
 }
 
