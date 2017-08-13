@@ -17,20 +17,20 @@ type RedhatEntry struct {
 }
 
 type RedhatCVEJSON struct {
-	ThreatSeverity       string            `json:"threat_severity"`
-	PublicDate           string            `json:"public_date"`
-	Bugzilla             Bugzilla          `json:"bugzilla"`
-	Cvss                 Cvss              `json:"cvss"`
-	Cvss3                Cvss3             `json:"cvss3"`
-	Iava                 string            `json:"iava"`
-	Cwe                  string            `json:"cwe"`
-	Statement            string            `json:"statement"`
-	Acknowledgement      string            `json:"acknowledgement"`
-	Mitigation           string            `json:"mitigation"`
-	AffectedRelease      []AffectedRelease `json:"affected_release"`
-	PackageState         []PackageState    `json:"package_state"`
-	Name                 string            `json:"name"`
-	DocumentDistribution string            `json:"document_distribution"`
+	ThreatSeverity       string                  `json:"threat_severity"`
+	PublicDate           string                  `json:"public_date"`
+	Bugzilla             RedhatBugzilla          `json:"bugzilla"`
+	Cvss                 RedhatCvss              `json:"cvss"`
+	Cvss3                RedhatCvss3             `json:"cvss3"`
+	Iava                 string                  `json:"iava"`
+	Cwe                  string                  `json:"cwe"`
+	Statement            string                  `json:"statement"`
+	Acknowledgement      string                  `json:"acknowledgement"`
+	Mitigation           string                  `json:"mitigation"`
+	AffectedRelease      []RedhatAffectedRelease `json:"affected_release"`
+	PackageState         []RedhatPackageState    `json:"package_state"`
+	Name                 string                  `json:"name"`
+	DocumentDistribution string                  `json:"document_distribution"`
 
 	Details    []string `json:"details" gorm:"-"`
 	References []string `json:"references" gorm:"-"`
@@ -42,55 +42,55 @@ type RedhatCVE struct {
 	// gorm can't handle embedded struct
 	ThreatSeverity       string
 	PublicDate           string
-	Bugzilla             Bugzilla
-	Cvss                 Cvss
-	Cvss3                Cvss3
+	Bugzilla             RedhatBugzilla
+	Cvss                 RedhatCvss
+	Cvss3                RedhatCvss3
 	Iava                 string
 	Cwe                  string
 	Statement            string
 	Acknowledgement      string
 	Mitigation           string
-	AffectedRelease      []AffectedRelease
-	PackageState         []PackageState
+	AffectedRelease      []RedhatAffectedRelease
+	PackageState         []RedhatPackageState
 	Name                 string
 	DocumentDistribution string
 
-	Details    []Detail    `json:"details" gorm:"-"`
-	References []Reference `json:"references" gorm:"-"`
+	Details    []RedhatDetail
+	References []RedhatReference
 }
 
-type Detail struct {
+type RedhatDetail struct {
 	RedhatCVEID int64 `sql:"type:bigint REFERENCES redhat_cves(id)"`
 	Detail      string
 }
 
-type Reference struct {
+type RedhatReference struct {
 	RedhatCVEID int64 `sql:"type:bigint REFERENCES redhat_cves(id)"`
 	Reference   string
 }
 
-type Bugzilla struct {
+type RedhatBugzilla struct {
 	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)"`
 	Description string `json:"description"`
 	BugzillaID  string `json:"id"`
 	URL         string `json:"url"`
 }
 
-type Cvss struct {
+type RedhatCvss struct {
 	RedhatCVEID       int64  `sql:"type:bigint REFERENCES redhat_cves(id)"`
 	CvssBaseScore     string `json:"cvss_base_score"`
 	CvssScoringVector string `json:"cvss_scoring_vector"`
 	Status            string `json:"status"`
 }
 
-type Cvss3 struct {
+type RedhatCvss3 struct {
 	RedhatCVEID        int64  `sql:"type:bigint REFERENCES redhat_cves(id)"`
 	Cvss3BaseScore     string `json:"cvss3_base_score"`
 	Cvss3ScoringVector string `json:"cvss3_scoring_vector"`
 	Status             string `json:"status"`
 }
 
-type AffectedRelease struct {
+type RedhatAffectedRelease struct {
 	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)"`
 	ProductName string `json:"product_name"`
 	ReleaseDate string `json:"release_date"`
@@ -99,7 +99,7 @@ type AffectedRelease struct {
 	Cpe         string `json:"cpe"`
 }
 
-type PackageState struct {
+type RedhatPackageState struct {
 	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)"`
 	ProductName string `json:"product_name"`
 	FixState    string `json:"fix_state"`

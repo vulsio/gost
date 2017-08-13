@@ -3,8 +3,6 @@ package db
 import (
 	"fmt"
 
-	pb "gopkg.in/cheggaaa/pb.v1"
-
 	"github.com/jinzhu/gorm"
 	"github.com/knqyf263/go-security-tracker/models"
 	// Required MySQL.  See http://jinzhu.me/gorm/database.html#connecting-to-a-database
@@ -51,65 +49,15 @@ func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (err error) {
 func (r *RDBDriver) MigrateDB() error {
 	if err := r.conn.AutoMigrate(
 		&models.RedhatCVE{},
-		&models.Detail{},
-		&models.Reference{},
-		&models.Bugzilla{},
-		&models.Cvss{},
-		&models.Cvss3{},
-		&models.AffectedRelease{},
-		&models.PackageState{},
+		&models.RedhatDetail{},
+		&models.RedhatReference{},
+		&models.RedhatBugzilla{},
+		&models.RedhatCvss{},
+		&models.RedhatCvss3{},
+		&models.RedhatAffectedRelease{},
+		&models.RedhatPackageState{},
 	).Error; err != nil {
 		return fmt.Errorf("Failed to migrate. err: %s", err)
 	}
-
 	return nil
-}
-
-func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
-	cves := convertRedhat(cveJSONs)
-	bar := pb.StartNew(len(cves))
-	for _, cve := range cves {
-		r.conn.Save(&cve)
-		bar.Increment()
-	}
-	bar.Finish()
-	return err
-
-}
-
-func convertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE) {
-	for _, cve := range cveJSONs {
-		var details []models.Detail
-		for _, d := range cve.Details {
-			details = append(details, models.Detail{Detail: d})
-		}
-
-		var references []models.Reference
-		for _, r := range cve.References {
-			references = append(references, models.Reference{Reference: r})
-		}
-
-		// TODO: more efficient
-		c := models.RedhatCVE{
-			ThreatSeverity:       cve.ThreatSeverity,
-			PublicDate:           cve.PublicDate,
-			Bugzilla:             cve.Bugzilla,
-			Cvss:                 cve.Cvss,
-			Cvss3:                cve.Cvss3,
-			Iava:                 cve.Iava,
-			Cwe:                  cve.Cwe,
-			Statement:            cve.Statement,
-			Acknowledgement:      cve.Acknowledgement,
-			Mitigation:           cve.Mitigation,
-			AffectedRelease:      cve.AffectedRelease,
-			PackageState:         cve.PackageState,
-			Name:                 cve.Name,
-			DocumentDistribution: cve.DocumentDistribution,
-
-			Details:    details,
-			References: references,
-		}
-		cves = append(cves, c)
-	}
-	return cves
 }

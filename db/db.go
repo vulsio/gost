@@ -13,7 +13,7 @@ type DB interface {
 	Name() string
 	OpenDB(string, string, bool) error
 	MigrateDB() error
-	// Get(string) *models.CveDetail
+	GetRedhat(string) *models.RedhatCVE
 	// GetByCpeName(string) []*models.RedhatCVE
 	InsertRedhat([]models.RedhatCVEJSON) error
 }

@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/dgrijalva/jwt-go"
+  packages = ["."]
+  revision = "d2709f9f1f31ebcda9651b03077758c1f3a0018c"
+  version = "v3.0.0"
+
+[[projects]]
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
   revision = "629574ca2a5df945712d3079857300b5e4da0236"
@@ -26,10 +32,10 @@
   version = "v1.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/jinzhu/gorm"
   packages = [".","dialects/mysql","dialects/postgres","dialects/sqlite"]
-  revision = "5174cc5c242a728b435ea2be8a2f7f998e15429b"
-  version = "v1.0"
+  revision = "c3bb6aaa828867eec72dd8571d111e442688f85f"
 
 [[projects]]
   branch = "master"
@@ -48,6 +54,18 @@
   name = "github.com/kotakanbe/logrus-prefixed-formatter"
   packages = ["."]
   revision = "75edb2e85a38873f0318be05a458446681d1022f"
+
+[[projects]]
+  name = "github.com/labstack/echo"
+  packages = [".","context","engine","engine/standard","log","middleware"]
+  revision = "e08070379af60f5b9c0fb5bb2d1527ba9624fe43"
+  version = "v2.2.0"
+
+[[projects]]
+  name = "github.com/labstack/gommon"
+  packages = ["bytes","color","log","random"]
+  revision = "779b8a8b9850a97acba6a3fe20feb628c39e17c1"
+  version = "0.2.2"
 
 [[projects]]
   branch = "master"
@@ -183,6 +201,18 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/valyala/bytebufferpool"
+  packages = ["."]
+  revision = "e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/valyala/fasttemplate"
+  packages = ["."]
+  revision = "dcecefd839c4193db0d35b88ec65b4c12d360ab0"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   revision = "b176d7def5d71bdd214203491f89843ed217f420"
@@ -215,11 +245,11 @@
   branch = "v2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "25c4ec802a7d637f88d584ab26798e94ad14c13b"
+  revision = "eb3733d160e74a9c7e442f435eb3bea458e1d19f"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bf5cb0a8982b222e27091572b148f0c282d0801f6176f1353a4bc5a0b81d13ad"
+  inputs-digest = "f2ca14f70a2e03efc132a1a74267269807d485019c975ed5077646e01118fd3b"
   solver-name = "gps-cdcl"
   solver-version = 1

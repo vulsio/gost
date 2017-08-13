@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/knqyf263/go-security-tracker/util"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -30,7 +32,27 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.go-security-tracker.yaml)")
 
-	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	RootCmd.PersistentFlags().String("log-dir", "", "/path/to/log")
+	viper.BindPFlag("log-dir", RootCmd.PersistentFlags().Lookup("log-dir"))
+	viper.SetDefault("log-dir", util.GetDefaultLogDir())
+
+	RootCmd.PersistentFlags().Bool("debug", false, "debug mode (default: false)")
+	viper.BindPFlag("debug", RootCmd.PersistentFlags().Lookup("debug"))
+	viper.SetDefault("debug", false)
+
+	RootCmd.PersistentFlags().Bool("debug-sql", false, "SQL debug mode")
+	viper.BindPFlag("debug-sql", RootCmd.PersistentFlags().Lookup("debug-sql"))
+	viper.SetDefault("debug-sql", false)
+
+	RootCmd.PersistentFlags().String("dbpath", "", "/path/to/sqlite3 or SQL connection string")
+	viper.BindPFlag("dbpath", RootCmd.PersistentFlags().Lookup("dbpath"))
+	pwd := os.Getenv("PWD")
+	viper.SetDefault("dbpath", filepath.Join(pwd, "tracker.sqlite3"))
+
+	RootCmd.PersistentFlags().String("dbtype", "", "Database type to store data in (sqlite3, mysql or postgres supported)")
+	viper.BindPFlag("dbtype", RootCmd.PersistentFlags().Lookup("dbtype"))
+	viper.SetDefault("dbtype", "sqlite3")
+
 }
 
 // initConfig reads in config file and ENV variables if set.

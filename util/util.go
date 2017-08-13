@@ -34,7 +34,7 @@ func GetDefaultLogDir() string {
 	return defaultLogDir
 }
 
-// FetchUrl returns HTTP response body
+// FetchURL returns HTTP response body
 func FetchURL(url string) (string, error) {
 	var errs []error
 	httpProxy := viper.GetString("http-proxy")
