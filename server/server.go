@@ -41,7 +41,8 @@ func Start(logDir string, driver db.DB) error {
 
 	// Routes
 	e.Get("/health", health())
-	e.Get("/cves/redhat/:id", getCve(driver))
+	e.Get("/redhat/cves/:id", getRedhatCve(driver))
+	e.Get("/debian/cves/:id", getDebianCve(driver))
 
 	bindURL := fmt.Sprintf("%s:%s", viper.GetString("bind"), viper.GetString("port"))
 	log.Infof("Listening on %s", bindURL)
@@ -58,10 +59,19 @@ func health() echo.HandlerFunc {
 }
 
 // Handler
-func getCve(driver db.DB) echo.HandlerFunc {
+func getRedhatCve(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cveid := c.Param("id")
 		cveDetail := driver.GetRedhat(cveid)
+		return c.JSON(http.StatusOK, &cveDetail)
+	}
+}
+
+// Handler
+func getDebianCve(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		cveid := c.Param("id")
+		cveDetail := driver.GetDebian(cveid)
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }

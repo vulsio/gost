@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/k0kubun/pp"
 	"github.com/knqyf263/go-security-tracker/db"
 	"github.com/knqyf263/go-security-tracker/fetcher"
 	"github.com/knqyf263/go-security-tracker/log"
@@ -22,8 +21,8 @@ func init() {
 }
 
 func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
-	log.Initialize(viper.GetString("log-dir"))
 
+	log.Infof("Fetch the list of CVEs")
 	entries, err := fetcher.ListAllRedhatCves()
 	var resourceURLs []string
 	for _, entry := range entries {
@@ -47,9 +46,6 @@ func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
 			viper.GetString("dbpath"), err)
 		return err
 	}
-
-	r := driver.GetRedhat("CVE-2017-7809")
-	pp.Println(r)
 
 	return nil
 }

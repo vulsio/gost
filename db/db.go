@@ -14,8 +14,9 @@ type DB interface {
 	OpenDB(string, string, bool) error
 	MigrateDB() error
 	GetRedhat(string) *models.RedhatCVE
-	// GetByCpeName(string) []*models.RedhatCVE
+	GetDebian(string) *models.DebianCVE
 	InsertRedhat([]models.RedhatCVEJSON) error
+	InsertDebian(models.DebianJSON) error
 }
 
 // NewDB return DB accessor.

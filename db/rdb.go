@@ -56,6 +56,10 @@ func (r *RDBDriver) MigrateDB() error {
 		&models.RedhatCvss3{},
 		&models.RedhatAffectedRelease{},
 		&models.RedhatPackageState{},
+
+		&models.DebianCVE{},
+		&models.DebianPackage{},
+		&models.DebianRelease{},
 	).Error; err != nil {
 		return fmt.Errorf("Failed to migrate. err: %s", err)
 	}

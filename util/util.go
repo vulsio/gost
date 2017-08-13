@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/labstack/gommon/log"
 	"github.com/parnurzeal/gorequest"
 	"github.com/spf13/viper"
 	pb "gopkg.in/cheggaaa/pb.v1"
@@ -32,6 +33,16 @@ func GetDefaultLogDir() string {
 		defaultLogDir = filepath.Join(os.Getenv("APPDATA"), "go-security-tracker")
 	}
 	return defaultLogDir
+}
+
+// DeleteNil deletes nil in errs
+func DeleteNil(errs []error) (new []error) {
+	for _, err := range errs {
+		if err != nil {
+			new = append(new, err)
+		}
+	}
+	return new
 }
 
 // FetchURL returns HTTP response body
@@ -60,6 +71,7 @@ func FetchConcurrently(urls []string, concurrency int) (responses []string, err 
 		}
 	}()
 
+	bar := pb.StartNew(len(urls))
 	tasks := GenWorkers(concurrency)
 	for range urls {
 		tasks <- func() {
@@ -73,10 +85,12 @@ func FetchConcurrently(urls []string, concurrency int) (responses []string, err 
 				resChan <- res
 			}
 		}
+		bar.Increment()
 	}
+	bar.Finish()
+	log.Infof("fuga")
 
 	errs := []error{}
-	bar := pb.StartNew(len(urls))
 	timeout := time.After(10 * 60 * time.Second)
 	for range urls {
 		select {
@@ -85,13 +99,11 @@ func FetchConcurrently(urls []string, concurrency int) (responses []string, err 
 		case err := <-errChan:
 			errs = append(errs, err)
 		case <-timeout:
-			return responses, fmt.Errorf("Timeout Fetching URL")
+			return []string{}, fmt.Errorf("Timeout Fetching URL")
 		}
-		bar.Increment()
 	}
-	bar.Finish()
 	if 0 < len(errs) {
-		return responses, fmt.Errorf("%s", errs)
+		return []string{}, fmt.Errorf("%s", errs)
 
 	}
 	return responses, nil

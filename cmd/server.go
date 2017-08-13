@@ -13,7 +13,7 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start security tracker HTTP server",
 	Long:  `Start security tracker HTTP server`,
-	RunE:  serverExecute,
+	RunE:  executeServer,
 }
 
 func init() {
@@ -28,7 +28,7 @@ func init() {
 	viper.SetDefault("port", "11235")
 }
 
-func serverExecute(cmd *cobra.Command, args []string) (err error) {
+func executeServer(cmd *cobra.Command, args []string) (err error) {
 	logDir := viper.GetString("log-dir")
 	log.Initialize(logDir)
 

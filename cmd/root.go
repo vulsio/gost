@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/knqyf263/go-security-tracker/log"
 	"github.com/knqyf263/go-security-tracker/util"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -53,6 +54,7 @@ func init() {
 	viper.BindPFlag("dbtype", RootCmd.PersistentFlags().Lookup("dbtype"))
 	viper.SetDefault("dbtype", "sqlite3")
 
+	log.Initialize(viper.GetString("log-dir"))
 }
 
 // initConfig reads in config file and ENV variables if set.
