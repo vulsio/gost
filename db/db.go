@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/knqyf263/go-security-tracker/log"
 	"github.com/knqyf263/go-security-tracker/models"
@@ -13,7 +14,7 @@ type DB interface {
 	Name() string
 	OpenDB(string, string, bool) error
 	MigrateDB() error
-	GetAllRedhat() ([]models.RedhatCVE, error)
+	GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error)
 	// GetAllDebian() *[]models.DebianCVE
 	GetRedhat(string) *models.RedhatCVE
 	GetDebian(string) *models.DebianCVE

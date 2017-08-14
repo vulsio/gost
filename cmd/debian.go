@@ -32,7 +32,7 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 
 	log.Infof("Insert Debian into DB (%s).", driver.Name())
 	if err := driver.InsertDebian(cves); err != nil {
-		log.Errorf("Failed to inert. dbpath: %s, err: %s",
+		log.Errorf("Failed to insert. dbpath: %s, err: %s",
 			viper.GetString("dbpath"), err)
 		return err
 	}

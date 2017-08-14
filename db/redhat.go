@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/knqyf263/go-security-tracker/log"
@@ -10,18 +11,18 @@ import (
 	pb "gopkg.in/cheggaaa/pb.v1"
 )
 
-func (r *RDBDriver) GetAllRedhat() (allCves []models.RedhatCVE, err error) {
+func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.RedhatCVE, err error) {
 	all := []models.RedhatCVE{}
-	if err = r.conn.Find(&all).Error; err != nil {
+	if err = r.conn.Where("public_date >= ?", after.Format("2006-01-02")).Find(&all).Error; err != nil {
 		return nil, err
 	}
 
 	// TODO: insufficient
-	// for _, a := range all {
-	// 	r.conn.Model(&a).Related(&a.Cvss3).Related(&a.Bugzilla)
-	// 	allCves = append(allCves, a)
-	// }
-	return all, nil
+	for _, a := range all {
+		r.conn.Model(&a).Related(&a.Cvss3).Related(&a.Details)
+		allCves = append(allCves, a)
+	}
+	return allCves, nil
 }
 
 func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
@@ -38,7 +39,11 @@ func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 }
 
 func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
-	cves := ConvertRedhat(cveJSONs)
+	cves, err := ConvertRedhat(cveJSONs)
+	if err != nil {
+		return err
+	}
+
 	bar := pb.StartNew(len(cves))
 
 	log.Infof("Insert %d CVEs", len(cves))
@@ -100,7 +105,7 @@ func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cve models.RedhatCVE) (
 	return nil
 }
 
-func ConvertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE) {
+func ConvertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE, err error) {
 	for _, cve := range cveJSONs {
 		var details []models.RedhatDetail
 		for _, d := range cve.Details {
@@ -117,10 +122,18 @@ func ConvertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE) {
 		cve.Bugzilla.Description = util.TrimSpaceNewline(cve.Bugzilla.Description)
 		cve.Statement = util.TrimSpaceNewline(cve.Statement)
 
+		var publicDate time.Time
+		if cve.PublicDate != "" {
+			publicDate, err = time.Parse("2006-01-02T15:04:05", cve.PublicDate)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to parse date. date: %s err: %s", cve.PublicDate, err)
+			}
+		}
+
 		// TODO: more efficient
 		c := models.RedhatCVE{
 			ThreatSeverity:       cve.ThreatSeverity,
-			PublicDate:           cve.PublicDate,
+			PublicDate:           publicDate,
 			Bugzilla:             cve.Bugzilla,
 			Cvss:                 cve.Cvss,
 			Cvss3:                cve.Cvss3,
@@ -139,7 +152,7 @@ func ConvertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE) {
 		}
 		cves = append(cves, c)
 	}
-	return cves
+	return cves, nil
 }
 
 func ClearIDRedhat(cve *models.RedhatCVE) {

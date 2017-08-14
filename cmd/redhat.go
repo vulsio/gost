@@ -42,7 +42,7 @@ func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
 
 	log.Infof("Insert RedHat into DB (%s).", driver.Name())
 	if err := driver.InsertRedhat(cves); err != nil {
-		log.Errorf("Failed to inert. dbpath: %s, err: %s",
+		log.Errorf("Failed to insert. dbpath: %s, err: %s",
 			viper.GetString("dbpath"), err)
 		return err
 	}

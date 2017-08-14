@@ -11,18 +11,17 @@ type Config struct {
 // }
 
 type WatchCve struct {
-	CveId           string `toml:"cveid"`
-	ThreatSeverity  bool   `toml:"threat_severity"`
-	Bugzilla        bool
-	Cvss            bool
-	Cvss3           bool
-	Statement       bool
-	Acknowledgement bool
-	Mitigation      bool
+	ThreatSeverity  bool `toml:"threat_severity"`
+	Bugzilla        bool `toml:"bugzilla"`
+	Cvss            bool `toml:"cvss"`
+	Cvss3           bool `toml:"cvss3"`
+	Statement       bool `toml:"statement"`
+	Acknowledgement bool `toml:"acknowledgement"`
+	Mitigation      bool `toml:"mitigation"`
 	AffectedRelease bool `toml:"affected_release"`
 	PackageState    bool `toml:"package_state"`
-	Reference       bool
-	Details         bool
+	Reference       bool `toml:"reference"`
+	Details         bool `toml:"details"`
 }
 
 // SMTPConf is smtp config

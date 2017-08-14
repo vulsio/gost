@@ -44,7 +44,7 @@ type RedhatCVE struct {
 
 	// gorm can't handle embedded struct
 	ThreatSeverity       string
-	PublicDate           string
+	PublicDate           time.Time
 	Bugzilla             RedhatBugzilla
 	Cvss                 RedhatCvss
 	Cvss3                RedhatCvss3

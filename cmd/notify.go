@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/k0kubun/pp"
 
 	"github.com/knqyf263/go-security-tracker/config"
 	"github.com/knqyf263/go-security-tracker/db"
@@ -46,27 +47,29 @@ func executeNotify(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	log.Info("Fetched the list of CVEs from RedHat")
-	entries, err := fetcher.ListAllRedhatCves()
-	var watchCveURL []string
-	for cveID := range config.Redhat {
-		for _, e := range entries {
-			if e.CveID == cveID {
-				watchCveURL = append(watchCveURL, e.ResourceURL)
-			}
-		}
-	}
-
-	// watchCveURL := []string{
-	// 	"https://access.redhat.com/labs/securitydataapi/cve/CVE-2012-1961.json",
-	// 	// "https://access.redhat.com/labs/securitydataapi/cve/CVE-2014-7970.json",
+	// entries, err := fetcher.ListAllRedhatCves()
+	// var watchCveURL []string
+	// for cveID := range config.Redhat {
+	// 	for _, e := range entries {
+	// 		if e.CveID == cveID {
+	// 			watchCveURL = append(watchCveURL, e.ResourceURL)
+	// 		}
+	// 	}
 	// }
+
+	watchCveURL := []string{
+		"https://access.redhat.com/labs/securitydataapi/cve/CVE-2012-1961.json",
+		// "https://access.redhat.com/labs/securitydataapi/cve/CVE-2014-7970.json",
+	}
 	log.Infof("Fetched %d CVEs", len(watchCveURL))
 	cveJSONs, err := fetcher.RetrieveRedhatCveDetails(watchCveURL)
 	if err != nil {
 		return err
 	}
+	pp.Println(cveJSONs)
+	return
 
-	cves := db.ConvertRedhat(cveJSONs)
+	cves, err := db.ConvertRedhat(cveJSONs)
 	if err != nil {
 		return nil
 
