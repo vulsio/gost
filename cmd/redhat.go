@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/knqyf263/go-security-tracker/db"
-	"github.com/knqyf263/go-security-tracker/fetcher"
-	"github.com/knqyf263/go-security-tracker/log"
+	"github.com/knqyf263/gost/db"
+	"github.com/knqyf263/gost/fetcher"
+	"github.com/knqyf263/gost/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

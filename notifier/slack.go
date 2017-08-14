@@ -8,7 +8,7 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/spf13/viper"
 
-	"github.com/knqyf263/go-security-tracker/config"
+	"github.com/knqyf263/gost/config"
 	"github.com/labstack/gommon/log"
 	"github.com/parnurzeal/gorequest"
 )

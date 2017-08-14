@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/knqyf263/go-security-tracker/db"
-	"github.com/knqyf263/go-security-tracker/log"
+	"github.com/knqyf263/gost/db"
+	"github.com/knqyf263/gost/log"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/standard"
 	"github.com/labstack/echo/middleware"

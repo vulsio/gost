@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/knqyf263/go-security-tracker/config"
-	"github.com/knqyf263/go-security-tracker/db"
-	"github.com/knqyf263/go-security-tracker/log"
+	"github.com/knqyf263/gost/config"
+	"github.com/knqyf263/gost/db"
+	"github.com/knqyf263/gost/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

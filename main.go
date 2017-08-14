@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/knqyf263/go-security-tracker/cmd"
+	"github.com/knqyf263/gost/cmd"
 )
 
 func main() {

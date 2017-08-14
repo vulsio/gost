@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
-	"github.com/knqyf263/go-security-tracker/log"
-	"github.com/knqyf263/go-security-tracker/models"
-	"github.com/knqyf263/go-security-tracker/util"
+	"github.com/knqyf263/gost/log"
+	"github.com/knqyf263/gost/models"
+	"github.com/knqyf263/gost/util"
 	pb "gopkg.in/cheggaaa/pb.v1"
 )
 

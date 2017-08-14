@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/knqyf263/go-security-tracker/log"
-	"github.com/knqyf263/go-security-tracker/util"
+	"github.com/knqyf263/gost/log"
+	"github.com/knqyf263/gost/util"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -16,9 +16,9 @@ var cfgFile string
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "go-security-tracker",
-	Short: "go-security-tracker",
-	Long:  `go-security-tracker`,
+	Use:   "gost",
+	Short: "gost",
+	Long:  `gost`,
 }
 
 func Execute() {
@@ -31,7 +31,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.go-security-tracker.yaml)")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gost.yaml)")
 
 	RootCmd.PersistentFlags().String("log-dir", "", "/path/to/log")
 	viper.BindPFlag("log-dir", RootCmd.PersistentFlags().Lookup("log-dir"))
@@ -73,9 +73,9 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		// Search config in home directory with name ".go-security-tracker" (without extension).
+		// Search config in home directory with name ".gost" (without extension).
 		viper.AddConfigPath(home)
-		viper.SetConfigName(".go-security-tracker")
+		viper.SetConfigName(".gost")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match

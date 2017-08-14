@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/knqyf263/go-security-tracker/models"
-	"github.com/knqyf263/go-security-tracker/util"
+	"github.com/knqyf263/gost/models"
+	"github.com/knqyf263/gost/util"
 )
 
 // https://security-tracker.debian.org/tracker/data/json

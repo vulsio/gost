@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/knqyf263/go-security-tracker/models"
-	"github.com/knqyf263/go-security-tracker/util"
+	"github.com/knqyf263/gost/models"
+	"github.com/knqyf263/gost/util"
 )
 
 // ListAllRedhatCves returns the list of all CVEs from RedHat API
@@ -19,6 +19,12 @@ func ListAllRedhatCves() (entries []models.RedhatEntry, err error) {
 
 	json.Unmarshal([]byte(body), &entries)
 	return entries, nil
+}
+
+// GetRedhatCveDetailURL returns CVE detail URL.
+func GetRedhatCveDetailURL(cveID string) (url string) {
+	return fmt.Sprintf("https://access.redhat.com/labs/securitydataapi/cve/%s.json", cveID)
+
 }
 
 // RetrieveRedhatCveDetails returns full CVE details from RedHat API

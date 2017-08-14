@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/knqyf263/go-security-tracker/db"
-	"github.com/knqyf263/go-security-tracker/fetcher"
-	"github.com/knqyf263/go-security-tracker/log"
+	"github.com/knqyf263/gost/db"
+	"github.com/knqyf263/gost/fetcher"
+	"github.com/knqyf263/gost/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -30,9 +30,9 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	log.Infof("Insert Debian into DB (%s).", driver.Name())
+	log.Infof("Insert Debian into DB (%s)", driver.Name())
 	if err := driver.InsertDebian(cves); err != nil {
-		log.Errorf("Failed to insert. dbpath: %s, err: %s",
+		log.Errorf("Failed to insert. dbpath: %s. err: %s",
 			viper.GetString("dbpath"), err)
 		return err
 	}

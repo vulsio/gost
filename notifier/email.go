@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/knqyf263/go-security-tracker/config"
+	"github.com/knqyf263/gost/config"
 )
 
 // EMailSender is interface of sending e-mail

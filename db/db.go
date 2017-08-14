@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/knqyf263/go-security-tracker/log"
-	"github.com/knqyf263/go-security-tracker/models"
+	"github.com/knqyf263/gost/log"
+	"github.com/knqyf263/gost/models"
 	"github.com/spf13/viper"
 )
 
@@ -28,7 +28,7 @@ func NewDB(dbType string) (DB, error) {
 	case dialectSqlite3, dialectMysql, dialectPostgreSQL:
 		return &RDBDriver{name: dbType}, nil
 	}
-	return nil, fmt.Errorf("Invalid database dialect, %s", dbType)
+	return nil, fmt.Errorf("Invalid database dialect. err: %s", dbType)
 }
 
 func InitDB(dbType string, dbPath string, debugSql bool) (driver DB, err error) {
@@ -37,13 +37,13 @@ func InitDB(dbType string, dbPath string, debugSql bool) (driver DB, err error) 
 		return driver, err
 	}
 
-	log.Infof("Opening DB (%s).", driver.Name())
+	log.Infof("Opening DB (%s)", driver.Name())
 	if err := driver.OpenDB(viper.GetString("dbtype"), viper.GetString("dbpath"), debugSql); err != nil {
 		log.Error(err)
 		return driver, err
 	}
 
-	log.Infof("Migrating DB (%s).", driver.Name())
+	log.Infof("Migrating DB (%s)", driver.Name())
 	if err := driver.MigrateDB(); err != nil {
 		log.Error(err)
 		return driver, err

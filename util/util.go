@@ -28,9 +28,9 @@ func GenWorkers(num int) chan<- func() {
 
 // GetDefaultLogDir returns default log directory
 func GetDefaultLogDir() string {
-	defaultLogDir := "/var/log/go-security-tracker"
+	defaultLogDir := "/var/log/gost"
 	if runtime.GOOS == "windows" {
-		defaultLogDir = filepath.Join(os.Getenv("APPDATA"), "go-security-tracker")
+		defaultLogDir = filepath.Join(os.Getenv("APPDATA"), "gost")
 	}
 	return defaultLogDir
 }
