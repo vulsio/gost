@@ -7,11 +7,10 @@ import (
 // fetchCmd represents the fetch command
 var fetchCmd = &cobra.Command{
 	Use:   "fetch",
-	Short: "Fetch data of the security tracker",
-	Long:  `Fetch data of the security tracker`,
+	Short: "Fetch the data of the security tracker",
+	Long:  `Fetch the data of the security tracker`,
 }
 
 func init() {
 	RootCmd.AddCommand(fetchCmd)
-
 }

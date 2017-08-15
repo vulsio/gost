@@ -9,7 +9,7 @@ import (
 	"github.com/knqyf263/gost/models"
 )
 
-func DiffRedhat(old, new *models.RedhatCVE, config config.WatchCve) (body string) {
+func DiffRedhat(old, new *models.RedhatCVE, config config.RedhatWatchCve) (body string) {
 	if config.ThreatSeverity {
 		if old.ThreatSeverity != new.ThreatSeverity {
 			body += fmt.Sprintf("\nThreat Secirity\n------------------\n[old]\n%v\n\n[new]\n%v\n",

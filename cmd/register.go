@@ -21,14 +21,9 @@ import (
 // registerCmd represents the register command
 var registerCmd = &cobra.Command{
 	Use:   "register",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	RunE: executeRegister,
+	Short: "Register CVEs to monitor",
+	Long:  `Register CVEs to monitor`,
+	RunE:  executeRegister,
 }
 
 func init() {
@@ -42,18 +37,18 @@ func init() {
 	viper.BindPFlag("select-option", registerCmd.PersistentFlags().Lookup("select-option"))
 	viper.SetDefault("select-option", "--reverse")
 
-	registerCmd.PersistentFlags().String("after", "", "Show CVEs after the specified date (e.g. 2017-01-01) (default: 30 days ago)")
-	viper.BindPFlag("after", registerCmd.PersistentFlags().Lookup("after"))
-	viper.SetDefault("after", "")
+	registerCmd.PersistentFlags().String("select-after", "", "Show CVEs after the specified date (e.g. 2017-01-01) (default: 30 days ago)")
+	viper.BindPFlag("select-after", registerCmd.PersistentFlags().Lookup("select-after"))
+	viper.SetDefault("select-after", "")
 }
 
 func executeRegister(cmd *cobra.Command, args []string) (err error) {
 	log.Info("Validate command-line options")
-	afterOption := viper.GetString("after")
+	afterOption := viper.GetString("select-after")
 	var after time.Time
 	if afterOption != "" {
 		if after, err = time.Parse("2006-01-02", afterOption); err != nil {
-			return fmt.Errorf("Failed to parse --after. err: %s", err)
+			return fmt.Errorf("Failed to parse --select-after. err: %s", err)
 		}
 	} else {
 		now := time.Now()
@@ -81,10 +76,6 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 
 	allRedhatText := []string{}
 	for _, redhat := range allRedhat {
-		// d := redhat.GetDetail("")
-		// if d != "" {
-		// 	fmt.Println(d)
-		// }
 		if redhat.Name == "" {
 			continue
 		}
@@ -104,7 +95,7 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 	for _, cve := range cves {
 		_, ok := conf.Redhat[cve]
 		if !ok {
-			conf.Redhat[cve] = config.WatchCve{}
+			conf.Redhat[cve] = config.RedhatWatchCve{}
 		}
 	}
 	if err = save(conf); err != nil {

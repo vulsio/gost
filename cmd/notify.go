@@ -37,14 +37,17 @@ func init() {
 
 func executeNotify(cmd *cobra.Command, args []string) (err error) {
 	log.Info("Load toml config")
-	var config config.Config
-	_, err = toml.DecodeFile("config.toml", &config)
-	if err != nil {
+	var conf config.Config
+	if _, err = toml.DecodeFile("config.toml", &conf); err != nil {
 		return err
 	}
+	notifyRedhat(conf)
+	return err
+}
 
+func notifyRedhat(conf config.Config) error {
 	var watchCveURL []string
-	for cveID := range config.Redhat {
+	for cveID := range conf.Redhat {
 		watchCveURL = append(watchCveURL, fetcher.GetRedhatCveDetailURL(cveID))
 	}
 
@@ -71,25 +74,33 @@ func executeNotify(cmd *cobra.Command, args []string) (err error) {
 		c := driver.GetRedhat(cve.Name)
 		db.ClearIDRedhat(c)
 
-		body := util.DiffRedhat(c, &cve, config.Redhat[cve.Name])
+		cve.Cvss.CvssBaseScore = "1.2"
+		body := util.DiffRedhat(c, &cve, conf.Redhat[cve.Name])
 		if body != "" {
+			subject := fmt.Sprintf("%s Update %s", conf.EMail.SubjectPrefix, cve.Name)
 			body = fmt.Sprintf("%s\nhttps://access.redhat.com/security/cve/%s\n========================================================\n",
 				cve.Name, cve.Name) + body
-			fmt.Println(body)
-			if viper.GetBool("to-email") {
-				sender := notifier.NewEMailSender(config.EMail)
-				subject := fmt.Sprintf("%s Update %s", config.EMail.SubjectPrefix, cve.Name)
-				log.Info("Send e-mail")
-				sender.Send(subject, body)
-			}
+			notify(subject, body, conf)
+		}
+	}
+	return nil
+}
 
-			if viper.GetBool("to-slack") {
-				log.Info("Send slack")
-				notifier.SendSlack(body, config.Slack)
-			}
+func notify(subject, body string, conf config.Config) (err error) {
+	fmt.Println(body)
+	if viper.GetBool("to-email") {
+		sender := notifier.NewEMailSender(conf.EMail)
+		log.Info("Send e-mail")
+		if err = sender.Send(subject, body); err != nil {
+			return fmt.Errorf("Failed to send e-mail. err: %s", err)
 		}
 	}
 
+	if viper.GetBool("to-slack") {
+		log.Info("Send slack")
+		if err = notifier.SendSlack(body, conf.Slack); err != nil {
+			return fmt.Errorf("Failed to send to Slack. err: %s", err)
+		}
+	}
 	return nil
-
 }

@@ -11,8 +11,8 @@ import (
 // debianCmd represents the debian command
 var debianCmd = &cobra.Command{
 	Use:   "debian",
-	Short: "Fetch the CVE information from Red Hat API",
-	Long:  `Fetch the CVE information from Red Hat API`,
+	Short: "Fetch the CVE information from Debian",
+	Long:  `Fetch the CVE information from Debian`,
 	RunE:  fetchDebian,
 }
 
@@ -30,7 +30,7 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	log.Infof("Insert Debian into DB (%s)", driver.Name())
+	log.Infof("Insert Debian CVEs into DB (%s)", driver.Name())
 	if err := driver.InsertDebian(cves); err != nil {
 		log.Errorf("Failed to insert. dbpath: %s. err: %s",
 			viper.GetString("dbpath"), err)

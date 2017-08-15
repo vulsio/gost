@@ -1,16 +1,12 @@
 package config
 
 type Config struct {
-	Redhat map[string]WatchCve `toml:"redhat"`
+	Redhat map[string]RedhatWatchCve `toml:"redhat"`
 	EMail  SMTPConf
 	Slack  SlackConf
 }
 
-// type RedhatCve struct {
-// 	Cve []WatchCve `toml:"cve"`
-// }
-
-type WatchCve struct {
+type RedhatWatchCve struct {
 	ThreatSeverity  bool `toml:"threat_severity"`
 	Bugzilla        bool `toml:"bugzilla"`
 	Cvss            bool `toml:"cvss"`
