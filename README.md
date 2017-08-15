@@ -7,9 +7,6 @@ The pronunciation of `gost` is the same as the English word "ghost".
 
 <img src="doc/gost01.gif" width="700">
 
-
-
-
 # Absract
 `gost` is written in Go, and therefore you can just grab the binary releases and drop it in your $PATH.
 
@@ -24,7 +21,8 @@ A system administrator always monitor `Seucrity Tracker`.It can be a burden. For
 `gost` has the following features.
 - Build a local copy of Security Tracker
 - A server mode for easy querying
-- Notify if there is an update
+- Register CVEs to watch list
+- Notify if there is an update (E-Mail or Slack)
 - Monitoring metric can be specified (e.g. CVSS Score, Severity, etc.)
 
 # Usage
@@ -150,6 +148,9 @@ You need to install selector command (fzf or peco).
 ```
 $ go get github.com/knqyf263/gost
 ```
+
+# TODO
+- Ubuntu(https://people.canonical.com/~ubuntu-security/cve/)
 
 # Contribute
 
