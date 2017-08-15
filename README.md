@@ -1,7 +1,8 @@
 # gost (go-security-tracker)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](https://github.com/knqyf263/gost/blob/master/LICENSE)
 
-`gost` builds a local copy of Security Tracker(Redhat/Debian). Notify via E-mail/Slack if there is an update.
+`gost` builds a local copy of Security Tracker(Redhat/Debian).   
+After you register CVEs to watch list, `gost` notify via E-mail/Slack if there is an update.
 
 The pronunciation of `gost` is the same as the English word "ghost".
 
