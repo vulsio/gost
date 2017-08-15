@@ -70,6 +70,20 @@ func (r RedhatCVE) GetDetail(sep string) string {
 	return strings.Join(details, sep)
 }
 
+func (r RedhatCVE) GetPackages(sep string) (result string) {
+	pkgs := map[string]struct{}{}
+	for _, d := range r.PackageState {
+		pkgs[d.PackageName] = struct{}{}
+	}
+
+	var pkgNames []string
+	for p := range pkgs {
+		pkgNames = append(pkgNames, p)
+	}
+
+	return strings.Join(pkgNames, sep)
+}
+
 type RedhatDetail struct {
 	RedhatCVEID int64 `sql:"type:bigint REFERENCES redhat_cves(id)"`
 	Detail      string

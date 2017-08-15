@@ -14,6 +14,7 @@ import (
 	"github.com/knqyf263/gost/config"
 	"github.com/knqyf263/gost/db"
 	"github.com/knqyf263/gost/log"
+	runewidth "github.com/mattn/go-runewidth"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -57,9 +58,14 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 
 	log.Info("Load toml config")
 	var conf config.Config
-	_, err = toml.DecodeFile("config.toml", &conf)
-	if err != nil {
-		return err
+	filename := "config.toml"
+	if _, err = os.Stat(filename); err == nil {
+		_, err = toml.DecodeFile("config.toml", &conf)
+		if err != nil {
+			return err
+		}
+	} else {
+		conf.Redhat = map[string]config.RedhatWatchCve{}
 	}
 
 	log.Info("Initialize Database")
@@ -79,8 +85,8 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 		if redhat.Name == "" {
 			continue
 		}
-		allRedhatText = append(allRedhatText, fmt.Sprintf("%-16s | %-10s | %-3s | %s", redhat.Name, redhat.ThreatSeverity,
-			redhat.Cvss3.Cvss3BaseScore, redhat.GetDetail("")))
+		allRedhatText = append(allRedhatText, fmt.Sprintf("%-16s | %-10s | %-3s | %-24s | %s", redhat.Name, redhat.ThreatSeverity,
+			redhat.Cvss3.Cvss3BaseScore, runewidth.Truncate(redhat.GetPackages(","), 20, "..."), runewidth.Truncate(redhat.GetDetail(""), 120, "...")))
 	}
 	selectedLine, err := filter(allRedhatText)
 	var cves []string
@@ -92,6 +98,7 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 		cves = append(cves, strings.TrimSpace(split[0]))
 	}
 
+	log.Info("Register CVEs to watch list")
 	for _, cve := range cves {
 		_, ok := conf.Redhat[cve]
 		if !ok {

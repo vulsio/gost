@@ -74,7 +74,8 @@ func notifyRedhat(conf config.Config) error {
 		c := driver.GetRedhat(cve.Name)
 		db.ClearIDRedhat(c)
 
-		cve.Cvss.CvssBaseScore = "1.2"
+		cve.Cvss3.Cvss3BaseScore = "10 (This is dummy)"
+		cve.ThreatSeverity = "High (This is dummy)"
 		body := util.DiffRedhat(c, &cve, conf.Redhat[cve.Name])
 		if body != "" {
 			subject := fmt.Sprintf("%s Update %s", conf.EMail.SubjectPrefix, cve.Name)

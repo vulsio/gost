@@ -17,8 +17,8 @@ var cfgFile string
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "gost",
-	Short: "gost",
-	Long:  `gost`,
+	Short: "Security Tracker",
+	Long:  `Security Tracker`,
 }
 
 func Execute() {

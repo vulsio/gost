@@ -56,12 +56,6 @@
   revision = "1c35d901db3da928c72a72d8458480cc9ade058f"
 
 [[projects]]
-  name = "github.com/k0kubun/pp"
-  packages = ["."]
-  revision = "027a6d1765d673d337e687394dbe780dd64e2a1e"
-  version = "v2.3.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/kotakanbe/logrus-prefixed-formatter"
   packages = ["."]
@@ -262,6 +256,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e1163a85f1765da2cd61e18c5f8ff9f64ecc5ad0cb90dd0b1f8566a2c5aa7bb3"
+  inputs-digest = "08150f7155a00ec3caab600def35fa1ebfd66965b8b77a5ae6fde288fe65e8b1"
   solver-name = "gps-cdcl"
   solver-version = 1

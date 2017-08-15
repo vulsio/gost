@@ -19,7 +19,7 @@ func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.Redhat
 
 	// TODO: insufficient
 	for _, a := range all {
-		r.conn.Model(&a).Related(&a.Cvss3).Related(&a.Details)
+		r.conn.Model(&a).Related(&a.Cvss3).Related(&a.Details).Related(&a.PackageState)
 		allCves = append(allCves, a)
 	}
 	return allCves, nil
