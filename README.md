@@ -8,15 +8,12 @@ The pronunciation of `gost` is the same as the English word "ghost".
 
 <img src="doc/gost01.gif" width="700">
 
-# Absract
+# Abstract
 `gost` is written in Go, and therefore you can just grab the binary releases and drop it in your $PATH.
 
-`gost` builds a local copy of Security Tracker(Redhat[1]/Debian[2]).  
+`gost` builds a local copy of Security Tracker ([Redhat](https://access.redhat.com/security/security-updates/) or [Debian](https://security-tracker.debian.org/tracker/)). 
 
-[1] https://access.redhat.com/security/security-updates/#/  
-[2] https://security-tracker.debian.org/tracker/  
-
-A system administrator always monitor `Seucrity Tracker`.It can be a burden. For example, after the vulnerability is found, we have to wait until the patch comes out. I hope anyone notify me if there is an update. 
+A system administrator always monitor `Security Tracker`. It can be a burden. For example, after the vulnerability is found, we have to wait until the patch comes out. I hope anyone notifies me if there is an update. 
 
 # Main features
 `gost` has the following features.
