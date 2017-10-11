@@ -8,7 +8,7 @@ The pronunciation of `gost` is the same as the English word "ghost".
 
 <img src="doc/gost01.gif" width="700">
 
-# Absract
+# Abstract
 `gost` is written in Go, and therefore you can just grab the binary releases and drop it in your $PATH.
 
 `gost` builds a local copy of Security Tracker(Redhat[1]/Debian[2]).  
