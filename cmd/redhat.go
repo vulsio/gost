@@ -22,11 +22,16 @@ func init() {
 	redhatCmd.PersistentFlags().String("after", "", "Fetch CVEs after the specified date (e.g. 2017-01-01) (default: 1970-01-01)")
 	viper.BindPFlag("after", redhatCmd.PersistentFlags().Lookup("after"))
 	viper.SetDefault("after", "1970-01-01")
+
+	redhatCmd.PersistentFlags().String("before", "", "Fetch CVEs before the specified date (e.g. 2017-01-01)")
+	viper.BindPFlag("before", redhatCmd.PersistentFlags().Lookup("before"))
+	viper.SetDefault("before", "")
 }
 
 func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
 	log.Infof("Fetch the list of CVEs")
-	entries, err := fetcher.ListAllRedhatCves(viper.GetString("after"))
+	entries, err := fetcher.ListAllRedhatCves(
+		viper.GetString("before"), viper.GetString("after"))
 	var resourceURLs []string
 	for _, entry := range entries {
 		resourceURLs = append(resourceURLs, entry.ResourceURL)
