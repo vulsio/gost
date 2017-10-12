@@ -10,8 +10,12 @@ import (
 
 // ListAllRedhatCves returns the list of all CVEs from RedHat API
 // https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/#list_all_cves
-func ListAllRedhatCves(after string) (entries []models.RedhatEntry, err error) {
+func ListAllRedhatCves(before, after string) (entries []models.RedhatEntry, err error) {
 	url := fmt.Sprintf("https://access.redhat.com/labs/securitydataapi/cve.json?after=%s&per_page=100000", after)
+	if before != "" {
+		url += fmt.Sprintf("&before=%s", before)
+
+	}
 	body, err := util.FetchURL(url)
 	if err != nil {
 		return entries, fmt.Errorf("Failed to fetch RedHat CVEs list: %v, url: %s", err, url)
