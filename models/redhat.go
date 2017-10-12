@@ -40,7 +40,7 @@ type RedhatCVEJSON struct {
 }
 
 type RedhatCVE struct {
-	ID int64
+	ID int64 `json:",omitempty"`
 
 	// gorm can't handle embedded struct
 	ThreatSeverity       string
@@ -58,8 +58,8 @@ type RedhatCVE struct {
 	Name                 string
 	DocumentDistribution string
 
-	Details    []RedhatDetail
-	References []RedhatReference
+	Details    []RedhatDetail    `json:",omitempty"`
+	References []RedhatReference `json:",omitempty"`
 }
 
 func (r RedhatCVE) GetDetail(sep string) string {
@@ -85,38 +85,38 @@ func (r RedhatCVE) GetPackages(sep string) (result string) {
 }
 
 type RedhatDetail struct {
-	RedhatCVEID int64 `sql:"type:bigint REFERENCES redhat_cves(id)"`
+	RedhatCVEID int64 `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty"`
 	Detail      string
 }
 
 type RedhatReference struct {
-	RedhatCVEID int64 `sql:"type:bigint REFERENCES redhat_cves(id)"`
+	RedhatCVEID int64 `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty"`
 	Reference   string
 }
 
 type RedhatBugzilla struct {
-	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)"`
+	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty"`
 	Description string `json:"description"`
 	BugzillaID  string `json:"id"`
 	URL         string `json:"url"`
 }
 
 type RedhatCvss struct {
-	RedhatCVEID       int64  `sql:"type:bigint REFERENCES redhat_cves(id)"`
+	RedhatCVEID       int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty"`
 	CvssBaseScore     string `json:"cvss_base_score"`
 	CvssScoringVector string `json:"cvss_scoring_vector"`
 	Status            string `json:"status"`
 }
 
 type RedhatCvss3 struct {
-	RedhatCVEID        int64  `sql:"type:bigint REFERENCES redhat_cves(id)"`
+	RedhatCVEID        int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty"`
 	Cvss3BaseScore     string `json:"cvss3_base_score"`
 	Cvss3ScoringVector string `json:"cvss3_scoring_vector"`
 	Status             string `json:"status"`
 }
 
 type RedhatAffectedRelease struct {
-	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)"`
+	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty"`
 	ProductName string `json:"product_name"`
 	ReleaseDate string `json:"release_date"`
 	Advisory    string `json:"advisory"`
@@ -125,7 +125,7 @@ type RedhatAffectedRelease struct {
 }
 
 type RedhatPackageState struct {
-	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)"`
+	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty"`
 	ProductName string `json:"product_name"`
 	FixState    string `json:"fix_state"`
 	PackageName string `json:"package_name"`
