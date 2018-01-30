@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
+	"github.com/knqyf263/gost/log"
 	"github.com/knqyf263/gost/models"
-	"github.com/kotakanbe/go-cve-dictionary/log"
 	"gopkg.in/cheggaaa/pb.v1"
 )
 

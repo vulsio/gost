@@ -34,7 +34,7 @@ func Initialize(logDir string) {
 			logrus.ErrorLevel: path,
 			logrus.FatalLevel: path,
 			logrus.PanicLevel: path,
-		}))
+		}, nil))
 	}
 
 	fields := logrus.Fields{"prefix": ""}
