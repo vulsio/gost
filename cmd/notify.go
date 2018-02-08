@@ -88,7 +88,6 @@ func notifyRedhat(conf config.Config) error {
 }
 
 func notify(subject, body string, conf config.Config) (err error) {
-	fmt.Println(body)
 	if viper.GetBool("to-email") {
 		sender := notifier.NewEMailSender(conf.EMail)
 		log.Info("Send e-mail")
