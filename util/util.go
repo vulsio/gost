@@ -14,12 +14,13 @@ import (
 )
 
 // GenWorkers generate workders
-func GenWorkers(num int) chan<- func() {
+func GenWorkers(num, wait int) chan<- func() {
 	tasks := make(chan func())
 	for i := 0; i < num; i++ {
 		go func() {
 			for f := range tasks {
 				f()
+				time.Sleep(time.Duration(wait) * time.Second)
 			}
 		}()
 	}
@@ -56,14 +57,18 @@ func FetchURL(url string) (string, error) {
 	var errs []error
 	httpProxy := viper.GetString("http-proxy")
 
-	resp, body, errs := gorequest.New().Proxy(httpProxy).Get(url).Type("text").End()
-	if len(errs) > 0 || resp == nil || resp.StatusCode != 200 {
-		return "", fmt.Errorf("HTTP error. errs: %v, url: %s", errs, url)
+	resp, body, err := gorequest.New().Proxy(httpProxy).Get(url).Type("text").End()
+	if len(errs) > 0 || resp == nil {
+		return "", fmt.Errorf("HTTP error. errs: %v, url: %s", err, url)
+	}
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("HTTP error. errs: %v, status code: %d, url: %s", err, resp.StatusCode, url)
 	}
 	return body, nil
 }
 
-func FetchConcurrently(urls []string, concurrency int) (responses []string, err error) {
+// FetchConcurrently fetches concurrently
+func FetchConcurrently(urls []string, concurrency, wait int) (responses []string, err error) {
 	reqChan := make(chan string, len(urls))
 	resChan := make(chan string, len(urls))
 	errChan := make(chan error, len(urls))
@@ -78,17 +83,22 @@ func FetchConcurrently(urls []string, concurrency int) (responses []string, err 
 	}()
 
 	bar := pb.StartNew(len(urls))
-	tasks := GenWorkers(concurrency)
+	tasks := GenWorkers(concurrency, wait)
 	for range urls {
 		tasks <- func() {
 			select {
 			case url := <-reqChan:
-				res, err := FetchURL(url)
-				if err != nil {
-					errChan <- err
-					return
+				var err error
+				for i := 1; i <= 3; i++ {
+					var res string
+					res, err = FetchURL(url)
+					if err == nil {
+						resChan <- res
+						return
+					}
+					time.Sleep(time.Duration(i*2) * time.Second)
 				}
-				resChan <- res
+				errChan <- err
 			}
 		}
 		bar.Increment()

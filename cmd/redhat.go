@@ -31,7 +31,11 @@ func init() {
 func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
 	log.Infof("Fetch the list of CVEs")
 	entries, err := fetcher.ListAllRedhatCves(
-		viper.GetString("before"), viper.GetString("after"))
+		viper.GetString("before"), viper.GetString("after"), viper.GetInt("threads"))
+	if err != nil {
+		log.Errorf("Failed to fetch the list of CVEs. err: %s", err)
+		return err
+	}
 	var resourceURLs []string
 	for _, entry := range entries {
 		resourceURLs = append(resourceURLs, entry.ResourceURL)
@@ -40,11 +44,13 @@ func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
 	log.Infof("Fetched %d CVEs", len(entries))
 	cves, err := fetcher.RetrieveRedhatCveDetails(resourceURLs)
 	if err != nil {
+		log.Errorf("Failed to fetch the CVE details. err: %s", err)
 		return err
 	}
 
 	driver, err := db.InitDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
+		log.Errorf("Failed to initialize DB. err: %s", err)
 		return err
 	}
 

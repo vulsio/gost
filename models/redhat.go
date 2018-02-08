@@ -20,23 +20,41 @@ type RedhatEntry struct {
 }
 
 type RedhatCVEJSON struct {
-	ThreatSeverity       string                  `json:"threat_severity"`
-	PublicDate           string                  `json:"public_date"`
-	Bugzilla             RedhatBugzilla          `json:"bugzilla"`
-	Cvss                 RedhatCvss              `json:"cvss"`
-	Cvss3                RedhatCvss3             `json:"cvss3"`
-	Iava                 string                  `json:"iava"`
-	Cwe                  string                  `json:"cwe"`
-	Statement            string                  `json:"statement"`
-	Acknowledgement      string                  `json:"acknowledgement"`
-	Mitigation           string                  `json:"mitigation"`
-	AffectedRelease      []RedhatAffectedRelease `json:"affected_release"`
-	PackageState         []RedhatPackageState    `json:"package_state"`
-	Name                 string                  `json:"name"`
-	DocumentDistribution string                  `json:"document_distribution"`
+	ThreatSeverity       string         `json:"threat_severity"`
+	PublicDate           string         `json:"public_date"`
+	Bugzilla             RedhatBugzilla `json:"bugzilla"`
+	Cvss                 RedhatCvss     `json:"cvss"`
+	Cvss3                RedhatCvss3    `json:"cvss3"`
+	Iava                 string         `json:"iava"`
+	Cwe                  string         `json:"cwe"`
+	Statement            string         `json:"statement"`
+	Acknowledgement      string         `json:"acknowledgement"`
+	Mitigation           string         `json:"mitigation"`
+	TempAffectedRelease  interface{}    `json:"affected_release"` // affected_release is array or object
+	AffectedRelease      []RedhatAffectedRelease
+	TempPackageState     interface{} `json:"package_state"` // package_state is array or object
+	PackageState         []RedhatPackageState
+	Name                 string `json:"name"`
+	DocumentDistribution string `json:"document_distribution"`
 
 	Details    []string `json:"details" gorm:"-"`
 	References []string `json:"references" gorm:"-"`
+}
+
+type RedhatCVEJSONAffectedReleaseArray struct {
+	AffectedRelease []RedhatAffectedRelease `json:"affected_release"`
+}
+
+type RedhatCVEJSONAffectedReleaseObject struct {
+	AffectedRelease RedhatAffectedRelease `json:"affected_release"`
+}
+
+type RedhatCVEJSONPackageStateArray struct {
+	PackageState []RedhatPackageState `json:"package_state"`
+}
+
+type RedhatCVEJSONPackageStateObject struct {
+	PackageState RedhatPackageState `json:"package_state"`
 }
 
 type RedhatCVE struct {
