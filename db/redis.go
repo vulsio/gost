@@ -85,6 +85,34 @@ func (r *RedisDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	return &redhat
 }
 
+func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]*models.RedhatCVE {
+	results := map[string]*models.RedhatCVE{}
+	rs := map[string]*redis.StringStringMapCmd{}
+
+	pipe := r.conn.Pipeline()
+	for _, cveID := range cveIDs {
+		rs[cveID] = pipe.HGetAll(hashKeyPrefix + cveID)
+	}
+	if _, err := pipe.Exec(); err != nil {
+		if err != redis.Nil {
+			log.Errorf("Failed to get multi cve json. err : %s", err)
+			return nil
+		}
+	}
+
+	for cveID, result := range rs {
+		var redhat models.RedhatCVE
+		if j, ok := result.Val()["RedHat"]; ok {
+			if err := json.Unmarshal([]byte(j), &redhat); err != nil {
+				log.Errorf("Failed to Unmarshal json. err : %s", err)
+				return nil
+			}
+		}
+		results[cveID] = &redhat
+	}
+	return results
+}
+
 func (r *RedisDriver) GetDebian(string) *models.DebianCVE {
 	return nil
 }

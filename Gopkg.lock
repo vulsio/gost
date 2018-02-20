@@ -33,10 +33,11 @@
     "internal/consistenthash",
     "internal/hashtag",
     "internal/pool",
-    "internal/proto"
+    "internal/proto",
+    "internal/singleflight"
   ]
-  revision = "4021ace05686f632ff17fd824bbed229fc474cf8"
-  version = "v6.8.2"
+  revision = "fa7f64f7f27348658ecfa71dd71dfb2d112e2f86"
+  version = "v6.9.0"
 
 [[projects]]
   name = "github.com/go-sql-driver/mysql"
@@ -76,7 +77,7 @@
     "dialects/postgres",
     "dialects/sqlite"
   ]
-  revision = "0a51f6cdc55d1650d9ed3b4c13026cfa9133b01e"
+  revision = "58e34726dfc069b558038efbaa25555f182d1f7a"
 
 [[projects]]
   branch = "master"
@@ -122,13 +123,13 @@
     "hstore",
     "oid"
   ]
-  revision = "19c8e9ad00952ce0c64489b60e8df88bb16dd514"
+  revision = "88edab0803230a3898347e77b474f8c1820a1f20"
 
 [[projects]]
   name = "github.com/magiconair/properties"
   packages = ["."]
-  revision = "d419a98cdbed11a922bf76f257b7c4be79b50e73"
-  version = "v1.7.4"
+  revision = "c3beff4c2358b44d0493c7dda585e7db7ff28ae6"
+  version = "v1.7.6"
 
 [[projects]]
   name = "github.com/mattn/go-colorable"
@@ -170,7 +171,7 @@
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
-  revision = "b4575eea38cca1123ec2dc90c26529b5c5acfcff"
+  revision = "a4e142e9c047c904fa2f1e144d9a84e6133024bc"
 
 [[projects]]
   branch = "master"
@@ -206,7 +207,7 @@
   branch = "master"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
-  revision = "768a92a02685ee7535069fc1581341b41bab9b72"
+  revision = "8c0189d9f6bbf301e5d055d34268156b317016af"
 
 [[projects]]
   name = "github.com/spf13/afero"
@@ -220,14 +221,14 @@
 [[projects]]
   name = "github.com/spf13/cast"
   packages = ["."]
-  revision = "acbeb36b902d72a7a4c18e8f3241075e7ab763e4"
-  version = "v1.1.0"
+  revision = "8965335b8c7107321228e3e3702cab9832751bac"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "f91529fc609202eededff4de2dc0ba2f662240a3"
+  revision = "be77323fc05148ef091e83b3866c0d47c8e74a8b"
 
 [[projects]]
   branch = "master"
@@ -263,7 +264,7 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
-  revision = "1875d0a70c90e57f11972aefd42276df65e895b9"
+  revision = "432090b8f568c018896cd8a0fb0345872bbac6ce"
 
 [[projects]]
   branch = "master"
@@ -273,7 +274,7 @@
     "idna",
     "publicsuffix"
   ]
-  revision = "0ed95abb35c445290478a5348a7b38bb154135fd"
+  revision = "cbe0f9307d0156177f9dd5dc85da1a31abc5f2fb"
 
 [[projects]]
   branch = "master"
@@ -282,7 +283,7 @@
     "unix",
     "windows"
   ]
-  revision = "3dbebcf8efb6a5011a60c2b4591c1022a759af8a"
+  revision = "37707fdb30a5b38865cfb95e5aab41707daec7fd"
 
 [[projects]]
   branch = "master"
@@ -303,13 +304,13 @@
     "unicode/norm",
     "unicode/rangetable"
   ]
-  revision = "e19ae1496984b1c655b8044a65c0300a3c878dd3"
+  revision = "4e4a3210bb54bb31f6ab2cdca2edcc0b50c420c1"
 
 [[projects]]
   name = "gopkg.in/cheggaaa/pb.v1"
   packages = ["."]
-  revision = "5119518d88fbf604cab04dafd667dc7022e3b5ac"
-  version = "v1.0.21"
+  revision = "72b964305fba1230d3d818711138195f22b9ceea"
+  version = "v1.0.22"
 
 [[projects]]
   branch = "v2"

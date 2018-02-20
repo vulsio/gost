@@ -17,6 +17,7 @@ type DB interface {
 	GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error)
 	// GetAllDebian() *[]models.DebianCVE
 	GetRedhat(string) *models.RedhatCVE
+	GetRedhatMulti([]string) map[string]*models.RedhatCVE
 	GetDebian(string) *models.DebianCVE
 	InsertRedhat([]models.RedhatCVEJSON) error
 	InsertDebian(models.DebianJSON) error
