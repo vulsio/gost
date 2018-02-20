@@ -38,6 +38,10 @@ func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	return &c
 }
 
+func (r *RDBDriver) GetRedhatMulti(cveID []string) map[string]*models.RedhatCVE {
+	return nil
+}
+
 func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
 	cves, err := ConvertRedhat(cveJSONs)
 	if err != nil {
