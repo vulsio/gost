@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/config"
 	"github.com/knqyf263/gost/db"
-	"github.com/knqyf263/gost/log"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -44,7 +44,7 @@ func init() {
 }
 
 func executeRegister(cmd *cobra.Command, args []string) (err error) {
-	log.Info("Validate command-line options")
+	log15.Info("Validate command-line options")
 	afterOption := viper.GetString("select-after")
 	var after time.Time
 	if afterOption != "" {
@@ -56,7 +56,7 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 		after = now.Add(time.Duration(-1) * 24 * 30 * time.Hour)
 	}
 
-	log.Info("Load toml config")
+	log15.Info("Load toml config")
 	var conf config.Config
 	filename := "config.toml"
 	if _, err = os.Stat(filename); err == nil {
@@ -68,13 +68,13 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 		conf.Redhat = map[string]config.RedhatWatchCve{}
 	}
 
-	log.Info("Initialize Database")
+	log15.Info("Initialize Database")
 	driver, err := db.InitDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		return err
 	}
 
-	log.Info("Select all RedHat CVEs")
+	log15.Info("Select all RedHat CVEs")
 	allRedhat, err := driver.GetAfterTimeRedhat(after)
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 		cves = append(cves, strings.TrimSpace(split[0]))
 	}
 
-	log.Info("Register CVEs to watch list")
+	log15.Info("Register CVEs to watch list")
 	for _, cve := range cves {
 		_, ok := conf.Redhat[cve]
 		if !ok {

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"github.com/jinzhu/gorm"
-	"github.com/knqyf263/gost/log"
 	"github.com/knqyf263/gost/models"
 	"github.com/knqyf263/gost/util"
 	pb "gopkg.in/cheggaaa/pb.v1"
@@ -50,7 +50,7 @@ func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
 
 	bar := pb.StartNew(len(cves))
 
-	log.Infof("Insert %d CVEs", len(cves))
+	log15.Info(fmt.Sprintf("Insert %d CVEs", len(cves)))
 	for _, cve := range cves {
 		if err := r.deleteAndInsertRedhat(r.conn, cve); err != nil {
 			return fmt.Errorf("Failed to insert. cve: %s, err: %s",

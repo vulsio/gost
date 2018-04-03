@@ -20,18 +20,9 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/kotakanbe/logrus-prefixed-formatter"
-
 [[constraint]]
   branch = "master"
   name = "github.com/mitchellh/go-homedir"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/sirupsen/logrus"
 
 [[constraint]]
   branch = "master"

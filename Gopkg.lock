@@ -46,6 +46,12 @@
   version = "v1.3"
 
 [[projects]]
+  name = "github.com/go-stack/stack"
+  packages = ["."]
+  revision = "259ab82a6cad3992b4e21ff5cac294ccb06474bc"
+  version = "v1.7.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/hashicorp/hcl"
   packages = [
@@ -61,6 +67,12 @@
     "json/token"
   ]
   revision = "23c074d0eceb2b8a5bfdbb271ab780cde70f05a8"
+
+[[projects]]
+  name = "github.com/inconshreveable/log15"
+  packages = ["."]
+  revision = "0decfc6c20d9ca0ad143b0e89dcaa20f810b4fb3"
+  version = "v2.13"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -84,12 +96,6 @@
   name = "github.com/jinzhu/inflection"
   packages = ["."]
   revision = "1c35d901db3da928c72a72d8458480cc9ade058f"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/kotakanbe/logrus-prefixed-formatter"
-  packages = ["."]
-  revision = "928f7356cb964637e2489a6ef37eee55181676c5"
 
 [[projects]]
   name = "github.com/labstack/echo"
@@ -157,12 +163,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/mgutz/ansi"
-  packages = ["."]
-  revision = "9520e82c474b0a04dd04f8a40959027271bab992"
-
-[[projects]]
-  branch = "master"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
@@ -196,18 +196,6 @@
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
-
-[[projects]]
-  name = "github.com/rifflock/lfshook"
-  packages = ["."]
-  revision = "1fdc019a35147ddbb3d25aedf713ad6d1430c144"
-  version = "v2.2"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/sirupsen/logrus"
-  packages = ["."]
-  revision = "8c0189d9f6bbf301e5d055d34268156b317016af"
 
 [[projects]]
   name = "github.com/spf13/afero"
@@ -262,12 +250,6 @@
 
 [[projects]]
   branch = "master"
-  name = "golang.org/x/crypto"
-  packages = ["ssh/terminal"]
-  revision = "432090b8f568c018896cd8a0fb0345872bbac6ce"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -279,10 +261,7 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = [
-    "unix",
-    "windows"
-  ]
+  packages = ["unix"]
   revision = "37707fdb30a5b38865cfb95e5aab41707daec7fd"
 
 [[projects]]
@@ -321,6 +300,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3bd1c7e1ba22c84605b7c8969226866fdf55ac0125a486931f871e98a196f0b6"
+  inputs-digest = "5232b6b3e9002051d3dfed209f5f900ee91ee9f71aad82a936d8d8225eff3a17"
   solver-name = "gps-cdcl"
   solver-version = 1

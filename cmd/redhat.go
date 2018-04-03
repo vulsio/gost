@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/db"
 	"github.com/knqyf263/gost/fetcher"
-	"github.com/knqyf263/gost/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -29,11 +31,11 @@ func init() {
 }
 
 func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
-	log.Infof("Fetch the list of CVEs")
+	log15.Info("Fetch the list of CVEs")
 	entries, err := fetcher.ListAllRedhatCves(
 		viper.GetString("before"), viper.GetString("after"), viper.GetInt("threads"))
 	if err != nil {
-		log.Errorf("Failed to fetch the list of CVEs. err: %s", err)
+		log15.Error("Failed to fetch the list of CVEs.", "err", err)
 		return err
 	}
 	var resourceURLs []string
@@ -41,23 +43,22 @@ func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
 		resourceURLs = append(resourceURLs, entry.ResourceURL)
 	}
 
-	log.Infof("Fetched %d CVEs", len(entries))
+	log15.Info(fmt.Sprintf("Fetched %d CVEs", len(entries)))
 	cves, err := fetcher.RetrieveRedhatCveDetails(resourceURLs)
 	if err != nil {
-		log.Errorf("Failed to fetch the CVE details. err: %s", err)
+		log15.Error("Failed to fetch the CVE details.", "err", err)
 		return err
 	}
 
 	driver, err := db.InitDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
-		log.Errorf("Failed to initialize DB. err: %s", err)
+		log15.Error("Failed to initialize DB.", "err", err)
 		return err
 	}
 
-	log.Infof("Insert RedHat into DB (%s)", driver.Name())
+	log15.Info("Insert RedHat into DB", "db", driver.Name())
 	if err := driver.InsertRedhat(cves); err != nil {
-		log.Errorf("Failed to insert. dbpath: %s, err: %s",
-			viper.GetString("dbpath"), err)
+		log15.Error("Failed to insert.", "dbpath", viper.GetString("dbpath"), "err", err)
 		return err
 	}
 

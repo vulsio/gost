@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
+	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 
 	"github.com/knqyf263/gost/config"
-	"github.com/labstack/gommon/log"
 	"github.com/parnurzeal/gorequest"
 )
 
@@ -53,8 +53,8 @@ func send(msg message, conf config.SlackConf) error {
 		return nil
 	}
 	notify := func(err error, t time.Duration) {
-		log.Warnf("Error %s", err)
-		log.Warn("Retrying in ", t)
+		log15.Warn("Error", "err", err)
+		log15.Warn("Retrying", "in", t)
 	}
 	boff := backoff.NewExponentialBackOff()
 	if err := backoff.RetryNotify(f, boff, notify); err != nil {

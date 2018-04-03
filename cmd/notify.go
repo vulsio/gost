@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	"github.com/BurntSushi/toml"
+	"github.com/inconshreveable/log15"
 
 	"github.com/knqyf263/gost/config"
 	"github.com/knqyf263/gost/db"
 	"github.com/knqyf263/gost/fetcher"
-	"github.com/knqyf263/gost/log"
 	"github.com/knqyf263/gost/notifier"
 	"github.com/knqyf263/gost/util"
 	"github.com/spf13/cobra"
@@ -36,7 +36,7 @@ func init() {
 }
 
 func executeNotify(cmd *cobra.Command, args []string) (err error) {
-	log.Info("Load toml config")
+	log15.Info("Load toml config")
 	var conf config.Config
 	if _, err = toml.DecodeFile("config.toml", &conf); err != nil {
 		return err
@@ -51,7 +51,7 @@ func notifyRedhat(conf config.Config) error {
 		watchCveURL = append(watchCveURL, fetcher.GetRedhatCveDetailURL(cveID))
 	}
 
-	log.Infof("Fetched %d CVEs", len(watchCveURL))
+	log15.Info(fmt.Sprintf("Fetched %d CVEs", len(watchCveURL)))
 	cveJSONs, err := fetcher.RetrieveRedhatCveDetails(watchCveURL)
 	if err != nil {
 		return err
@@ -63,7 +63,7 @@ func notifyRedhat(conf config.Config) error {
 
 	}
 
-	log.Info("Initialize Database")
+	log15.Info("Initialize Database")
 	driver, err := db.InitDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		return err
@@ -90,14 +90,14 @@ func notifyRedhat(conf config.Config) error {
 func notify(subject, body string, conf config.Config) (err error) {
 	if viper.GetBool("to-email") {
 		sender := notifier.NewEMailSender(conf.EMail)
-		log.Info("Send e-mail")
+		log15.Info("Send e-mail")
 		if err = sender.Send(subject, body); err != nil {
 			return fmt.Errorf("Failed to send e-mail. err: %s", err)
 		}
 	}
 
 	if viper.GetBool("to-slack") {
-		log.Info("Send slack")
+		log15.Info("Send slack")
 		if err = notifier.SendSlack(body, conf.Slack); err != nil {
 			return fmt.Errorf("Failed to send to Slack. err: %s", err)
 		}

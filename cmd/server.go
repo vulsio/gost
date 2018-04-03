@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/db"
-	"github.com/knqyf263/gost/log"
 	"github.com/knqyf263/gost/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -30,16 +30,14 @@ func init() {
 
 func executeServer(cmd *cobra.Command, args []string) (err error) {
 	logDir := viper.GetString("log-dir")
-	log.Initialize(logDir)
-
 	driver, err := db.InitDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		return err
 	}
 
-	log.Info("Starting HTTP Server...")
+	log15.Info("Starting HTTP Server...")
 	if err = server.Start(logDir, driver); err != nil {
-		log.Error(err)
+		log15.Error("Failed to start server.", "err", err)
 		return err
 	}
 
