@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/db"
-	"github.com/knqyf263/gost/log"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/standard"
 	"github.com/labstack/echo/middleware"
@@ -45,7 +45,7 @@ func Start(logDir string, driver db.DB) error {
 	e.Get("/debian/cves/:id", getDebianCve(driver))
 
 	bindURL := fmt.Sprintf("%s:%s", viper.GetString("bind"), viper.GetString("port"))
-	log.Infof("Listening on %s", bindURL)
+	log15.Info("Listening", "URL", bindURL)
 
 	e.Run(standard.New(bindURL))
 	return nil

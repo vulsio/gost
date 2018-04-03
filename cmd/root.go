@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/knqyf263/gost/log"
+	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/util"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -25,7 +25,7 @@ var RootCmd = &cobra.Command{
 
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
-		log.Error(err)
+		log15.Error("Failed to execute command", "err", err)
 		os.Exit(1)
 	}
 }
@@ -60,7 +60,9 @@ func init() {
 	viper.BindPFlag("http-proxy", RootCmd.PersistentFlags().Lookup("http-proxy"))
 	viper.SetDefault("http-proxy", "")
 
-	log.Initialize(viper.GetString("log-dir"))
+	logDir := viper.GetString("log-dir")
+	debug := viper.GetBool("debug")
+	util.SetLogger(logDir, debug)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -71,7 +73,7 @@ func initConfig() {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
-			log.Error(err)
+			log15.Error("Failed to find home directory.", "err", err)
 			os.Exit(1)
 		}
 

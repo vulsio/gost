@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/knqyf263/gost/log"
+	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/models"
 	"github.com/spf13/viper"
 )
@@ -36,19 +36,19 @@ func NewDB(dbType string) (DB, error) {
 
 func InitDB(dbType string, dbPath string, debugSql bool) (driver DB, err error) {
 	if driver, err = NewDB(viper.GetString("dbtype")); err != nil {
-		log.Error(err)
+		log15.Error("Failed to new db.", "err", err)
 		return driver, err
 	}
 
-	log.Infof("Opening DB (%s)", driver.Name())
+	log15.Info("Opening DB.", "db", driver.Name())
 	if err := driver.OpenDB(viper.GetString("dbtype"), viper.GetString("dbpath"), debugSql); err != nil {
-		log.Error(err)
+		log15.Error("Failed to open db.", "err", err)
 		return driver, err
 	}
 
-	log.Infof("Migrating DB (%s)", driver.Name())
+	log15.Info("Migrating DB.", "db", driver.Name())
 	if err := driver.MigrateDB(); err != nil {
-		log.Error(err)
+		log15.Error("Failed to migrate db.", "err", err)
 		return driver, err
 	}
 	return driver, nil

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"github.com/parnurzeal/gorequest"
 	"github.com/spf13/viper"
 	pb "gopkg.in/cheggaaa/pb.v1"
@@ -122,4 +123,29 @@ func FetchConcurrently(urls []string, concurrency, wait int) (responses []string
 
 	}
 	return responses, nil
+}
+
+// SetLogger set logger
+func SetLogger(logDir string, debug bool) {
+	lvlHundler := log15.LvlFilterHandler(log15.LvlInfo, log15.StderrHandler)
+	if debug {
+		lvlHundler = log15.LvlFilterHandler(log15.LvlDebug, log15.StdoutHandler)
+	}
+
+	if _, err := os.Stat(logDir); os.IsNotExist(err) {
+		if err := os.Mkdir(logDir, 0700); err != nil {
+			log15.Error("Failed to create log directory", "err", err)
+		}
+	}
+	var hundler log15.Handler
+	if _, err := os.Stat(logDir); err == nil {
+		logPath := filepath.Join(logDir, "gost.log")
+		hundler = log15.MultiHandler(
+			log15.Must.FileHandler(logPath, log15.LogfmtFormat()),
+			lvlHundler,
+		)
+	} else {
+		hundler = lvlHundler
+	}
+	log15.Root().SetHandler(hundler)
 }

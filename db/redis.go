@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	"github.com/knqyf263/gost/log"
+	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/models"
 	"gopkg.in/cheggaaa/pb.v1"
 )
@@ -52,7 +52,7 @@ func (r *RedisDriver) connectRedis(dbPath string) error {
 	var err error
 	var option *redis.Options
 	if option, err = redis.ParseURL(dbPath); err != nil {
-		log.Error(err)
+		log15.Error("Failed to parse url.", "err", err)
 		return err
 	}
 	r.conn = redis.NewClient(option)
@@ -71,14 +71,14 @@ func (r *RedisDriver) GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error) 
 func (r *RedisDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	result := r.conn.HGetAll(hashKeyPrefix + cveID)
 	if result.Err() != nil {
-		log.Error(result.Err())
+		log15.Error("Failed to get cve.", "err", result.Err())
 		return nil
 	}
 
 	var redhat models.RedhatCVE
 	if j, ok := result.Val()["RedHat"]; ok {
 		if err := json.Unmarshal([]byte(j), &redhat); err != nil {
-			log.Errorf("Failed to Unmarshal json. err : %s", err)
+			log15.Error("Failed to Unmarshal json.", "err", err)
 			return nil
 		}
 	}
@@ -95,7 +95,7 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]*models.RedhatC
 	}
 	if _, err := pipe.Exec(); err != nil {
 		if err != redis.Nil {
-			log.Errorf("Failed to get multi cve json. err : %s", err)
+			log15.Error("Failed to get multi cve json.", "err ", err)
 			return nil
 		}
 	}
@@ -104,7 +104,7 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]*models.RedhatC
 		var redhat models.RedhatCVE
 		if j, ok := result.Val()["RedHat"]; ok {
 			if err := json.Unmarshal([]byte(j), &redhat); err != nil {
-				log.Errorf("Failed to Unmarshal json. err : %s", err)
+				log15.Error("Failed to Unmarshal json.", "err", err)
 				return nil
 			}
 		}

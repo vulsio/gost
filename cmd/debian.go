@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/db"
 	"github.com/knqyf263/gost/fetcher"
-	"github.com/knqyf263/gost/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -21,19 +21,19 @@ func init() {
 }
 
 func fetchDebian(cmd *cobra.Command, args []string) (err error) {
-	log.Info("Fetched all CVEs from Debian")
+	log15.Info("Fetched all CVEs from Debian")
 	cves, err := fetcher.RetrieveDebianCveDetails()
 
-	log.Info("Initialize Database")
+	log15.Info("Initialize Database")
 	driver, err := db.InitDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		return err
 	}
 
-	log.Infof("Insert Debian CVEs into DB (%s)", driver.Name())
+	log15.Info("Insert Debian CVEs into DB", "db", driver.Name())
 	if err := driver.InsertDebian(cves); err != nil {
-		log.Errorf("Failed to insert. dbpath: %s. err: %s",
-			viper.GetString("dbpath"), err)
+		log15.Error("Failed to insert.", "dbpath",
+			viper.GetString("dbpath"), "err", err)
 		return err
 	}
 
