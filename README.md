@@ -48,6 +48,7 @@ Flags:
   -h, --help                help for gost
       --http-proxy string   http://proxy-url:port (default: empty)
       --log-dir string      /path/to/log
+      --log-json            output log as JSON
       --to-email            Send notification via Email
       --to-slack            Send notification via Slack
 
