@@ -126,10 +126,17 @@ func FetchConcurrently(urls []string, concurrency, wait int) (responses []string
 }
 
 // SetLogger set logger
-func SetLogger(logDir string, debug bool) {
-	lvlHundler := log15.LvlFilterHandler(log15.LvlInfo, log15.StderrHandler)
+func SetLogger(logDir string, debug, logJSON bool) {
+	stderrHundler := log15.StderrHandler
+	logFormat := log15.LogfmtFormat()
+	if logJSON {
+		logFormat = log15.JsonFormatEx(false, true)
+		stderrHundler = log15.StreamHandler(os.Stderr, logFormat)
+	}
+
+	lvlHundler := log15.LvlFilterHandler(log15.LvlInfo, stderrHundler)
 	if debug {
-		lvlHundler = log15.LvlFilterHandler(log15.LvlDebug, log15.StdoutHandler)
+		lvlHundler = log15.LvlFilterHandler(log15.LvlDebug, stderrHundler)
 	}
 
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {
@@ -141,7 +148,7 @@ func SetLogger(logDir string, debug bool) {
 	if _, err := os.Stat(logDir); err == nil {
 		logPath := filepath.Join(logDir, "gost.log")
 		hundler = log15.MultiHandler(
-			log15.Must.FileHandler(logPath, log15.LogfmtFormat()),
+			log15.Must.FileHandler(logPath, logFormat),
 			lvlHundler,
 		)
 	} else {

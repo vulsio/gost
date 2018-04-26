@@ -23,13 +23,6 @@ var RootCmd = &cobra.Command{
 	SilenceUsage:  true,
 }
 
-func Execute() {
-	if err := RootCmd.Execute(); err != nil {
-		log15.Error("Failed to execute command", "err", err)
-		os.Exit(1)
-	}
-}
-
 func init() {
 	cobra.OnInitialize(initConfig)
 
@@ -38,6 +31,10 @@ func init() {
 	RootCmd.PersistentFlags().String("log-dir", "", "/path/to/log")
 	viper.BindPFlag("log-dir", RootCmd.PersistentFlags().Lookup("log-dir"))
 	viper.SetDefault("log-dir", util.GetDefaultLogDir())
+
+	RootCmd.PersistentFlags().Bool("log-json", false, "output log as JSON")
+	viper.BindPFlag("log-json", RootCmd.PersistentFlags().Lookup("log-json"))
+	viper.SetDefault("log-json", false)
 
 	RootCmd.PersistentFlags().Bool("debug", false, "debug mode (default: false)")
 	viper.BindPFlag("debug", RootCmd.PersistentFlags().Lookup("debug"))
@@ -59,10 +56,6 @@ func init() {
 	RootCmd.PersistentFlags().String("http-proxy", "", "http://proxy-url:port (default: empty)")
 	viper.BindPFlag("http-proxy", RootCmd.PersistentFlags().Lookup("http-proxy"))
 	viper.SetDefault("http-proxy", "")
-
-	logDir := viper.GetString("log-dir")
-	debug := viper.GetBool("debug")
-	util.SetLogger(logDir, debug)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -88,4 +81,8 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
+	logDir := viper.GetString("log-dir")
+	debug := viper.GetBool("debug")
+	logJSON := viper.GetBool("log-json")
+	util.SetLogger(logDir, debug, logJSON)
 }
