@@ -28,6 +28,10 @@ func init() {
 	redhatCmd.PersistentFlags().String("before", "", "Fetch CVEs before the specified date (e.g. 2017-01-01)")
 	viper.BindPFlag("before", redhatCmd.PersistentFlags().Lookup("before"))
 	viper.SetDefault("before", "")
+
+	redhatCmd.PersistentFlags().Bool("list-only", false, "")
+	viper.BindPFlag("list-only", redhatCmd.PersistentFlags().Lookup("list-only"))
+	viper.SetDefault("list-only", false)
 }
 
 func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
@@ -41,6 +45,13 @@ func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
 	var resourceURLs []string
 	for _, entry := range entries {
 		resourceURLs = append(resourceURLs, entry.ResourceURL)
+	}
+
+	if viper.GetBool("list-only") {
+		for _, e := range entries {
+			fmt.Printf("%s\t%s\n", e.CveID, e.PublicDate)
+		}
+		return nil
 	}
 
 	log15.Info(fmt.Sprintf("Fetched %d CVEs", len(entries)))

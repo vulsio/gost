@@ -38,8 +38,49 @@ func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	return &c
 }
 
-func (r *RDBDriver) GetRedhatMulti(cveID []string) map[string]*models.RedhatCVE {
-	return nil
+func (r *RDBDriver) GetRedhatMulti(cveIDs []string) map[string]*models.RedhatCVE {
+	m := map[string]*models.RedhatCVE{}
+	for _, cveID := range cveIDs {
+		m[cveID] = r.GetRedhat(cveID)
+	}
+	return m
+}
+
+func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string) (m map[string]*models.RedhatCVE, err error) {
+	m = map[string]*models.RedhatCVE{}
+	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
+	pkgStats := []models.RedhatPackageState{}
+	err = r.conn.Where(&models.RedhatPackageState{
+		Cpe:         cpe,
+		PackageName: pkgName,
+	}).Find(&pkgStats).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	log15.Info(fmt.Sprintf("%v", pkgStats))
+
+	redhatCVEIDs := map[int64]bool{}
+	for _, p := range pkgStats {
+		redhatCVEIDs[p.RedhatCVEID] = true
+	}
+
+	for id := range redhatCVEIDs {
+		rhcve := models.RedhatCVE{}
+		err = r.conn.
+			Preload("Bugzilla").
+			Preload("Cvss").
+			Preload("Cvss3").
+			Preload("AffectedRelease").
+			Preload("PackageState").
+			Preload("Details").
+			Preload("References").
+			Where(&models.RedhatCVE{ID: id}).First(&rhcve).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+		m[rhcve.Name] = &rhcve
+	}
+	return m, nil
 }
 
 func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {

@@ -113,6 +113,11 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]*models.RedhatC
 	return results
 }
 
+func (r *RedisDriver) GetUnfixedCvesRedhat(release, pkgName string) (m map[string]*models.RedhatCVE, err error) {
+	// TODO implement
+	return nil, nil
+}
+
 func (r *RedisDriver) GetDebian(string) *models.DebianCVE {
 	return nil
 }

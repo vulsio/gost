@@ -35,3 +35,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/jinzhu/gorm"
+
+[[constraint]]
+  name = "github.com/k0kubun/pp.git"
+  version = "2.3.0"

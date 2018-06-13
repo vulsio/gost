@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/db"
@@ -44,6 +45,8 @@ func Start(logDir string, driver db.DB) error {
 	e.Get("/redhat/cves/:id", getRedhatCve(driver))
 	e.Get("/debian/cves/:id", getDebianCve(driver))
 
+	e.Get("/redhat/:release/pkgs/:name/unfixed-cves", getUnfixedCves(driver))
+
 	bindURL := fmt.Sprintf("%s:%s", viper.GetString("bind"), viper.GetString("port"))
 	log15.Info("Listening", "URL", bindURL)
 
@@ -63,6 +66,7 @@ func getRedhatCve(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cveid := c.Param("id")
 		cveDetail := driver.GetRedhat(cveid)
+		//TODO error
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }
@@ -72,6 +76,25 @@ func getDebianCve(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cveid := c.Param("id")
 		cveDetail := driver.GetDebian(cveid)
+		//TODO error
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
+}
+
+// Handler
+func getUnfixedCves(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		release := major(c.Param("release"))
+		pkgName := c.Param("name")
+		cveDetail, err := driver.GetUnfixedCvesRedhat(release, pkgName)
+		if err != nil {
+			log15.Error("Failed to getUnfixedCves", err)
+			return c.JSON(http.StatusInternalServerError, nil)
+		}
+		return c.JSON(http.StatusOK, &cveDetail)
+	}
+}
+
+func major(osVer string) (majorVersion string) {
+	return strings.Split(osVer, ".")[0]
 }
