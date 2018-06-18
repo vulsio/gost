@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/db"
+	"github.com/knqyf263/gost/util"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/standard"
 	"github.com/labstack/echo/middleware"
@@ -84,7 +84,7 @@ func getDebianCve(driver db.DB) echo.HandlerFunc {
 // Handler
 func getUnfixedCves(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		release := major(c.Param("release"))
+		release := util.Major(c.Param("release"))
 		pkgName := c.Param("name")
 		cveDetail, err := driver.GetUnfixedCvesRedhat(release, pkgName)
 		if err != nil {
@@ -93,8 +93,4 @@ func getUnfixedCves(driver db.DB) echo.HandlerFunc {
 		}
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
-}
-
-func major(osVer string) (majorVersion string) {
-	return strings.Split(osVer, ".")[0]
 }

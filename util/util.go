@@ -156,3 +156,8 @@ func SetLogger(logDir string, debug, logJSON bool) {
 	}
 	log15.Root().SetHandler(hundler)
 }
+
+// Major returns major version
+func Major(osVer string) (majorVersion string) {
+	return strings.Split(osVer, ".")[0]
+}

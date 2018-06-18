@@ -47,6 +47,7 @@ func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (err error) {
 
 // MigrateDB migrates Database
 func (r *RDBDriver) MigrateDB() error {
+	//TODO Add FetchMeta
 	if err := r.conn.AutoMigrate(
 		&models.RedhatCVE{},
 		&models.RedhatDetail{},
@@ -63,5 +64,6 @@ func (r *RDBDriver) MigrateDB() error {
 	).Error; err != nil {
 		return fmt.Errorf("Failed to migrate. err: %s", err)
 	}
+	// TODO Add Index
 	return nil
 }

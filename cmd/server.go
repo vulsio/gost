@@ -23,14 +23,14 @@ func init() {
 	viper.BindPFlag("bind", serverCmd.PersistentFlags().Lookup("bind"))
 	viper.SetDefault("bind", "127.0.0.1")
 
-	serverCmd.PersistentFlags().String("port", "", "HTTp server port number (default: 11235")
+	serverCmd.PersistentFlags().String("port", "", "HTTP server port number (default: 1235")
 	viper.BindPFlag("port", serverCmd.PersistentFlags().Lookup("port"))
-	viper.SetDefault("port", "11235")
+	viper.SetDefault("port", "1235")
 }
 
 func executeServer(cmd *cobra.Command, args []string) (err error) {
 	logDir := viper.GetString("log-dir")
-	driver, err := db.InitDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		return err
 	}

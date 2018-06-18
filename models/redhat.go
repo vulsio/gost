@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+//TODO addFetchMeta
+
 type RedhatEntry struct {
 	CveID             string        `json:"CVE"`
 	Severity          string        `json:"severity"`

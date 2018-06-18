@@ -61,7 +61,7 @@ func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	driver, err := db.InitDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		log15.Error("Failed to initialize DB.", "err", err)
 		return err
