@@ -118,6 +118,11 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(release, pkgName string) (m map[strin
 	return nil, nil
 }
 
+func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]*models.DebianCVE, err error) {
+	// TODO implement
+	return nil, nil
+}
+
 func (r *RedisDriver) GetDebian(string) *models.DebianCVE {
 	return nil
 }

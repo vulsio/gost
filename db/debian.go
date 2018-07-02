@@ -101,3 +101,50 @@ func ConvertDebian(cveJSONs models.DebianJSON) (cves []models.DebianCVE) {
 	}
 	return cves
 }
+
+var debVerCodename = map[string]string{
+	"8":  "jessie",
+	"9":  "stretch",
+	"10": "buster",
+}
+
+func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]*models.DebianCVE, err error) {
+	m = map[string]*models.DebianCVE{}
+	codeName, ok := debVerCodename[major]
+	if !ok {
+		return nil, fmt.Errorf("Debian %s is not supported yet", major)
+	}
+
+	type Result struct {
+		DebianCveID int64
+	}
+	results := []Result{}
+	r.conn.Table("debian_releases").
+		Select("debian_cve_id").
+		Joins("join debian_packages on debian_releases.debian_package_id = debian_packages.id AND debian_packages.package_name = ?", pkgName).
+		// Where("debian_releases.product_name = ?", codeName).
+		Where(&models.DebianRelease{
+			ProductName: codeName,
+			Status:      "open",
+		}).Scan(&results)
+
+	for _, res := range results {
+		debcve := models.DebianCVE{}
+		err = r.conn.
+			Preload("Package").
+			Where(&models.DebianCVE{ID: res.DebianCveID}).First(&debcve).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+
+		for i, pkg := range debcve.Package {
+			err = r.conn.Model(&pkg).Related(&pkg.Release).Error
+			if err != nil && err != gorm.ErrRecordNotFound {
+				return nil, err
+			}
+			debcve.Package[i] = pkg
+		}
+		m[debcve.CveID] = &debcve
+	}
+	return m, nil
+}

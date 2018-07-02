@@ -23,6 +23,7 @@ type DB interface {
 	GetDebian(string) *models.DebianCVE
 
 	GetUnfixedCvesRedhat(string, string) (map[string]*models.RedhatCVE, error)
+	GetUnfixedCvesDebian(string, string) (map[string]*models.DebianCVE, error)
 
 	//TODO return error
 	InsertRedhat([]models.RedhatCVEJSON) error
