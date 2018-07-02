@@ -13,21 +13,15 @@ type DB interface {
 	Name() string
 	OpenDB(string, string, bool) error
 	MigrateDB() error
+
 	GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error)
-	//TODO return error
-	// GetAllDebian() *[]models.DebianCVE
 	GetRedhat(string) *models.RedhatCVE
-	//TODO return error
-	GetRedhatMulti([]string) map[string]*models.RedhatCVE
-	//TODO return error
+	GetRedhatMulti([]string) map[string]models.RedhatCVE
 	GetDebian(string) *models.DebianCVE
+	GetUnfixedCvesRedhat(string, string) map[string]models.RedhatCVE
+	GetUnfixedCvesDebian(string, string) map[string]models.DebianCVE
 
-	GetUnfixedCvesRedhat(string, string) (map[string]*models.RedhatCVE, error)
-	GetUnfixedCvesDebian(string, string) (map[string]*models.DebianCVE, error)
-
-	//TODO return error
 	InsertRedhat([]models.RedhatCVEJSON) error
-	//TODO return error
 	InsertDebian(models.DebianJSON) error
 }
 

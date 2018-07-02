@@ -38,30 +38,30 @@ func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	return &c
 }
 
-func (r *RDBDriver) GetRedhatMulti(cveIDs []string) map[string]*models.RedhatCVE {
-	m := map[string]*models.RedhatCVE{}
+func (r *RDBDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE {
+	m := map[string]models.RedhatCVE{}
 	for _, cveID := range cveIDs {
-		m[cveID] = r.GetRedhat(cveID)
+		m[cveID] = *r.GetRedhat(cveID)
 	}
 	return m
 }
 
-func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string) (m map[string]*models.RedhatCVE, err error) {
-	m = map[string]*models.RedhatCVE{}
+func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string) map[string]models.RedhatCVE {
+	m := map[string]models.RedhatCVE{}
 	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
 	pkgStats := []models.RedhatPackageState{}
 
 	// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format
-	err = r.conn.
+	err := r.conn.
 		Not("fix_state", []string{"Not affected", "New"}).
 		Where(&models.RedhatPackageState{
 			Cpe:         cpe,
 			PackageName: pkgName,
 		}).Find(&pkgStats).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
+		log15.Error("Failed to get unfixed cves of Redhat:", err)
+		return nil
 	}
-	log15.Info(fmt.Sprintf("%v", pkgStats))
 
 	redhatCVEIDs := map[int64]bool{}
 	for _, p := range pkgStats {
@@ -80,11 +80,12 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string) (m map[string]*m
 			Preload("References").
 			Where(&models.RedhatCVE{ID: id}).First(&rhcve).Error
 		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
+			log15.Error("Failed to get unfixed cves of Redhat:", err)
+			return nil
 		}
-		m[rhcve.Name] = &rhcve
+		m[rhcve.Name] = rhcve
 	}
-	return m, nil
+	return m
 }
 
 func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {

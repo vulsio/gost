@@ -87,11 +87,7 @@ func getUnfixedCvesRedhat(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		release := util.Major(c.Param("release"))
 		pkgName := c.Param("name")
-		cveDetail, err := driver.GetUnfixedCvesRedhat(release, pkgName)
-		if err != nil {
-			log15.Error("Failed to getUnfixedCves", err)
-			return c.JSON(http.StatusInternalServerError, nil)
-		}
+		cveDetail := driver.GetUnfixedCvesRedhat(release, pkgName)
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }
@@ -101,11 +97,7 @@ func getUnfixedCvesDebian(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		release := util.Major(c.Param("release"))
 		pkgName := c.Param("name")
-		cveDetail, err := driver.GetUnfixedCvesDebian(release, pkgName)
-		if err != nil {
-			log15.Error("Failed to getUnfixedCves", err)
-			return c.JSON(http.StatusInternalServerError, nil)
-		}
+		cveDetail := driver.GetUnfixedCvesDebian(release, pkgName)
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }

@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 
+	"github.com/inconshreveable/log15"
 	"github.com/jinzhu/gorm"
 	"github.com/knqyf263/gost/models"
 	"github.com/knqyf263/gost/util"
@@ -108,25 +109,31 @@ var debVerCodename = map[string]string{
 	"10": "buster",
 }
 
-func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]*models.DebianCVE, err error) {
-	m = map[string]*models.DebianCVE{}
+func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]models.DebianCVE {
+	m := map[string]models.DebianCVE{}
 	codeName, ok := debVerCodename[major]
 	if !ok {
-		return nil, fmt.Errorf("Debian %s is not supported yet", major)
+		log15.Error("Debian %s is not supported yet", major)
+		return m
 	}
 
 	type Result struct {
 		DebianCveID int64
 	}
 	results := []Result{}
-	r.conn.Table("debian_releases").
+	err := r.conn.Table("debian_releases").
 		Select("debian_cve_id").
 		Joins("join debian_packages on debian_releases.debian_package_id = debian_packages.id AND debian_packages.package_name = ?", pkgName).
 		// Where("debian_releases.product_name = ?", codeName).
 		Where(&models.DebianRelease{
 			ProductName: codeName,
 			Status:      "open",
-		}).Scan(&results)
+		}).Scan(&results).Error
+
+	if err != nil && err != gorm.ErrRecordNotFound {
+		log15.Error("Failed to get unfixed cves of Debian:", err)
+		return m
+	}
 
 	for _, res := range results {
 		debcve := models.DebianCVE{}
@@ -134,17 +141,19 @@ func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]*m
 			Preload("Package").
 			Where(&models.DebianCVE{ID: res.DebianCveID}).First(&debcve).Error
 		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
+			log15.Error("Failed to get DebianCVE", res.DebianCveID, err)
+			return m
 		}
 
 		for i, pkg := range debcve.Package {
 			err = r.conn.Model(&pkg).Related(&pkg.Release).Error
 			if err != nil && err != gorm.ErrRecordNotFound {
-				return nil, err
+				log15.Error("Failed to get DebianRelease", pkg.Release, err)
+				return m
 			}
 			debcve.Package[i] = pkg
 		}
-		m[debcve.CveID] = &debcve
+		m[debcve.CveID] = debcve
 	}
-	return m, nil
+	return m
 }

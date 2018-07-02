@@ -85,8 +85,8 @@ func (r *RedisDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	return &redhat
 }
 
-func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]*models.RedhatCVE {
-	results := map[string]*models.RedhatCVE{}
+func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE {
+	results := map[string]models.RedhatCVE{}
 	rs := map[string]*redis.StringStringMapCmd{}
 
 	pipe := r.conn.Pipeline()
@@ -108,19 +108,19 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]*models.RedhatC
 				return nil
 			}
 		}
-		results[cveID] = &redhat
+		results[cveID] = redhat
 	}
 	return results
 }
 
-func (r *RedisDriver) GetUnfixedCvesRedhat(release, pkgName string) (m map[string]*models.RedhatCVE, err error) {
+func (r *RedisDriver) GetUnfixedCvesRedhat(release, pkgName string) (m map[string]models.RedhatCVE) {
 	// TODO implement
-	return nil, nil
+	return nil
 }
 
-func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]*models.DebianCVE, err error) {
+func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]models.DebianCVE) {
 	// TODO implement
-	return nil, nil
+	return nil
 }
 
 func (r *RedisDriver) GetDebian(string) *models.DebianCVE {
