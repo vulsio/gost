@@ -124,7 +124,6 @@ func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]model
 	err := r.conn.Table("debian_releases").
 		Select("debian_cve_id").
 		Joins("join debian_packages on debian_releases.debian_package_id = debian_packages.id AND debian_packages.package_name = ?", pkgName).
-		// Where("debian_releases.product_name = ?", codeName).
 		Where(&models.DebianRelease{
 			ProductName: codeName,
 			Status:      "open",
@@ -151,6 +150,14 @@ func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]model
 				log15.Error("Failed to get DebianRelease", pkg.Release, err)
 				return m
 			}
+
+			rels := []models.DebianRelease{}
+			for _, rel := range pkg.Release {
+				if rel.ProductName == codeName && rel.Status == "open" {
+					rels = append(rels, rel)
+				}
+			}
+			pkg.Release = rels
 			debcve.Package[i] = pkg
 		}
 		m[debcve.CveID] = debcve
