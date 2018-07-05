@@ -41,7 +41,7 @@ func (r *RedisDriver) Name() string {
 }
 
 // OpenDB opens Database
-func (r *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (err error) {
+func (r *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
 	if err = r.connectRedis(dbPath); err != nil {
 		err = fmt.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
 	}
@@ -68,6 +68,7 @@ func (r *RedisDriver) MigrateDB() error {
 func (r *RedisDriver) GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error) {
 	return nil, nil
 }
+
 func (r *RedisDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	result := r.conn.HGetAll(hashKeyPrefix + cveID)
 	if result.Err() != nil {

@@ -11,7 +11,7 @@ import (
 // DB is interface for a database driver
 type DB interface {
 	Name() string
-	OpenDB(string, string, bool) error
+	OpenDB(string, string, bool) (bool, error)
 	MigrateDB() error
 
 	GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error)
@@ -26,25 +26,26 @@ type DB interface {
 }
 
 // NewDB returns db driver
-//TODO DBURL
-func NewDB(dbType, dbPath string, debugSQL bool) (driver DB, err error) {
+func NewDB(dbType, dbPath string, debugSQL bool) (driver DB, locked bool, err error) {
 	if driver, err = newDB(dbType); err != nil {
 		log15.Error("Failed to new db.", "err", err)
-		return driver, err
+		return driver, false, err
 	}
 
 	log15.Info("Opening DB.", "db", driver.Name())
-	if err := driver.OpenDB(dbType, dbPath, debugSQL); err != nil {
-		log15.Error("Failed to open db.", "err", err)
-		return driver, err
+	if locked, err := driver.OpenDB(dbType, dbPath, debugSQL); err != nil {
+		if locked {
+			return nil, true, err
+		}
+		return nil, false, err
 	}
 
 	log15.Info("Migrating DB.", "db", driver.Name())
 	if err := driver.MigrateDB(); err != nil {
 		log15.Error("Failed to migrate db.", "err", err)
-		return driver, err
+		return driver, false, err
 	}
-	return driver, nil
+	return driver, false, nil
 }
 
 func newDB(dbType string) (DB, error) {

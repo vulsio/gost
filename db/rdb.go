@@ -5,6 +5,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/knqyf263/gost/models"
+	sqlite3 "github.com/mattn/go-sqlite3"
 	// Required MySQL.  See http://jinzhu.me/gorm/database.html#connecting-to-a-database
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -31,18 +32,24 @@ func (r *RDBDriver) Name() string {
 }
 
 // OpenDB opens Database
-func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (err error) {
+func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
 	r.conn, err = gorm.Open(dbType, dbPath)
 	if err != nil {
-		err = fmt.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
-		return
+		msg := fmt.Sprintf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
+		if r.name == dialectSqlite3 {
+			switch err.(sqlite3.Error).Code {
+			case sqlite3.ErrLocked, sqlite3.ErrBusy:
+				return true, fmt.Errorf(msg)
+			}
+		}
+		return false, fmt.Errorf(msg)
 	}
 	r.conn.LogMode(debugSQL)
 	if r.name == dialectSqlite3 {
 		r.conn.Exec("PRAGMA foreign_keys = ON")
 		r.conn.Exec("PRAGMA journal_mode=WAL;")
 	}
-	return
+	return false, nil
 }
 
 // MigrateDB migrates Database

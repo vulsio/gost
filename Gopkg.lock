@@ -16,7 +16,8 @@
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
-  revision = "24c63f56522a87ec5339cc3567883f1039378fdb"
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
 
 [[projects]]
   name = "github.com/fsnotify/fsnotify"
@@ -118,7 +119,8 @@
     "log",
     "random"
   ]
-  revision = "f3b1a1b3bd4726161e1200863d278df7da5e66ff"
+  revision = "d6898124de917583f5ff5592ef931d1dfe0ddc05"
+  version = "0.2.6"
 
 [[projects]]
   branch = "master"
@@ -236,9 +238,16 @@
   version = "v1.0.2"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/valyala/bytebufferpool"
+  packages = ["."]
+  revision = "e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7"
+
+[[projects]]
+  branch = "master"
   name = "github.com/valyala/fasttemplate"
   packages = ["."]
-  revision = "3b874956e03f1636d171bda64b130f9135f42cff"
+  revision = "dcecefd839c4193db0d35b88ec65b4c12d360ab0"
 
 [[projects]]
   branch = "master"
@@ -248,13 +257,13 @@
     "idna",
     "publicsuffix"
   ]
-  revision = "db08ff08e8622530d9ed3a0e8ac279f6d4c02196"
+  revision = "ed29d75add3d7c4bf7ca65aac0c6df3d1420216f"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "6c888cc515d3ed83fc103cf1d84468aad274b0a7"
+  revision = "151529c776cdc58ddbe7963ba9af779f3577b419"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -298,6 +307,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9adf0580b1096a3fa273bf216f1b478e536481138547c963c045589b34a34a9d"
+  inputs-digest = "5d4fc1faa81b2305cddaeb2b55ec769b6b377ecfe8d71da9748dec8e94b619be"
   solver-name = "gps-cdcl"
   solver-version = 1

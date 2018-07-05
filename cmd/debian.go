@@ -22,9 +22,11 @@ func init() {
 
 func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 	log15.Info("Initialize Database")
-	driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
-		log15.Error("Failed to initialize DB. Close DB connection before fetching", "err", err)
+		if locked {
+			log15.Error("Failed to initialize DB. Close DB connection before fetching", "err", err)
+		}
 		return err
 	}
 
