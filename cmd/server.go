@@ -32,6 +32,7 @@ func executeServer(cmd *cobra.Command, args []string) (err error) {
 	logDir := viper.GetString("log-dir")
 	driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
+		log15.Error("Failed to initialize DB. Close DB connection before fetching", "err", err)
 		return err
 	}
 

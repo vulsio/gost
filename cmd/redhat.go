@@ -35,6 +35,13 @@ func init() {
 }
 
 func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
+	log15.Info("Initialize Database")
+	driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	if err != nil {
+		log15.Error("Failed to initialize DB. Close DB connection before fetching", "err", err)
+		return err
+	}
+
 	log15.Info("Fetch the list of CVEs")
 	entries, err := fetcher.ListAllRedhatCves(
 		viper.GetString("before"), viper.GetString("after"), viper.GetInt("threads"))
@@ -58,12 +65,6 @@ func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
 	cves, err := fetcher.RetrieveRedhatCveDetails(resourceURLs)
 	if err != nil {
 		log15.Error("Failed to fetch the CVE details.", "err", err)
-		return err
-	}
-
-	driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
-	if err != nil {
-		log15.Error("Failed to initialize DB.", "err", err)
 		return err
 	}
 
