@@ -114,7 +114,7 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCV
 	return results
 }
 
-func (r *RedisDriver) GetUnfixedCvesRedhat(release, pkgName string) (m map[string]models.RedhatCVE) {
+func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string) (m map[string]models.RedhatCVE) {
 	// TODO implement
 	return nil
 }
@@ -124,7 +124,7 @@ func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]
 	return nil
 }
 
-func (r *RedisDriver) GetDebian(string) *models.DebianCVE {
+func (r *RedisDriver) GetDebian(cveID string) *models.DebianCVE {
 	return nil
 }
 func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
@@ -157,6 +157,28 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 	return nil
 }
 
-func (r *RedisDriver) InsertDebian(models.DebianJSON) error {
+func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
+	cves := ConvertDebian(cveJSONs)
+	bar := pb.StartNew(len(cves))
+
+	for _, cve := range cves {
+		var pipe redis.Pipeliner
+		pipe = r.conn.Pipeline()
+		bar.Increment()
+
+		j, err := json.Marshal(cve)
+		if err != nil {
+			return fmt.Errorf("Failed to marshal json. err: %s", err)
+		}
+
+		if result := pipe.HSet(hashKeyPrefix+cve.CveID, "Debian", string(j)); result.Err() != nil {
+			return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
+		}
+
+		if _, err = pipe.Exec(); err != nil {
+			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
+		}
+	}
+	bar.Finish()
 	return nil
 }
