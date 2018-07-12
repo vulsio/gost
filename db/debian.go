@@ -12,11 +12,24 @@ import (
 
 func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 	c := models.DebianCVE{}
-	r.conn.Where(&models.DebianCVE{CveID: cveID}).First(&c)
-	r.conn.Model(&c).Related(&c.Package)
+	err := r.conn.Where(&models.DebianCVE{CveID: cveID}).First(&c).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		log15.Error("Failed to get Debian", err)
+		return nil
+	}
+	err = r.conn.Model(&c).Related(&c.Package).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		log15.Error("Failed to get Debian", err)
+		return nil
+	}
+
 	var newPkg []models.DebianPackage
 	for _, pkg := range c.Package {
-		r.conn.Model(&pkg).Related(&pkg.Release)
+		err = r.conn.Model(&pkg).Related(&pkg.Release).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			log15.Error("Failed to get Debian", err)
+			return nil
+		}
 		newPkg = append(newPkg, pkg)
 	}
 	c.Package = newPkg
@@ -144,7 +157,8 @@ func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]model
 			return m
 		}
 
-		for i, pkg := range debcve.Package {
+		pkgs := []models.DebianPackage{}
+		for _, pkg := range debcve.Package {
 			err = r.conn.Model(&pkg).Related(&pkg.Release).Error
 			if err != nil && err != gorm.ErrRecordNotFound {
 				log15.Error("Failed to get DebianRelease", pkg.Release, err)
@@ -157,10 +171,16 @@ func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]model
 					rels = append(rels, rel)
 				}
 			}
+			if len(rels) == 0 {
+				continue
+			}
 			pkg.Release = rels
-			debcve.Package[i] = pkg
+			pkgs = append(pkgs, pkg)
 		}
-		m[debcve.CveID] = debcve
+		if len(pkgs) != 0 {
+			debcve.Package = pkgs
+			m[debcve.CveID] = debcve
+		}
 	}
 	return m
 }

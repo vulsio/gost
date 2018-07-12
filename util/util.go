@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
+	"github.com/jinzhu/gorm"
 	"github.com/parnurzeal/gorequest"
 	"github.com/spf13/viper"
 	pb "gopkg.in/cheggaaa/pb.v1"
@@ -41,6 +42,16 @@ func GetDefaultLogDir() string {
 func DeleteNil(errs []error) (new []error) {
 	for _, err := range errs {
 		if err != nil {
+			new = append(new, err)
+		}
+	}
+	return new
+}
+
+// DeleteRecordNotFound deletes gorm.ErrRecordNotFound in errs
+func DeleteRecordNotFound(errs []error) (new []error) {
+	for _, err := range errs {
+		if err != nil && err != gorm.ErrRecordNotFound {
 			new = append(new, err)
 		}
 	}

@@ -27,14 +27,19 @@ func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.Redhat
 
 func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	c := models.RedhatCVE{}
-	r.conn.Where(&models.RedhatCVE{Name: cveID}).First(&c)
-	r.conn.Model(&c).Related(&c.Details)
-	r.conn.Model(&c).Related(&c.References)
-	r.conn.Model(&c).Related(&c.Bugzilla)
-	r.conn.Model(&c).Related(&c.Cvss)
-	r.conn.Model(&c).Related(&c.Cvss3)
-	r.conn.Model(&c).Related(&c.AffectedRelease)
-	r.conn.Model(&c).Related(&c.PackageState)
+	var errs gorm.Errors
+	errs = errs.Add(r.conn.Where(&models.RedhatCVE{Name: cveID}).First(&c).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.Details).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.References).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.Bugzilla).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.Cvss).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.Cvss3).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.AffectedRelease).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.PackageState).Error)
+	errs = util.DeleteRecordNotFound(errs)
+	if len(errs.GetErrors()) > 0 {
+		log15.Error("Failed to delete old records. err: %s", errs.Error())
+	}
 	return &c
 }
 
