@@ -129,8 +129,41 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCV
 }
 
 func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string) (m map[string]models.RedhatCVE) {
-	// TODO implement
-	return nil
+	m = map[string]models.RedhatCVE{}
+
+	var result *redis.StringSliceCmd
+	if result = r.conn.ZRange(zindRedHatPrefix+pkgName, 0, -1); result.Err() != nil {
+		log.Error(result.Err())
+		return
+	}
+
+	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
+	for _, cveID := range result.Val() {
+		red := r.GetRedhat(cveID)
+		if red == nil {
+			log15.Error("%s not found", cveID)
+			continue
+		}
+
+		// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format
+		pkgStats := []models.RedhatPackageState{}
+		for _, pkgstat := range red.PackageState {
+			if pkgstat.Cpe != cpe ||
+				pkgstat.PackageName != pkgName ||
+				pkgstat.FixState == "Not affected" ||
+				pkgstat.FixState == "New" ||
+				pkgstat.FixState == "Affected" {
+				continue
+			}
+			pkgStats = append(pkgStats, pkgstat)
+		}
+		if len(pkgStats) == 0 {
+			continue
+		}
+		red.PackageState = pkgStats
+		m[cveID] = *red
+	}
+	return
 }
 
 func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]models.DebianCVE) {
@@ -138,7 +171,7 @@ func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]
 	codeName, ok := debVerCodename[major]
 	if !ok {
 		log15.Error("Debian %s is not supported yet", major)
-		return m
+		return
 	}
 	var result *redis.StringSliceCmd
 	if result = r.conn.ZRange(zindDebianPrefix+pkgName, 0, -1); result.Err() != nil {
@@ -149,6 +182,7 @@ func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]
 	for _, cveID := range result.Val() {
 		deb := r.GetDebian(cveID)
 		if deb == nil {
+			log15.Error("%s not found", cveID)
 			continue
 		}
 
