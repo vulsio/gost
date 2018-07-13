@@ -110,7 +110,7 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCV
 	}
 	if _, err := pipe.Exec(); err != nil {
 		if err != redis.Nil {
-			log15.Error("Failed to get multi cve json.", "err ", err)
+			log15.Error("Failed to get multi cve json.", "err", err)
 			return nil
 		}
 	}
@@ -141,7 +141,7 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string) (m map[string]
 	for _, cveID := range result.Val() {
 		red := r.GetRedhat(cveID)
 		if red == nil {
-			log15.Error("%s not found", cveID)
+			log15.Error("CVE is not found", "CVE-ID", cveID)
 			continue
 		}
 
@@ -170,7 +170,7 @@ func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]
 	m = map[string]models.DebianCVE{}
 	codeName, ok := debVerCodename[major]
 	if !ok {
-		log15.Error("Debian %s is not supported yet", major)
+		log15.Error("Not supported yet", "major", major)
 		return
 	}
 	var result *redis.StringSliceCmd
@@ -182,7 +182,7 @@ func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]
 	for _, cveID := range result.Val() {
 		deb := r.GetDebian(cveID)
 		if deb == nil {
-			log15.Error("%s not found", cveID)
+			log15.Error("CVE is not found", "CVE-ID", cveID)
 			continue
 		}
 

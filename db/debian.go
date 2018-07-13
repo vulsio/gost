@@ -14,12 +14,12 @@ func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 	c := models.DebianCVE{}
 	err := r.conn.Where(&models.DebianCVE{CveID: cveID}).First(&c).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		log15.Error("Failed to get Debian", err)
+		log15.Error("Failed to get Debian", "err", err)
 		return nil
 	}
 	err = r.conn.Model(&c).Related(&c.Package).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		log15.Error("Failed to get Debian", err)
+		log15.Error("Failed to get Debian", "err", err)
 		return nil
 	}
 
@@ -27,7 +27,7 @@ func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 	for _, pkg := range c.Package {
 		err = r.conn.Model(&pkg).Related(&pkg.Release).Error
 		if err != nil && err != gorm.ErrRecordNotFound {
-			log15.Error("Failed to get Debian", err)
+			log15.Error("Failed to get Debian", "err", err)
 			return nil
 		}
 		newPkg = append(newPkg, pkg)
@@ -126,7 +126,7 @@ func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]model
 	m := map[string]models.DebianCVE{}
 	codeName, ok := debVerCodename[major]
 	if !ok {
-		log15.Error("Debian %s is not supported yet", major)
+		log15.Error("Debian %s is not supported yet", "err", major)
 		return m
 	}
 
@@ -143,7 +143,7 @@ func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]model
 		}).Scan(&results).Error
 
 	if err != nil && err != gorm.ErrRecordNotFound {
-		log15.Error("Failed to get unfixed cves of Debian:", err)
+		log15.Error("Failed to get unfixed cves of Debian", "err", err)
 		return m
 	}
 

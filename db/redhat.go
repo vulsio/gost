@@ -38,7 +38,7 @@ func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	errs = errs.Add(r.conn.Model(&c).Related(&c.PackageState).Error)
 	errs = util.DeleteRecordNotFound(errs)
 	if len(errs.GetErrors()) > 0 {
-		log15.Error("Failed to delete old records. err: %s", errs.Error())
+		log15.Error("Failed to delete old records", "err", errs.Error())
 	}
 	return &c
 }
@@ -64,7 +64,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string) map[string]model
 			PackageName: pkgName,
 		}).Find(&pkgStats).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		log15.Error("Failed to get unfixed cves of Redhat:", err)
+		log15.Error("Failed to get unfixed cves of Redhat", "err", err)
 		return nil
 	}
 
@@ -85,7 +85,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string) map[string]model
 			Preload("References").
 			Where(&models.RedhatCVE{ID: id}).First(&rhcve).Error
 		if err != nil && err != gorm.ErrRecordNotFound {
-			log15.Error("Failed to get unfixed cves of Redhat:", err)
+			log15.Error("Failed to get unfixed cves of Redhat", "err", err)
 			return nil
 		}
 
