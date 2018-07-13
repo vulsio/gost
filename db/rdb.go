@@ -40,7 +40,6 @@ func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (err error) {
 	r.conn.LogMode(debugSQL)
 	if r.name == dialectSqlite3 {
 		r.conn.Exec("PRAGMA foreign_keys = ON")
-		r.conn.Exec("PRAGMA journal_mode=WAL;")
 	}
 	return
 }
