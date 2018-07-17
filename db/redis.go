@@ -188,6 +188,9 @@ func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]
 
 		pkgs := []models.DebianPackage{}
 		for _, pkg := range deb.Package {
+			if pkg.PackageName != pkgName {
+				continue
+			}
 			rels := []models.DebianRelease{}
 			for _, rel := range pkg.Release {
 				if rel.ProductName == codeName && rel.Status == "open" {

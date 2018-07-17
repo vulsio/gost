@@ -159,6 +159,9 @@ func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]model
 
 		pkgs := []models.DebianPackage{}
 		for _, pkg := range debcve.Package {
+			if pkg.PackageName != pkgName {
+				continue
+			}
 			err = r.conn.Model(&pkg).Related(&pkg.Release).Error
 			if err != nil && err != gorm.ErrRecordNotFound {
 				log15.Error("Failed to get DebianRelease", pkg.Release, err)
