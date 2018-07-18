@@ -28,9 +28,22 @@ func init() {
 	redhatCmd.PersistentFlags().String("before", "", "Fetch CVEs before the specified date (e.g. 2017-01-01)")
 	viper.BindPFlag("before", redhatCmd.PersistentFlags().Lookup("before"))
 	viper.SetDefault("before", "")
+
+	redhatCmd.PersistentFlags().Bool("list-only", false, "")
+	viper.BindPFlag("list-only", redhatCmd.PersistentFlags().Lookup("list-only"))
+	viper.SetDefault("list-only", false)
 }
 
 func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
+	log15.Info("Initialize Database")
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	if err != nil {
+		if locked {
+			log15.Error("Failed to initialize DB. Close DB connection before fetching", "err", err)
+		}
+		return err
+	}
+
 	log15.Info("Fetch the list of CVEs")
 	entries, err := fetcher.ListAllRedhatCves(
 		viper.GetString("before"), viper.GetString("after"), viper.GetInt("threads"))
@@ -43,16 +56,17 @@ func fetchRedhat(cmd *cobra.Command, args []string) (err error) {
 		resourceURLs = append(resourceURLs, entry.ResourceURL)
 	}
 
+	if viper.GetBool("list-only") {
+		for _, e := range entries {
+			fmt.Printf("%s\t%s\n", e.CveID, e.PublicDate)
+		}
+		return nil
+	}
+
 	log15.Info(fmt.Sprintf("Fetched %d CVEs", len(entries)))
 	cves, err := fetcher.RetrieveRedhatCveDetails(resourceURLs)
 	if err != nil {
 		log15.Error("Failed to fetch the CVE details.", "err", err)
-		return err
-	}
-
-	driver, err := db.InitDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
-	if err != nil {
-		log15.Error("Failed to initialize DB.", "err", err)
 		return err
 	}
 

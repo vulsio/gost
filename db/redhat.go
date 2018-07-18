@@ -27,19 +27,86 @@ func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.Redhat
 
 func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	c := models.RedhatCVE{}
-	r.conn.Where(&models.RedhatCVE{Name: cveID}).First(&c)
-	r.conn.Model(&c).Related(&c.Details)
-	r.conn.Model(&c).Related(&c.References)
-	r.conn.Model(&c).Related(&c.Bugzilla)
-	r.conn.Model(&c).Related(&c.Cvss)
-	r.conn.Model(&c).Related(&c.Cvss3)
-	r.conn.Model(&c).Related(&c.AffectedRelease)
-	r.conn.Model(&c).Related(&c.PackageState)
+	var errs gorm.Errors
+	errs = errs.Add(r.conn.Where(&models.RedhatCVE{Name: cveID}).First(&c).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.Details).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.References).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.Bugzilla).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.Cvss).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.Cvss3).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.AffectedRelease).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.PackageState).Error)
+	errs = util.DeleteRecordNotFound(errs)
+	if len(errs.GetErrors()) > 0 {
+		log15.Error("Failed to delete old records", "err", errs.Error())
+	}
 	return &c
 }
 
-func (r *RDBDriver) GetRedhatMulti(cveID []string) map[string]*models.RedhatCVE {
-	return nil
+func (r *RDBDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE {
+	m := map[string]models.RedhatCVE{}
+	for _, cveID := range cveIDs {
+		m[cveID] = *r.GetRedhat(cveID)
+	}
+	return m
+}
+
+func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string) map[string]models.RedhatCVE {
+	m := map[string]models.RedhatCVE{}
+	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
+	pkgStats := []models.RedhatPackageState{}
+
+	// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format
+	err := r.conn.
+		Not("fix_state", []string{"Not affected", "New", "Affected"}).
+		Where(&models.RedhatPackageState{
+			Cpe:         cpe,
+			PackageName: pkgName,
+		}).Find(&pkgStats).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		log15.Error("Failed to get unfixed cves of Redhat", "err", err)
+		return nil
+	}
+
+	redhatCVEIDs := map[int64]bool{}
+	for _, p := range pkgStats {
+		redhatCVEIDs[p.RedhatCVEID] = true
+	}
+
+	for id := range redhatCVEIDs {
+		rhcve := models.RedhatCVE{}
+		err = r.conn.
+			Preload("Bugzilla").
+			Preload("Cvss").
+			Preload("Cvss3").
+			Preload("AffectedRelease").
+			Preload("PackageState").
+			Preload("Details").
+			Preload("References").
+			Where(&models.RedhatCVE{ID: id}).First(&rhcve).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			log15.Error("Failed to get unfixed cves of Redhat", "err", err)
+			return nil
+		}
+
+		pkgStats := []models.RedhatPackageState{}
+		for _, pkgstat := range rhcve.PackageState {
+			if pkgstat.Cpe != cpe ||
+				pkgstat.PackageName != pkgName ||
+				pkgstat.FixState == "Not affected" ||
+				pkgstat.FixState == "New" ||
+				pkgstat.FixState == "Affected" {
+				continue
+			}
+			pkgStats = append(pkgStats, pkgstat)
+		}
+		if len(pkgStats) == 0 {
+			continue
+		}
+		rhcve.PackageState = pkgStats
+		m[rhcve.Name] = rhcve
+	}
+	return m
 }
 
 func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {

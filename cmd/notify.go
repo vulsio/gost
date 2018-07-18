@@ -64,8 +64,11 @@ func notifyRedhat(conf config.Config) error {
 	}
 
 	log15.Info("Initialize Database")
-	driver, err := db.InitDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
+		if locked {
+			log15.Error("Failed to initialize DB. Close DB connection before fetching", "err", err)
+		}
 		return err
 	}
 

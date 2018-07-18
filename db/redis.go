@@ -8,6 +8,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/models"
+	"github.com/labstack/gommon/log"
 	"gopkg.in/cheggaaa/pb.v1"
 )
 
@@ -15,18 +16,31 @@ import (
 # Redis Data Structure
 
 - HASH
-  ┌───┬────────────┬──────────┬──────────┬─────────────────────────────────┐
-  │NO │    HASH    │  FIELD   │  VALUE   │             PURPOSE             │
-  └───┴────────────┴──────────┴──────────┴─────────────────────────────────┘
-  ┌───┬────────────┬──────────┬──────────┬─────────────────────────────────┐
-  │ 1 │ CVE#$CVEID │  RedHat  │ $CVEJSON │     TO GET CVEJSON BY CVEID     │
-  └───┴────────────┴──────────┴──────────┴─────────────────────────────────┘
+  ┌───┬────────────┬─────────────────┬──────────┬─────────────────────────────────┐
+  │NO │    HASH    │         FIELD   │  VALUE   │             PURPOSE             │
+  └───┴────────────┴─────────────────┴──────────┴─────────────────────────────────┘
+  ┌───┬────────────┬─────────────────┬──────────┬─────────────────────────────────┐
+  │ 1 │GOST#$CVEID │  RedHat/Debian  │ $CVEJSON │     TO GET CVEJSON BY CVEID     │
+  └───┴────────────┴─────────────────┴──────────┴─────────────────────────────────┘
+
+
+- ZINDE  X
+  ┌───┬────────────────┬──────────┬──────────┬─────────────────────────────────┐
+  │NO │           KEY  │  SCORE   │  MEMBER  │             PURPOSE             │
+  └───┴────────────────┴──────────┴──────────┴─────────────────────────────────┘
+  ┌───┬────────────────┬──────────┬──────────┬───────────────────────────────────────┐
+  │ 1 │GOST#R#$PKGNAME │    0     │  $CVEID  │(RedHat) GET RELATED []CVEID BY PKGNAME│
+  ├───┼────────────────┼──────────┼──────────┼───────────────────────────────────────┤
+  │ 2 │GOST#D#$PKGNAME │    0     │  $CVEID  │(Debian) GET RELATED []CVEID BY PKGNAME│
+  └───┴────────────────┴──────────┴──────────┴───────────────────────────────────────┘
 
 **/
 
 const (
-	dialectRedis  = "redis"
-	hashKeyPrefix = "CVE#"
+	dialectRedis     = "redis"
+	hashKeyPrefix    = "GOST#"
+	zindRedHatPrefix = "GOST#R#"
+	zindDebianPrefix = "GOST#D#"
 )
 
 // RedisDriver is Driver for Redis
@@ -41,7 +55,7 @@ func (r *RedisDriver) Name() string {
 }
 
 // OpenDB opens Database
-func (r *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (err error) {
+func (r *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
 	if err = r.connectRedis(dbPath); err != nil {
 		err = fmt.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
 	}
@@ -66,8 +80,9 @@ func (r *RedisDriver) MigrateDB() error {
 }
 
 func (r *RedisDriver) GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error) {
-	return nil, nil
+	return nil, fmt.Errorf("Not implemented yet")
 }
+
 func (r *RedisDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	result := r.conn.HGetAll(hashKeyPrefix + cveID)
 	if result.Err() != nil {
@@ -85,8 +100,8 @@ func (r *RedisDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	return &redhat
 }
 
-func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]*models.RedhatCVE {
-	results := map[string]*models.RedhatCVE{}
+func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE {
+	results := map[string]models.RedhatCVE{}
 	rs := map[string]*redis.StringStringMapCmd{}
 
 	pipe := r.conn.Pipeline()
@@ -95,7 +110,7 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]*models.RedhatC
 	}
 	if _, err := pipe.Exec(); err != nil {
 		if err != redis.Nil {
-			log15.Error("Failed to get multi cve json.", "err ", err)
+			log15.Error("Failed to get multi cve json.", "err", err)
 			return nil
 		}
 	}
@@ -108,14 +123,113 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]*models.RedhatC
 				return nil
 			}
 		}
-		results[cveID] = &redhat
+		results[cveID] = redhat
 	}
 	return results
 }
 
-func (r *RedisDriver) GetDebian(string) *models.DebianCVE {
-	return nil
+func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string) (m map[string]models.RedhatCVE) {
+	m = map[string]models.RedhatCVE{}
+
+	var result *redis.StringSliceCmd
+	if result = r.conn.ZRange(zindRedHatPrefix+pkgName, 0, -1); result.Err() != nil {
+		log.Error(result.Err())
+		return
+	}
+
+	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
+	for _, cveID := range result.Val() {
+		red := r.GetRedhat(cveID)
+		if red == nil {
+			log15.Error("CVE is not found", "CVE-ID", cveID)
+			continue
+		}
+
+		// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format
+		pkgStats := []models.RedhatPackageState{}
+		for _, pkgstat := range red.PackageState {
+			if pkgstat.Cpe != cpe ||
+				pkgstat.PackageName != pkgName ||
+				pkgstat.FixState == "Not affected" ||
+				pkgstat.FixState == "New" ||
+				pkgstat.FixState == "Affected" {
+				continue
+			}
+			pkgStats = append(pkgStats, pkgstat)
+		}
+		if len(pkgStats) == 0 {
+			continue
+		}
+		red.PackageState = pkgStats
+		m[cveID] = *red
+	}
+	return
 }
+
+func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]models.DebianCVE) {
+	m = map[string]models.DebianCVE{}
+	codeName, ok := debVerCodename[major]
+	if !ok {
+		log15.Error("Not supported yet", "major", major)
+		return
+	}
+	var result *redis.StringSliceCmd
+	if result = r.conn.ZRange(zindDebianPrefix+pkgName, 0, -1); result.Err() != nil {
+		log.Error(result.Err())
+		return
+	}
+
+	for _, cveID := range result.Val() {
+		deb := r.GetDebian(cveID)
+		if deb == nil {
+			log15.Error("CVE is not found", "CVE-ID", cveID)
+			continue
+		}
+
+		pkgs := []models.DebianPackage{}
+		for _, pkg := range deb.Package {
+			if pkg.PackageName != pkgName {
+				continue
+			}
+			rels := []models.DebianRelease{}
+			for _, rel := range pkg.Release {
+				if rel.ProductName == codeName && rel.Status == "open" {
+					rels = append(rels, rel)
+				}
+			}
+			if len(rels) == 0 {
+				continue
+			}
+			pkg.Release = rels
+			pkgs = append(pkgs, pkg)
+		}
+		if len(pkgs) != 0 {
+			deb.Package = pkgs
+			m[cveID] = *deb
+		}
+	}
+	return
+}
+
+func (r *RedisDriver) GetDebian(cveID string) *models.DebianCVE {
+	var result *redis.StringStringMapCmd
+	if result = r.conn.HGetAll(hashKeyPrefix + cveID); result.Err() != nil {
+		log.Error(result.Err())
+		return nil
+	}
+	deb := models.DebianCVE{}
+	j, ok := result.Val()["Debian"]
+	if !ok {
+		return nil
+	}
+
+	if err := json.Unmarshal([]byte(j), &deb); err != nil {
+		log.Errorf("Failed to Unmarshal json. err : %s", err)
+		return nil
+	}
+	return &deb
+}
+
 func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
 	cves, err := ConvertRedhat(cveJSONs)
 	if err != nil {
@@ -137,6 +251,15 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 			return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
 		}
 
+		for _, pkg := range cve.PackageState {
+			if result := pipe.ZAdd(
+				zindRedHatPrefix+pkg.PackageName,
+				redis.Z{Score: 0, Member: cve.Name},
+			); result.Err() != nil {
+				return fmt.Errorf("Failed to ZAdd pkg name. err: %s", result.Err())
+			}
+		}
+
 		if _, err = pipe.Exec(); err != nil {
 			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 		}
@@ -146,6 +269,37 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 	return nil
 }
 
-func (r *RedisDriver) InsertDebian(models.DebianJSON) error {
+func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
+	cves := ConvertDebian(cveJSONs)
+	bar := pb.StartNew(len(cves))
+
+	for _, cve := range cves {
+		var pipe redis.Pipeliner
+		pipe = r.conn.Pipeline()
+		bar.Increment()
+
+		j, err := json.Marshal(cve)
+		if err != nil {
+			return fmt.Errorf("Failed to marshal json. err: %s", err)
+		}
+
+		if result := pipe.HSet(hashKeyPrefix+cve.CveID, "Debian", string(j)); result.Err() != nil {
+			return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
+		}
+
+		for _, pkg := range cve.Package {
+			if result := pipe.ZAdd(
+				zindDebianPrefix+pkg.PackageName,
+				redis.Z{Score: 0, Member: cve.CveID},
+			); result.Err() != nil {
+				return fmt.Errorf("Failed to ZAdd pkg name. err: %s", result.Err())
+			}
+		}
+
+		if _, err = pipe.Exec(); err != nil {
+			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
+		}
+	}
+	bar.Finish()
 	return nil
 }
