@@ -33,7 +33,7 @@ depup:
 	dep ensure -update -v
 
 build: main.go dep
-	go build -ldflags "$(LDFLAGS)" -o goval-dictionary $<
+	go build -ldflags "$(LDFLAGS)" -o gost  $<
 
 install: main.go dep
 	go install -ldflags "$(LDFLAGS)"
