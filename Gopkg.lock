@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  digest = "1:282acb7fe0ca456de4ea5c3174c2691a2bd74008462e966b69094ad0b2c23e6e"
+  digest = "1:b16fbfbcc20645cb419f78325bb2e85ec729b338e996a228124d68931a6f2a37"
   name = "github.com/BurntSushi/toml"
   packages = ["."]
   pruneopts = "UT"
@@ -34,7 +34,7 @@
   version = "v1.4.7"
 
 [[projects]]
-  digest = "1:f0e9573388aa6e99341cbea024d15775f8209896f9f7826cd92a3044f1f8ea39"
+  digest = "1:d8180cdf086f729ae7c0c995194788c5578aed12cc49dd4673702b2b4073ca1f"
   name = "github.com/go-redis/redis"
   packages = [
     ".",
@@ -68,7 +68,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ac64f01acc5eeea9dde40e326de6b6471e501392ec06524c3b51033aa50789bc"
+  digest = "1:a361611b8c8c75a1091f00027767f7779b29cb37c456a71b8f2604c88057ab40"
   name = "github.com/hashicorp/hcl"
   packages = [
     ".",
@@ -102,7 +102,7 @@
   version = "v1.0"
 
 [[projects]]
-  digest = "1:2e8f5374b87a5afd6529a07b4bcfffe5f44ddf005c8eb581ac2863875ece8bae"
+  digest = "1:8fe19266ce82209076d4a81007ff93f40dd349faca4a917aea59d33956bbd4fd"
   name = "github.com/jinzhu/gorm"
   packages = [
     ".",
@@ -123,15 +123,7 @@
   revision = "04140366298a54a039076d798123ffa108fff46c"
 
 [[projects]]
-  digest = "1:16dd6b893b78a50564cdde1d9f7ea67224dece11bb0886bd882f1dc3dc1d440d"
-  name = "github.com/k0kubun/pp"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "027a6d1765d673d337e687394dbe780dd64e2a1e"
-  version = "v2.3.0"
-
-[[projects]]
-  digest = "1:2481cc9398b561ce16e60cff29a738c56f679d676ec189d4558e5b92e138b2ce"
+  digest = "1:09b4b26f6837dbb21698726ccaa6eccae9ab822485726a2a09a9d123cb1ba4d1"
   name = "github.com/labstack/echo"
   packages = [
     ".",
@@ -146,7 +138,7 @@
   version = "v2.2.0"
 
 [[projects]]
-  digest = "1:8a96690ad5450df849cfd664c761cb10fe9a5d5de1effaf6a85cd884e93400c9"
+  digest = "1:568171fc14a3d819b112c3e219d351ea7b05e8dad7935c4168c6b3373244a686"
   name = "github.com/labstack/gommon"
   packages = [
     "bytes",
@@ -160,7 +152,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:defb20f3cbe2ee567752a32f4f5a41ed22d648654545147fb5c94e28beec3fca"
+  digest = "1:2d370ad7a48d3523291ad53a04b9b1510c182880927f800b46221cc465427800"
   name = "github.com/lib/pq"
   packages = [
     ".",
@@ -259,7 +251,7 @@
   version = "v0.8.0"
 
 [[projects]]
-  digest = "1:37ace7f35375adec11634126944bdc45a673415e2fcc07382d03b75ec76ea94c"
+  digest = "1:bd1ae00087d17c5a748660b8e89e1043e1e5479d0fea743352cda2f8dd8c4f84"
   name = "github.com/spf13/afero"
   packages = [
     ".",
@@ -278,7 +270,7 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:872fa275c31e1f9db31d66fa9b1d4a7bb9a080ff184e6977da01f36bfbe07f11"
+  digest = "1:645cabccbb4fa8aab25a956cbcbdf6a6845ca736b2c64e197ca7cbb9d210b939"
   name = "github.com/spf13/cobra"
   packages = ["."]
   pruneopts = "UT"
@@ -327,7 +319,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:79d16bf6031c953123613b78dffd6590ef0927cc4b02f5f2ec8b42e8d44c0508"
+  digest = "1:33331143cc6613423f38a3fd4b3d510d7db8904ccaea0f2e96f827b21e716fb7"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -346,7 +338,7 @@
   revision = "151529c776cdc58ddbe7963ba9af779f3577b419"
 
 [[projects]]
-  digest = "1:7509ba4347d1f8de6ae9be8818b0cd1abc3deeffe28aeaf4be6d4b6b5178d9ca"
+  digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
   name = "golang.org/x/text"
   packages = [
     "collate",
@@ -404,7 +396,6 @@
     "github.com/jinzhu/gorm/dialects/mysql",
     "github.com/jinzhu/gorm/dialects/postgres",
     "github.com/jinzhu/gorm/dialects/sqlite",
-    "github.com/k0kubun/pp",
     "github.com/labstack/echo",
     "github.com/labstack/echo/engine/standard",
     "github.com/labstack/echo/middleware",
