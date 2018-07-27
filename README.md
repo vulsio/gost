@@ -3,7 +3,6 @@
 
 `gost` builds a local copy of Security Tracker(Redhat/Debian).   
 After you register CVEs to watch list, `gost` notify via E-mail/Slack if there is an update.
-
 The pronunciation of `gost` is the same as the English word "ghost".
 
 <img src="doc/gost01.gif" width="700">
@@ -80,15 +79,12 @@ INFO[07-27|14:08:00] Insert RedHat into DB                    db=sqlite3
 ```
 $ gost fetch debian 
 
-INFO[07-27|11:13:27] Initialize Database
-INFO[07-27|11:13:27] Opening DB.                              db=sqlite3
-INFO[07-27|11:13:27] Migrating DB.                            db=sqlite3
-INFO[07-27|11:13:27] Fetch the list of CVEs
-INFO[07-27|13:59:33] Fetched 6136 CVEs
- 6136 / 6136 [=================] 100.00% 8m25s
-INFO[07-27|14:08:00] Insert RedHat into DB                    db=sqlite3
- 0 / 6136 [--------------------]   0.00%INFO[07-27|14:08:00] Insert 6136 CVEs
- 6136 / 6136 [=================] 100.00% 17s
+INFO[07-27|15:30:49] Initialize Database
+INFO[07-27|15:30:49] Opening DB.                              db=sqlite3
+INFO[07-27|15:30:49] Migrating DB.                            db=sqlite3
+INFO[07-27|15:30:49] Fetched all CVEs from Debian
+INFO[07-27|15:31:09] Insert Debian CVEs into DB               db=sqlite3
+ 21428 / 21428 [================] 100.00% 5s
 ```
 
 # Server mode
@@ -183,6 +179,65 @@ You need to install selector command (fzf or peco).
 ```
 $ go get github.com/knqyf263/gost
 ```
+
+# Docker Setup, Fetch, Run as Serer and Curl
+
+## Fetch Debian and RedHat then start as a server mode
+
+```
+$ docker run --rm -i \ 
+	 -v $PWD:/vuls \
+	 -v $PWD:/var/log/gost \
+	 vuls/gost fetch debian
+$ docker run --rm -i \
+	-v $PWD:/vuls \
+	-v $PWD:/var/log/gost \
+	vuls/gost fetch redhat --after=2016-01-01
+$ ls 
+access.log      gost.log        tracker.sqlite3
+
+$ docker run --rm -i \
+        -v $PWD:/vuls \
+        -v $PWD:/var/log/gost \
+        -p 1235:1235 \
+        vuls/gost server --bind=0.0.0.0
+```
+
+## HTTP Get to the server on Docker
+
+```
+$ curl http://127.0.0.1:1235/debian/9/pkgs/expat/unfixed-cves | jq "."                                                                                         Fri Jul 27 16:03:15 2018
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   970  100   970    0     0  60308      0 --:--:-- --:--:-- --:--:-- 60625
+{
+  "CVE-2013-0340": {
+    "ID": 8452,
+    "CveID": "CVE-2013-0340",
+    "Scope": "remote",
+    "Description": "expat 2.1.0 and earlier does not properly handle entities expansion unless an application developer uses the XML_SetEntityDeclHandler function, which allows remote attackers to cause a denial of service (resource consumption), send HTTP requests to intranet servers, or read arbitrary files via a crafted XML document, aka an XML External Entity (XXE) issue.  NOTE: it could be argued that because expat already provides the ability to disable external entity expansion, the responsibility for resolving this issue lies with application developers; according to this argument, this entry should be REJECTed, and each affected application would need its own CVE.",
+    "Package": [
+      {
+        "ID": 9829,
+        "DebianCVEID": 8452,
+        "PackageName": "expat",
+        "Release": [
+          {
+            "ID": 32048,
+            "DebianPackageID": 9829,
+            "ProductName": "stretch",
+            "Status": "open",
+            "FixedVersion": "",
+            "Urgency": "unimportant",
+            "Version": "2.2.0-2+deb9u1"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
 
 # TODO
 - Ubuntu(https://people.canonical.com/~ubuntu-security/cve/)

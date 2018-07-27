@@ -18,8 +18,8 @@ import (
 // notifyCmd represents the notify command
 var notifyCmd = &cobra.Command{
 	Use:   "notify",
-	Short: "Notifiy update abount the specified CVE",
-	Long:  `Notifiy update abount the specified CVE`,
+	Short: "Notifiy update about the specified CVE",
+	Long:  `Notifiy update about the specified CVE`,
 	RunE:  executeNotify,
 }
 
