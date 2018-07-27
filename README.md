@@ -55,6 +55,42 @@ Flags:
 Use "gost [command] --help" for more information about a command.
 ```
 
+# Fetch RedHat
+
+## Fetch vulnerability infomation updated after 2016-01-01
+
+```
+$ gost fetch redhat -after 2016-01-01   
+
+INFO[07-27|11:13:27] Initialize Database
+INFO[07-27|11:13:27] Opening DB.                              db=sqlite3
+INFO[07-27|11:13:27] Migrating DB.                            db=sqlite3
+INFO[07-27|11:13:27] Fetch the list of CVEs
+INFO[07-27|13:59:33] Fetched 6136 CVEs
+ 6136 / 6136 [=================] 100.00% 8m25s
+INFO[07-27|14:08:00] Insert RedHat into DB                    db=sqlite3
+ 0 / 6136 [--------------------]   0.00%INFO[07-27|14:08:00] Insert 6136 CVEs
+ 6136 / 6136 [=================] 100.00% 17s
+```
+
+# Fetch Debian
+
+## Fetch vulnerability infomation 
+
+```
+$ gost fetch debian 
+
+INFO[07-27|11:13:27] Initialize Database
+INFO[07-27|11:13:27] Opening DB.                              db=sqlite3
+INFO[07-27|11:13:27] Migrating DB.                            db=sqlite3
+INFO[07-27|11:13:27] Fetch the list of CVEs
+INFO[07-27|13:59:33] Fetched 6136 CVEs
+ 6136 / 6136 [=================] 100.00% 8m25s
+INFO[07-27|14:08:00] Insert RedHat into DB                    db=sqlite3
+ 0 / 6136 [--------------------]   0.00%INFO[07-27|14:08:00] Insert 6136 CVEs
+ 6136 / 6136 [=================] 100.00% 17s
+```
+
 # Server mode
 
 ```
