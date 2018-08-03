@@ -20,7 +20,7 @@ import (
   │NO │    HASH    │         FIELD   │  VALUE   │             PURPOSE             │
   └───┴────────────┴─────────────────┴──────────┴─────────────────────────────────┘
   ┌───┬────────────┬─────────────────┬──────────┬─────────────────────────────────┐
-  │ 1 │GOST#$CVEID │  RedHat/Debian  │ $CVEJSON │     TO GET CVEJSON BY CVEID     │
+  │ 1 │CVE#$CVEID  │  RedHat/Debian  │ $CVEJSON │     TO GET CVEJSON BY CVEID     │
   └───┴────────────┴─────────────────┴──────────┴─────────────────────────────────┘
 
 
@@ -29,18 +29,18 @@ import (
   │NO │           KEY  │  SCORE   │  MEMBER  │             PURPOSE             │
   └───┴────────────────┴──────────┴──────────┴─────────────────────────────────┘
   ┌───┬────────────────┬──────────┬──────────┬───────────────────────────────────────┐
-  │ 1 │GOST#R#$PKGNAME │    0     │  $CVEID  │(RedHat) GET RELATED []CVEID BY PKGNAME│
+  │ 1 │CVE#R#$PKGNAME  │    0     │  $CVEID  │(RedHat) GET RELATED []CVEID BY PKGNAME│
   ├───┼────────────────┼──────────┼──────────┼───────────────────────────────────────┤
-  │ 2 │GOST#D#$PKGNAME │    0     │  $CVEID  │(Debian) GET RELATED []CVEID BY PKGNAME│
+  │ 2 │CVE#D#$PKGNAME  │    0     │  $CVEID  │(Debian) GET RELATED []CVEID BY PKGNAME│
   └───┴────────────────┴──────────┴──────────┴───────────────────────────────────────┘
 
 **/
 
 const (
 	dialectRedis     = "redis"
-	hashKeyPrefix    = "GOST#"
-	zindRedHatPrefix = "GOST#R#"
-	zindDebianPrefix = "GOST#D#"
+	hashKeyPrefix    = "CVE#"
+	zindRedHatPrefix = "CVE#R#"
+	zindDebianPrefix = "CVE#D#"
 )
 
 // RedisDriver is Driver for Redis
