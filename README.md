@@ -59,7 +59,7 @@ Use "gost [command] --help" for more information about a command.
 ## Fetch vulnerability infomation updated after 2016-01-01
 
 ```
-$ gost fetch redhat -after 2016-01-01   
+$ gost fetch redhat --after 2016-01-01   
 
 INFO[07-27|11:13:27] Initialize Database
 INFO[07-27|11:13:27] Opening DB.                              db=sqlite3
