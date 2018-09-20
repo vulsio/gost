@@ -69,6 +69,16 @@ func (r *RDBDriver) MigrateDB() error {
 		&models.DebianCVE{},
 		&models.DebianPackage{},
 		&models.DebianRelease{},
+
+		&models.MicrosoftCVE{},
+		&models.MicrosoftProductStatus{},
+		&models.MicrosoftThreat{},
+		&models.MicrosoftRemediation{},
+		&models.MicrosoftReference{},
+		&models.MicrosoftScoreSet{},
+		&models.MicrosoftCveID{},
+		&models.MicrosoftProduct{},
+		&models.MicrosoftKBID{},
 	).Error; err != nil {
 		return fmt.Errorf("Failed to migrate. err: %s", err)
 	}
@@ -112,6 +122,27 @@ func (r *RDBDriver) MigrateDB() error {
 	errs = errs.Add(r.conn.Model(&models.DebianRelease{}).AddIndex("idx_debian_releases_debian_package_id", "debian_package_id").Error)
 	errs = errs.Add(r.conn.Model(&models.DebianRelease{}).AddIndex("idx_debian_releases_product_name", "product_name").Error)
 	errs = errs.Add(r.conn.Model(&models.DebianRelease{}).AddIndex("idx_debian_releases_status", "status").Error)
+
+	// microsoft_cves
+	errs = errs.Add(r.conn.Model(&models.MicrosoftCVE{}).AddIndex("idx_microsoft_cves_cveid", "cve_id").Error)
+	// microsoft_reference
+	errs = errs.Add(r.conn.Model(&models.MicrosoftReference{}).AddIndex("idx_microsoft_reference_microsoft_cve_id", "microsoft_cve_id").Error)
+	// microsoft_kb_id
+	errs = errs.Add(r.conn.Model(&models.MicrosoftKBID{}).AddIndex("idx_microsoft_kb_id_microsoft_cve_id", "microsoft_cve_id").Error)
+	// microsoft_product_status
+	errs = errs.Add(r.conn.Model(&models.MicrosoftProductStatus{}).AddIndex("idx_microsoft_product_status_microsoft_cve_id", "microsoft_cve_id").Error)
+	// microsoft_threat
+	errs = errs.Add(r.conn.Model(&models.MicrosoftThreat{}).AddIndex("idx_microsoft_threat_microsoft_cve_id", "microsoft_cve_id").Error)
+	// microsoft_remediation
+	errs = errs.Add(r.conn.Model(&models.MicrosoftRemediation{}).AddIndex("idx_microsoft_remediation_microsoft_cve_id", "microsoft_cve_id").Error)
+	// microsoft_score_set
+	errs = errs.Add(r.conn.Model(&models.MicrosoftScoreSet{}).AddIndex("idx_microsoft_score_set_microsoft_cve_id", "microsoft_cve_id").Error)
+	// microsoft_product
+	errs = errs.Add(r.conn.Model(&models.MicrosoftProduct{}).AddIndex("idx_microsoft_product_microsoft_cve_id", "microsoft_cve_id").Error)
+	// microsoft_kb_id
+	errs = errs.Add(r.conn.Model(&models.MicrosoftKBID{}).AddIndex("idx_microsoft_kb_id_microsoft_cve_id", "microsoft_cve_id").Error)
+	// microsoft_cve_id
+	errs = errs.Add(r.conn.Model(&models.MicrosoftCveID{}).AddIndex("idx_microsoft_cve_id_microsoft_cve_id", "microsoft_cve_id").Error)
 
 	return nil
 }

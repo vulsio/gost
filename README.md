@@ -1,7 +1,7 @@
 # gost (go-security-tracker)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](https://github.com/knqyf263/gost/blob/master/LICENSE)
 
-`gost` builds a local copy of Security Tracker(Redhat/Debian).   
+`gost` builds a local copy of Security Tracker(Redhat/Debian/Microsoft).   
 After you register CVEs to watch list, `gost` notify via E-mail/Slack if there is an update.
 The pronunciation of `gost` is the same as the English word "ghost".
 
@@ -10,7 +10,7 @@ The pronunciation of `gost` is the same as the English word "ghost".
 # Abstract
 `gost` is written in Go, and therefore you can just grab the binary releases and drop it in your $PATH.
 
-`gost` builds a local copy of Security Tracker ([Redhat](https://access.redhat.com/security/security-updates/) or [Debian](https://security-tracker.debian.org/tracker/)). 
+`gost` builds a local copy of Security Tracker ([Redhat](https://access.redhat.com/security/security-updates/) or [Debian](https://security-tracker.debian.org/tracker/) or [Microsoft](https://portal.msrc.microsoft.com/en-us/security-guidance)). 
 
 A system administrator always monitor `Security Tracker`. It can be a burden. For example, after the vulnerability is found, we have to wait until the patch comes out. I hope anyone notifies me if there is an update. 
 
@@ -84,6 +84,21 @@ INFO[07-27|15:30:49] Opening DB.                              db=sqlite3
 INFO[07-27|15:30:49] Migrating DB.                            db=sqlite3
 INFO[07-27|15:30:49] Fetched all CVEs from Debian
 INFO[07-27|15:31:09] Insert Debian CVEs into DB               db=sqlite3
+ 21428 / 21428 [================] 100.00% 5s
+```
+
+# Fetch Microsoft
+
+## Fetch vulnerability infomation 
+
+```
+$ gost fetch microsoft --apikey xxxxxxxx
+
+INFO[07-27|15:30:49] Initialize Database
+INFO[07-27|15:30:49] Opening DB.                              db=sqlite3
+INFO[07-27|15:30:49] Migrating DB.                            db=sqlite3
+INFO[07-27|15:30:49] Fetched all CVEs from Microsoft
+INFO[07-27|15:31:09] Insert Microsoft CVEs into DB               db=sqlite3
  21428 / 21428 [================] 100.00% 5s
 ```
 

@@ -381,9 +381,9 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML) error {
 			return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
 		}
 
-		for _, kbID := range cve.KBIDs {
+		for _, msKBID := range cve.KBIDs {
 			if result := pipe.ZAdd(
-				zindMicrosoftPrefix+kbID,
+				zindMicrosoftPrefix+msKBID.KBID,
 				redis.Z{Score: 0, Member: cve.CveID},
 			); result.Err() != nil {
 				return fmt.Errorf("Failed to ZAdd kbID. err: %s", result.Err())

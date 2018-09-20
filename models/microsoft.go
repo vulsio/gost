@@ -219,29 +219,31 @@ func (m *Mstime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 
 // MicrosoftCVE :
 type MicrosoftCVE struct {
+	ID                       int64                    `json:",omitempty"`
 	Title                    string                   `json:"title"`
 	Description              string                   `json:"description"`
 	FAQ                      string                   `json:"faq"`
 	CveID                    string                   `json:"cve_id"`
 	CWE                      string                   `json:"cwe"`
 	MicrosoftProductStatuses []MicrosoftProductStatus `json:"microsoft_product_statuses"`
-	Impact                   []Threat                 `json:"impact"`
-	Severity                 []Threat                 `json:"severity"`
+	Impact                   []MicrosoftThreat        `json:"impact"`
+	Severity                 []MicrosoftThreat        `json:"severity"`
 	ExploitStatus            string                   `json:"exploit_status"`
 	Mitigation               string                   `json:"mitigation"`
 	Workaround               string                   `json:"workaround"`
-	VendorFix                []Remediation            `json:"vendor_fix"`
-	NoneAvailable            []Remediation            `json:"none_available"`
-	WillNotFix               []Remediation            `json:"will_not_fix"`
-	KBIDs                    []string                 `json:"kb_ids"`
+	VendorFix                []MicrosoftRemediation   `json:"vendor_fix"`
+	NoneAvailable            []MicrosoftRemediation   `json:"none_available"`
+	WillNotFix               []MicrosoftRemediation   `json:"will_not_fix"`
+	KBIDs                    []MicrosoftKBID          `json:"kb_ids"`
 	References               []MicrosoftReference     `json:"references"`
-	ScoreSets                []ScoreSet               `json:"score_sets"`
+	ScoreSets                []MicrosoftScoreSet      `json:"score_sets"`
 	PublishDate              time.Time                `json:"publish_date"`
 	LastUpdateDate           time.Time                `json:"last_update_date"`
 }
 
 // MicrosoftReference :
 type MicrosoftReference struct {
+	MicrosoftCVEID int64 `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
 	// External, Self
 	AttrType    string `json:"type"`
 	URL         string `json:"url"`
@@ -250,46 +252,55 @@ type MicrosoftReference struct {
 
 // MicrosoftKBID :
 type MicrosoftKBID struct {
-	KBID  string   `json:"kb_id"`
-	CveID []string `json:"cve_id"`
-}
-
-// MicrosoftProductID :
-type MicrosoftProductID struct {
-	ProductID   string `json:"product_id"`
-	ProductName string `json:"product_name"`
+	MicrosoftCVEID int64  `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	KBID           string `json:"kb_id"`
 }
 
 // MicrosoftProductStatus :
 type MicrosoftProductStatus struct {
-	ProductIDs    []string `json:"product_ids"`
-	ProductStatus string   `json:"product_status"`
+	MicrosoftCVEID int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	Products       []MicrosoftProduct `json:"products"`
+	ProductStatus  string             `json:"product_status"`
 }
 
-// Threat :
-type Threat struct {
-	Description  string   `json:"description"`
-	ProductIDs   []string `json:"product_ids"`
-	ProductNames []string `json:"product_names"`
+// MicrosoftThreat :
+type MicrosoftThreat struct {
+	MicrosoftCVEID int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	Description    string             `json:"description"`
+	Products       []MicrosoftProduct `json:"products"`
 }
 
-// Remediation :
-type Remediation struct {
-	Description     string   `json:"description"`
-	ProductNames    []string `json:"product_names"`
-	ProductIDs      []string `json:"product_ids"`
-	Entitlement     string   `json:"entitlement"`
-	RestartRequired string   `json:"restart_required"`
-	SubType         string   `json:"sub_type"`
-	Supercedence    string   `json:"supercedence"`
-	URL             string   `json:"url"`
+// MicrosoftRemediation :
+type MicrosoftRemediation struct {
+	MicrosoftCVEID  int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	Description     string             `json:"description"`
+	Products        []MicrosoftProduct `json:"products"`
+	Entitlement     string             `json:"entitlement"`
+	RestartRequired string             `json:"restart_required"`
+	SubType         string             `json:"sub_type"`
+	Supercedence    string             `json:"supercedence"`
+	URL             string             `json:"url"`
 }
 
-// ScoreSet :
-type ScoreSet struct {
-	BaseScore          float64  `json:"base_score"`
-	TemporalScore      float64  `xml:"temporal_score"`
-	EnvironmentalScore float64  `json:"environmental_score"`
-	Vector             string   `json:"vector"`
-	ProductIDs         []string `json:"product_ids"`
+// MicrosoftScoreSet :
+type MicrosoftScoreSet struct {
+	MicrosoftCVEID     int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	BaseScore          float64            `json:"base_score"`
+	TemporalScore      float64            `xml:"temporal_score"`
+	EnvironmentalScore float64            `json:"environmental_score"`
+	Vector             string             `json:"vector"`
+	Products           []MicrosoftProduct `json:"products"`
+}
+
+// MicrosoftCveID :
+type MicrosoftCveID struct {
+	MicrosoftCVEID int64 `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	CveID          string
+}
+
+// MicrosoftProduct :
+type MicrosoftProduct struct {
+	MicrosoftCVEID int64 `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	ProductID      string
+	ProductName    string
 }
