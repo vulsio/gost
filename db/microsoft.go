@@ -234,7 +234,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE
 				severity = append(severity, s)
 			}
 
-			var scoreSets []models.ScoreSet
+			uniqScoreSets := map[string]models.ScoreSet{}
 			for _, s := range vuln.CVSSScoreSets {
 				scoreSet := models.ScoreSet{
 					BaseScore:          s.BaseScore,
@@ -243,6 +243,14 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE
 					Vector:             s.Vector,
 					ProductIDs:         s.ProductID,
 				}
+				if ss, ok := uniqScoreSets[s.Vector]; ok {
+					scoreSet.ProductIDs = append(s.ProductID, ss.ProductIDs...)
+				}
+				uniqScoreSets[s.Vector] = scoreSet
+			}
+
+			var scoreSets []models.ScoreSet
+			for _, scoreSet := range uniqScoreSets {
 				scoreSets = append(scoreSets, scoreSet)
 			}
 
@@ -276,7 +284,6 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE
 				default:
 					pp.Println("Remediations", r.AttrType)
 				}
-
 			}
 			var references []models.MicrosoftReference
 			for _, r := range vuln.References {

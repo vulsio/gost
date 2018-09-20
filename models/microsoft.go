@@ -163,7 +163,7 @@ type MicrosoftXML struct {
 			// 76 characters
 			Vector    string   `xml:"Vector"`
 			ProductID []string `xml:"ProductID"`
-		} `xml:"CVSSScoreSets>CVSSScoreSet"`
+		} `xml:"CVSSScoreSets>ScoreSet"`
 		Remediations []struct {
 			// Workaround, Mitigation, Vendor Fix, None Available, Will Not Fix
 			AttrType        string   `xml:"Type,attr"`
