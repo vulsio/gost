@@ -79,17 +79,8 @@ type MicrosoftXML struct {
 	} `xml:"Acknowledgments>Acknowledgment"`
 	ProductTree *struct {
 		Branch *struct {
-			AttrName string `xml:"Name,attr"`
-			AttrType string `xml:"Type,attr"`
-			Branch   *struct {
-				AttrName        string `xml:"Name,attr"`
-				AttrType        string `xml:"Type,attr"`
-				FullProductName []struct {
-					Value         string `xml:",chardata"`
-					AttrProductID string `xml:"ProductID,attr"`
-					AttrCpe       string `xml:"CPE,attr"`
-				} `xml:"FullProductName"`
-			} `xml:"Branch"`
+			AttrName        string `xml:"Name,attr"`
+			AttrType        string `xml:"Type,attr"`
 			FullProductName []struct {
 				Value         string `xml:",chardata"`
 				AttrProductID string `xml:"ProductID,attr"`

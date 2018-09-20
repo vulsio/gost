@@ -39,11 +39,12 @@ import (
 **/
 
 const (
-	dialectRedis        = "redis"
-	hashKeyPrefix       = "CVE#"
-	zindRedHatPrefix    = "CVE#R#"
-	zindDebianPrefix    = "CVE#D#"
-	zindMicrosoftPrefix = "CVE#M#"
+	dialectRedis                 = "redis"
+	hashKeyPrefix                = "CVE#"
+	zindRedHatPrefix             = "CVE#R#"
+	zindDebianPrefix             = "CVE#D#"
+	zindMicrosoftKBIDPrefix      = "CVE#K#"
+	zindMicrosoftProductIDPrefix = "CVE#P#"
 )
 
 // RedisDriver is Driver for Redis
@@ -364,8 +365,19 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 
 // InsertMicrosoft :
 func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML) error {
-	cves := ConvertMicrosoft(cveXMLs)
+	cves, products := ConvertMicrosoft(cveXMLs)
 	bar := pb.StartNew(len(cves))
+
+	for _, p := range products {
+		var pipe redis.Pipeliner
+		pipe = r.conn.Pipeline()
+		if result := pipe.ZAdd(
+			zindMicrosoftProductIDPrefix+p.ProductID,
+			redis.Z{Score: 0, Member: p.ProductName},
+		); result.Err() != nil {
+			return fmt.Errorf("Failed to ZAdd kbID. err: %s", result.Err())
+		}
+	}
 
 	for _, cve := range cves {
 		var pipe redis.Pipeliner
@@ -383,7 +395,7 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML) error {
 
 		for _, msKBID := range cve.KBIDs {
 			if result := pipe.ZAdd(
-				zindMicrosoftPrefix+msKBID.KBID,
+				zindMicrosoftKBIDPrefix+msKBID.KBID,
 				redis.Z{Score: 0, Member: cve.CveID},
 			); result.Err() != nil {
 				return fmt.Errorf("Failed to ZAdd kbID. err: %s", result.Err())

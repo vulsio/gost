@@ -38,7 +38,7 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 
 // InsertMicrosoft :
 func (r *RDBDriver) InsertMicrosoft(cveJSON []models.MicrosoftXML) (err error) {
-	cves := ConvertMicrosoft(cveJSON)
+	cves, _ := ConvertMicrosoft(cveJSON)
 	if err = r.deleteAndInsertMicrosoft(r.conn, cves); err != nil {
 		return fmt.Errorf("Failed to insert Microsoft CVE data. err: %s", err)
 	}
@@ -81,104 +81,23 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(conn *gorm.DB, cves []models.Micros
 }
 
 // ConvertMicrosoft :
-func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE) {
+func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE, msProducts []models.MicrosoftProduct) {
 	uniqCve := map[string]models.MicrosoftCVE{}
-	// csv
-	cveBulletinSearch := map[string][]data.BulletinSearch{}
-	for _, b := range data.BulletinSearchs {
-		cs := strings.Split(b.CVEs, ",")
-		for _, c := range cs {
-			cveBulletinSearch[c] = append(cveBulletinSearch[c], b)
-		}
-	}
-
-	for cveID, bss := range cveBulletinSearch {
-		uniqImpact := map[string]models.MicrosoftThreat{}
-		uniqSeverity := map[string]models.MicrosoftThreat{}
-		uniqKBIDs := map[string]bool{}
-		var vendorFix []models.MicrosoftRemediation
-		var title string
-		var publishDate time.Time
-		for _, bs := range bss {
-			var products []models.MicrosoftProduct
-			if len(bs.AffectedProduct) != 0 {
-				product := models.MicrosoftProduct{
-					ProductName: bs.AffectedProduct,
-				}
-				products = append(products, product)
-			}
-			if len(bs.AffectedComponent) != 0 {
-				product := models.MicrosoftProduct{
-					ProductName: bs.AffectedComponent,
-				}
-				products = append(products, product)
-			}
-			impact := models.MicrosoftThreat{
-				Description: bs.Impact,
-				Products:    products,
-			}
-			if i, ok := uniqImpact[bs.Impact]; ok {
-				impact.Products = append(impact.Products, i.Products...)
-			}
-			uniqImpact[bs.Impact] = impact
-
-			severity := models.MicrosoftThreat{
-				Description: bs.Severity,
-				Products:    products,
-			}
-			if s, ok := uniqSeverity[bs.Severity]; ok {
-				severity.Products = append(severity.Products, s.Products...)
-			}
-			uniqSeverity[bs.Severity] = severity
-			rem := models.MicrosoftRemediation{
-				Products:        products,
-				RestartRequired: bs.Reboot,
-				Supercedence:    bs.Supersedes,
-			}
-			vendorFix = append(vendorFix, rem)
-			if len(bs.BulletinKB) != 0 {
-				uniqKBIDs[bs.BulletinKB] = true
-			}
-			if len(bs.ComponentKB) != 0 {
-				uniqKBIDs[bs.ComponentKB] = true
-			}
-			title = bs.Title
-			var err error
-			if publishDate, err = time.Parse("1/2/2006", bs.DatePosted); err != nil {
-				if publishDate, err = time.Parse("1/2/06", bs.DatePosted); err != nil {
-					log15.Warn("Failed to parse date", "date", bs.DatePosted)
-				}
-			}
-		}
-
-		var impact, severity []models.MicrosoftThreat
-		var kbIDs []models.MicrosoftKBID
-		for _, i := range uniqImpact {
-			impact = append(impact, i)
-		}
-		for _, s := range uniqSeverity {
-			severity = append(severity, s)
-		}
-		for k := range uniqKBIDs {
-			kbID := models.MicrosoftKBID{
-				KBID: k,
-			}
-			kbIDs = append(kbIDs, kbID)
-		}
-
-		uniqCve[cveID] = models.MicrosoftCVE{
-			Title:          title,
-			CveID:          cveID,
-			Impact:         impact,
-			Severity:       severity,
-			KBIDs:          kbIDs,
-			PublishDate:    publishDate,
-			LastUpdateDate: publishDate,
-		}
-	}
+	uniqProduct := map[string]string{}
 
 	// xml
 	for _, cveXML := range cveXMLs {
+		ptree := cveXML.ProductTree
+		if ptree != nil {
+			for _, p := range ptree.FullProductName {
+				uniqProduct[p.AttrProductID] = p.Value
+			}
+			if ptree.Branch != nil {
+				for _, p := range ptree.Branch.FullProductName {
+					uniqProduct[p.AttrProductID] = p.Value
+				}
+			}
+		}
 		for _, vuln := range cveXML.Vulnerability {
 			if len(vuln.CVE) == 0 {
 				continue
@@ -204,7 +123,8 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE
 				var products []models.MicrosoftProduct
 				for _, productID := range p.ProductID {
 					product := models.MicrosoftProduct{
-						ProductID: productID,
+						ProductID:   productID,
+						ProductName: uniqProduct[productID],
 					}
 					products = append(products, product)
 				}
@@ -221,7 +141,8 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE
 				var products []models.MicrosoftProduct
 				for _, productID := range t.ProductID {
 					product := models.MicrosoftProduct{
-						ProductID: productID,
+						ProductID:   productID,
+						ProductName: uniqProduct[productID],
 					}
 					products = append(products, product)
 				}
@@ -261,7 +182,8 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE
 				var products []models.MicrosoftProduct
 				for _, productID := range s.ProductID {
 					product := models.MicrosoftProduct{
-						ProductID: productID,
+						ProductID:   productID,
+						ProductName: uniqProduct[productID],
 					}
 					products = append(products, product)
 				}
@@ -290,7 +212,8 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE
 				var products []models.MicrosoftProduct
 				for _, productID := range r.ProductID {
 					product := models.MicrosoftProduct{
-						ProductID: productID,
+						ProductID:   productID,
+						ProductName: uniqProduct[productID],
 					}
 					products = append(products, product)
 				}
@@ -367,13 +290,122 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE
 		}
 	}
 
+	for id, name := range uniqProduct {
+		msProduct := models.MicrosoftProduct{
+			ProductID:   id,
+			ProductName: name,
+		}
+		msProducts = append(msProducts, msProduct)
+	}
+
+	// csv
+	cveBulletinSearch := map[string][]data.BulletinSearch{}
+	for _, b := range data.BulletinSearchs {
+		cs := strings.Split(b.CVEs, ",")
+		for _, c := range cs {
+			cveBulletinSearch[c] = append(cveBulletinSearch[c], b)
+		}
+	}
+
+	for cveID, bss := range cveBulletinSearch {
+		uniqImpact := map[string]models.MicrosoftThreat{}
+		uniqSeverity := map[string]models.MicrosoftThreat{}
+		uniqKBIDs := map[string]bool{}
+		var vendorFix []models.MicrosoftRemediation
+		var title string
+		var publishDate time.Time
+		for _, bs := range bss {
+			var products []models.MicrosoftProduct
+			if len(bs.AffectedProduct) != 0 {
+				product := getProductFromName(msProducts, bs.AffectedProduct)
+				products = append(products, product)
+			}
+			if len(bs.AffectedComponent) != 0 {
+				product := getProductFromName(msProducts, bs.AffectedComponent)
+				products = append(products, product)
+			}
+			impact := models.MicrosoftThreat{
+				Description: bs.Impact,
+				Products:    products,
+			}
+			if i, ok := uniqImpact[bs.Impact]; ok {
+				impact.Products = append(impact.Products, i.Products...)
+			}
+			uniqImpact[bs.Impact] = impact
+
+			severity := models.MicrosoftThreat{
+				Description: bs.Severity,
+				Products:    products,
+			}
+			if s, ok := uniqSeverity[bs.Severity]; ok {
+				severity.Products = append(severity.Products, s.Products...)
+			}
+			uniqSeverity[bs.Severity] = severity
+			rem := models.MicrosoftRemediation{
+				Products:        products,
+				RestartRequired: bs.Reboot,
+				Supercedence:    bs.Supersedes,
+			}
+			vendorFix = append(vendorFix, rem)
+			if len(bs.BulletinKB) != 0 {
+				uniqKBIDs[bs.BulletinKB] = true
+			}
+			if len(bs.ComponentKB) != 0 {
+				uniqKBIDs[bs.ComponentKB] = true
+			}
+			title = bs.Title
+			var err error
+			if publishDate, err = time.Parse("1/2/2006", bs.DatePosted); err != nil {
+				if publishDate, err = time.Parse("1/2/06", bs.DatePosted); err != nil {
+					log15.Warn("Failed to parse date", "date", bs.DatePosted)
+				}
+			}
+		}
+
+		var impact, severity []models.MicrosoftThreat
+		var kbIDs []models.MicrosoftKBID
+		for _, i := range uniqImpact {
+			impact = append(impact, i)
+		}
+		for _, s := range uniqSeverity {
+			severity = append(severity, s)
+		}
+		for k := range uniqKBIDs {
+			kbID := models.MicrosoftKBID{
+				KBID: k,
+			}
+			kbIDs = append(kbIDs, kbID)
+		}
+
+		uniqCve[cveID] = models.MicrosoftCVE{
+			Title:          title,
+			CveID:          cveID,
+			Impact:         impact,
+			Severity:       severity,
+			KBIDs:          kbIDs,
+			PublishDate:    publishDate,
+			LastUpdateDate: publishDate,
+		}
+	}
+
 	for _, c := range uniqCve {
 		cves = append(cves, c)
 	}
 	if len(uniqCve) != len(cves) {
 		log15.Warn("Duplicate CVES", len(uniqCve), len(cves))
 	}
-	return cves
+	return cves, msProducts
+}
+
+func getProductFromName(msProducts []models.MicrosoftProduct, productName string) models.MicrosoftProduct {
+	for _, msp := range msProducts {
+		if productName == msp.ProductName {
+			return msp
+		}
+	}
+	return models.MicrosoftProduct{
+		ProductName: productName,
+	}
 }
 
 // GetUnfixedCvesMicrosoft :
