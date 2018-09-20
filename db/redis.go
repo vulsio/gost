@@ -16,31 +16,34 @@ import (
 # Redis Data Structure
 
 - HASH
-  ┌───┬────────────┬─────────────────┬──────────┬─────────────────────────────────┐
-  │NO │    HASH    │         FIELD   │  VALUE   │             PURPOSE             │
-  └───┴────────────┴─────────────────┴──────────┴─────────────────────────────────┘
-  ┌───┬────────────┬─────────────────┬──────────┬─────────────────────────────────┐
-  │ 1 │CVE#$CVEID  │  RedHat/Debian  │ $CVEJSON │     TO GET CVEJSON BY CVEID     │
-  └───┴────────────┴─────────────────┴──────────┴─────────────────────────────────┘
+  ┌───┬────────────┬───────────────────────────┬──────────┬─────────────────────────────────┐
+  │NO │    HASH    │         FIELD             │  VALUE   │             PURPOSE             │
+  └───┴────────────┴───────────────────────────┴──────────┴─────────────────────────────────┘
+  ┌───┬────────────┬───────────────────────────┬──────────┬─────────────────────────────────┐
+  │ 1 │CVE#$CVEID  │  RedHat/Debian/Microsoft  │ $CVEJSON │     TO GET CVEJSON BY CVEID     │
+  └───┴────────────┴───────────────────────────┴──────────┴─────────────────────────────────┘
 
 
 - ZINDE  X
-  ┌───┬────────────────┬──────────┬──────────┬─────────────────────────────────┐
-  │NO │           KEY  │  SCORE   │  MEMBER  │             PURPOSE             │
-  └───┴────────────────┴──────────┴──────────┴─────────────────────────────────┘
+  ┌───┬────────────────┬──────────┬──────────┬───────────────────────────────────────┐
+  │NO │    KEY         │  SCORE   │  MEMBER  │             PURPOSE                   │
+  └───┴────────────────┴──────────┴──────────┴───────────────────────────────────────┘
   ┌───┬────────────────┬──────────┬──────────┬───────────────────────────────────────┐
   │ 1 │CVE#R#$PKGNAME  │    0     │  $CVEID  │(RedHat) GET RELATED []CVEID BY PKGNAME│
   ├───┼────────────────┼──────────┼──────────┼───────────────────────────────────────┤
   │ 2 │CVE#D#$PKGNAME  │    0     │  $CVEID  │(Debian) GET RELATED []CVEID BY PKGNAME│
+  ├───┴────────────────┴──────────┴──────────┴───────────────────────────────────────┤
+  │ 3 │CVE#M#$KBID     │    0     │  $CVEID  │(Microsoft) GET RELATED []CVEID BY KBID│
   └───┴────────────────┴──────────┴──────────┴───────────────────────────────────────┘
 
 **/
 
 const (
-	dialectRedis     = "redis"
-	hashKeyPrefix    = "CVE#"
-	zindRedHatPrefix = "CVE#R#"
-	zindDebianPrefix = "CVE#D#"
+	dialectRedis        = "redis"
+	hashKeyPrefix       = "CVE#"
+	zindRedHatPrefix    = "CVE#R#"
+	zindDebianPrefix    = "CVE#D#"
+	zindMicrosoftPrefix = "CVE#M#"
 )
 
 // RedisDriver is Driver for Redis
@@ -79,10 +82,12 @@ func (r *RedisDriver) MigrateDB() error {
 	return nil
 }
 
+// GetAfterTimeRedhat :
 func (r *RedisDriver) GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error) {
 	return nil, fmt.Errorf("Not implemented yet")
 }
 
+// GetRedhat :
 func (r *RedisDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	result := r.conn.HGetAll(hashKeyPrefix + cveID)
 	if result.Err() != nil {
@@ -100,6 +105,7 @@ func (r *RedisDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	return &redhat
 }
 
+// GetRedhatMulti :
 func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE {
 	results := map[string]models.RedhatCVE{}
 	rs := map[string]*redis.StringStringMapCmd{}
@@ -128,6 +134,7 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCV
 	return results
 }
 
+// GetUnfixedCvesRedhat :
 func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string) (m map[string]models.RedhatCVE) {
 	m = map[string]models.RedhatCVE{}
 
@@ -166,6 +173,7 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string) (m map[string]
 	return
 }
 
+// GetUnfixedCvesDebian :
 func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]models.DebianCVE) {
 	m = map[string]models.DebianCVE{}
 	codeName, ok := debVerCodename[major]
@@ -211,6 +219,7 @@ func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]
 	return
 }
 
+// GetDebian :
 func (r *RedisDriver) GetDebian(cveID string) *models.DebianCVE {
 	var result *redis.StringStringMapCmd
 	if result = r.conn.HGetAll(hashKeyPrefix + cveID); result.Err() != nil {
@@ -230,6 +239,54 @@ func (r *RedisDriver) GetDebian(cveID string) *models.DebianCVE {
 	return &deb
 }
 
+// GetMicrosoft :
+func (r *RedisDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
+	result := r.conn.HGetAll(hashKeyPrefix + cveID)
+	if result.Err() != nil {
+		log15.Error("Failed to get cve.", "err", result.Err())
+		return nil
+	}
+
+	var ms models.MicrosoftCVE
+	if j, ok := result.Val()["Microsoft"]; ok {
+		if err := json.Unmarshal([]byte(j), &ms); err != nil {
+			log15.Error("Failed to Unmarshal json.", "err", err)
+			return nil
+		}
+	}
+	return &ms
+}
+
+// GetMicrosoftMulti :
+func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) map[string]models.MicrosoftCVE {
+	results := map[string]models.MicrosoftCVE{}
+	rs := map[string]*redis.StringStringMapCmd{}
+
+	pipe := r.conn.Pipeline()
+	for _, cveID := range cveIDs {
+		rs[cveID] = pipe.HGetAll(hashKeyPrefix + cveID)
+	}
+	if _, err := pipe.Exec(); err != nil {
+		if err != redis.Nil {
+			log15.Error("Failed to get multi cve json.", "err", err)
+			return nil
+		}
+	}
+
+	for cveID, result := range rs {
+		var ms models.MicrosoftCVE
+		if j, ok := result.Val()["Microsoft"]; ok {
+			if err := json.Unmarshal([]byte(j), &ms); err != nil {
+				log15.Error("Failed to Unmarshal json.", "err", err)
+				return nil
+			}
+		}
+		results[cveID] = ms
+	}
+	return results
+}
+
+//InsertRedhat :
 func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
 	cves, err := ConvertRedhat(cveJSONs)
 	if err != nil {
@@ -269,6 +326,7 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 	return nil
 }
 
+// InsertDebian :
 func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 	cves := ConvertDebian(cveJSONs)
 	bar := pb.StartNew(len(cves))
@@ -293,6 +351,42 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 				redis.Z{Score: 0, Member: cve.CveID},
 			); result.Err() != nil {
 				return fmt.Errorf("Failed to ZAdd pkg name. err: %s", result.Err())
+			}
+		}
+
+		if _, err = pipe.Exec(); err != nil {
+			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
+		}
+	}
+	bar.Finish()
+	return nil
+}
+
+// InsertMicrosoft :
+func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML) error {
+	cves := ConvertMicrosoft(cveXMLs)
+	bar := pb.StartNew(len(cves))
+
+	for _, cve := range cves {
+		var pipe redis.Pipeliner
+		pipe = r.conn.Pipeline()
+		bar.Increment()
+
+		j, err := json.Marshal(cve)
+		if err != nil {
+			return fmt.Errorf("Failed to marshal json. err: %s", err)
+		}
+
+		if result := pipe.HSet(hashKeyPrefix+cve.CveID, "Microsoft", string(j)); result.Err() != nil {
+			return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
+		}
+
+		for _, kbID := range cve.KBIDs {
+			if result := pipe.ZAdd(
+				zindMicrosoftPrefix+kbID,
+				redis.Z{Score: 0, Member: cve.CveID},
+			); result.Err() != nil {
+				return fmt.Errorf("Failed to ZAdd kbID. err: %s", result.Err())
 			}
 		}
 

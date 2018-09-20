@@ -23,6 +23,7 @@ type DB interface {
 
 	InsertRedhat([]models.RedhatCVEJSON) error
 	InsertDebian(models.DebianJSON) error
+	InsertMicrosoft([]models.MicrosoftXML) error
 }
 
 // NewDB returns db driver

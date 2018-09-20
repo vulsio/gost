@@ -65,11 +65,15 @@ func TrimSpaceNewline(str string) string {
 }
 
 // FetchURL returns HTTP response body
-func FetchURL(url string) (string, error) {
+func FetchURL(url, apikey string) (string, error) {
 	var errs []error
 	httpProxy := viper.GetString("http-proxy")
 
-	resp, body, err := gorequest.New().Proxy(httpProxy).Get(url).Type("text").End()
+	req := gorequest.New().Proxy(httpProxy).Get(url)
+	if apikey != "" {
+		req.Header["api-key"] = apikey
+	}
+	resp, body, err := req.Type("text").End()
 	if len(errs) > 0 || resp == nil {
 		return "", fmt.Errorf("HTTP error. errs: %v, url: %s", err, url)
 	}
@@ -103,7 +107,7 @@ func FetchConcurrently(urls []string, concurrency, wait int) (responses []string
 				var err error
 				for i := 1; i <= 3; i++ {
 					var res string
-					res, err = FetchURL(url)
+					res, err = FetchURL(url, "")
 					if err == nil {
 						resChan <- res
 						return
