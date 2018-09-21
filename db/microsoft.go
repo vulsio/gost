@@ -9,7 +9,6 @@ import (
 	"github.com/cheggaaa/pb"
 	"github.com/inconshreveable/log15"
 	"github.com/jinzhu/gorm"
-	"github.com/k0kubun/pp"
 	"github.com/knqyf263/gost/data"
 	"github.com/knqyf263/gost/models"
 	"github.com/knqyf263/gost/util"
@@ -115,7 +114,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE
 				case "Summary":
 				case "Legal Disclaimer":
 				default:
-					pp.Println("Notes", n.AttrType, n.AttrTitle)
+					log15.Info("New Notes", "Type", n.AttrType, "Title", n.AttrTitle)
 				}
 			}
 			var productStatuses []models.MicrosoftProductStatus
@@ -165,7 +164,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE
 				case "Exploit Status":
 					exploitStatus = t.Description
 				default:
-					pp.Println("Threats", t.AttrType)
+					log15.Info("New Threats", "Type", n.AttrType)
 				}
 			}
 
@@ -244,7 +243,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE
 				case "Will Not Fix":
 					willNotFix = append(willNotFix, remediation)
 				default:
-					pp.Println("Remediations", r.AttrType)
+					log15.Info("New Remediations", "Type", r.AttrType)
 				}
 			}
 			var references []models.MicrosoftReference
