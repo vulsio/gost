@@ -164,7 +164,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE
 				case "Exploit Status":
 					exploitStatus = t.Description
 				default:
-					log15.Info("New Threats", "Type", n.AttrType)
+					log15.Info("New Threats", "Type", t.AttrType)
 				}
 			}
 
