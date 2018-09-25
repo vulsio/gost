@@ -205,7 +205,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 
 			var mitigation, workaround string
 			var vendorFix, noneAvailable, willNotFix []models.MicrosoftRemediation
-			var kbIDs []models.MicrosoftKBID
+			uniqKBIDs := map[string]bool{}
 			for _, r := range vuln.Remediations {
 				var products []models.MicrosoftProduct
 				for _, productID := range r.ProductID {
@@ -232,10 +232,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 				case "Vendor Fix":
 					vendorFix = append(vendorFix, remediation)
 					if _, err := strconv.Atoi(r.Description); err == nil {
-						kbID := models.MicrosoftKBID{
-							KBID: r.Description,
-						}
-						kbIDs = append(kbIDs, kbID)
+						uniqKBIDs[r.Description] = true
 					}
 				case "None Available":
 					noneAvailable = append(noneAvailable, remediation)
@@ -245,6 +242,12 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 					log15.Info("New Remediations", "Type", r.AttrType)
 				}
 			}
+
+			var kbIDs []models.MicrosoftKBID
+			for kbID := range uniqKBIDs {
+				kbIDs = append(kbIDs, models.MicrosoftKBID{KBID: kbID})
+			}
+
 			var references []models.MicrosoftReference
 			for _, r := range vuln.References {
 				ref := models.MicrosoftReference{
@@ -306,6 +309,9 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 	}
 
 	for cveID, bss := range cveBulletinSearch {
+		if len(cveID) == 0 {
+			continue
+		}
 		uniqImpact := map[string]models.MicrosoftThreat{}
 		uniqSeverity := map[string]models.MicrosoftThreat{}
 		uniqKBIDs := map[string]bool{}

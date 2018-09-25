@@ -71,7 +71,11 @@ func XlsToModel(bs []byte) (cves []models.MicrosoftBulletinSearch, err error) {
 		return nil, err
 	}
 	for _, sheet := range xlFile.Sheets {
-		for _, row := range sheet.Rows {
+		for i, row := range sheet.Rows {
+			// ignore header
+			if i == 0 {
+				continue
+			}
 			var cve models.MicrosoftBulletinSearch
 			err := row.ReadStruct(&cve)
 			if err != nil {
