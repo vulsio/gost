@@ -9,7 +9,6 @@ import (
 	"github.com/cheggaaa/pb"
 	"github.com/inconshreveable/log15"
 	"github.com/jinzhu/gorm"
-	"github.com/knqyf263/gost/data"
 	"github.com/knqyf263/gost/models"
 	"github.com/knqyf263/gost/util"
 )
@@ -36,8 +35,8 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 }
 
 // InsertMicrosoft :
-func (r *RDBDriver) InsertMicrosoft(cveJSON []models.MicrosoftXML) (err error) {
-	cves, _ := ConvertMicrosoft(cveJSON)
+func (r *RDBDriver) InsertMicrosoft(cveJSON []models.MicrosoftXML, cveXls []models.MicrosoftBulletinSearch) (err error) {
+	cves, _ := ConvertMicrosoft(cveJSON, cveXls)
 	if err = r.deleteAndInsertMicrosoft(r.conn, cves); err != nil {
 		return fmt.Errorf("Failed to insert Microsoft CVE data. err: %s", err)
 	}
@@ -80,7 +79,7 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(conn *gorm.DB, cves []models.Micros
 }
 
 // ConvertMicrosoft :
-func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE, msProducts []models.MicrosoftProduct) {
+func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBulletinSearch) (cves []models.MicrosoftCVE, msProducts []models.MicrosoftProduct) {
 	uniqCve := map[string]models.MicrosoftCVE{}
 	uniqProduct := map[string]string{}
 
@@ -298,8 +297,8 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE
 	}
 
 	// csv
-	cveBulletinSearch := map[string][]data.BulletinSearch{}
-	for _, b := range data.BulletinSearchs {
+	cveBulletinSearch := map[string][]models.MicrosoftBulletinSearch{}
+	for _, b := range cveXls {
 		cs := strings.Split(b.CVEs, ",")
 		for _, c := range cs {
 			cveBulletinSearch[c] = append(cveBulletinSearch[c], b)
@@ -355,7 +354,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML) (cves []models.MicrosoftCVE
 			title = bs.Title
 			var err error
 			if publishDate, err = time.Parse("1/2/2006", bs.DatePosted); err != nil {
-				if publishDate, err = time.Parse("1/2/06", bs.DatePosted); err != nil {
+				if publishDate, err = time.Parse("1-2-06", bs.DatePosted); err != nil {
 					log15.Warn("Failed to parse date", "date", bs.DatePosted)
 				}
 			}
@@ -410,66 +409,5 @@ func getProductFromName(msProducts []models.MicrosoftProduct, productName string
 // GetUnfixedCvesMicrosoft :
 func (r *RDBDriver) GetUnfixedCvesMicrosoft(major, pkgName string) map[string]models.MicrosoftCVE {
 	m := map[string]models.MicrosoftCVE{}
-	//	codeName, ok := debVerCodename[major]
-	//	if !ok {
-	//		log15.Error("Microsoft %s is not supported yet", "err", major)
-	//		return m
-	//	}
-	//
-	//	type Result struct {
-	//		MicrosoftCveID int64
-	//	}
-	//	results := []Result{}
-	//	err := r.conn.Table("debian_releases").
-	//		Select("debian_cve_id").
-	//		Joins("join debian_packages on debian_releases.debian_package_id = debian_packages.id AND debian_packages.package_name = ?", pkgName).
-	//		Where(&models.MicrosoftRelease{
-	//			ProductName: codeName,
-	//			Status:      "open",
-	//		}).Scan(&results).Error
-	//
-	//	if err != nil && err != gorm.ErrRecordNotFound {
-	//		log15.Error("Failed to get unfixed cves of Microsoft", "err", err)
-	//		return m
-	//	}
-	//
-	//	for _, res := range results {
-	//		debcve := models.MicrosoftCVE{}
-	//		err = r.conn.
-	//			Preload("Package").
-	//			Where(&models.MicrosoftCVE{ID: res.MicrosoftCveID}).First(&debcve).Error
-	//		if err != nil && err != gorm.ErrRecordNotFound {
-	//			log15.Error("Failed to get MicrosoftCVE", res.MicrosoftCveID, err)
-	//			return m
-	//		}
-	//
-	//		pkgs := []models.MicrosoftPackage{}
-	//		for _, pkg := range debcve.Package {
-	//			if pkg.PackageName != pkgName {
-	//				continue
-	//			}
-	//			err = r.conn.Model(&pkg).Related(&pkg.Release).Error
-	//			if err != nil && err != gorm.ErrRecordNotFound {
-	//				log15.Error("Failed to get MicrosoftRelease", pkg.Release, err)
-	//				return m
-	//			}
-	//
-	//			rels := []models.MicrosoftRelease{}
-	//			for _, rel := range pkg.Release {
-	//				if rel.ProductName == codeName && rel.Status == "open" {
-	//					rels = append(rels, rel)
-	//				}
-	//			}
-	//			if len(rels) == 0 {
-	//				continue
-	//			}
-	//			pkg.Release = rels
-	//			pkgs = append(pkgs, pkg)
-	//		}
-	//		if len(pkgs) != 0 {
-	//			debcve.Package = pkgs
-	//			m[debcve.CveID] = debcve
-	//		}
-	//	}
 	return m
 }

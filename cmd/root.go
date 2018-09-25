@@ -53,8 +53,8 @@ func init() {
 	viper.BindPFlag("dbtype", RootCmd.PersistentFlags().Lookup("dbtype"))
 	viper.SetDefault("dbtype", "sqlite3")
 
-	RootCmd.PersistentFlags().String("apikey", "", "microsoft apikey")
-	viper.BindPFlag("apikey", RootCmd.PersistentFlags().Lookup("apikey"))
+	microsoftCmd.PersistentFlags().String("apikey", "", "microsoft apikey")
+	viper.BindPFlag("apikey", microsoftCmd.PersistentFlags().Lookup("apikey"))
 	viper.SetDefault("apikey", "")
 
 	RootCmd.PersistentFlags().String("http-proxy", "", "http://proxy-url:port (default: empty)")

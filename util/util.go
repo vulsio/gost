@@ -65,7 +65,7 @@ func TrimSpaceNewline(str string) string {
 }
 
 // FetchURL returns HTTP response body
-func FetchURL(url, apikey string) (string, error) {
+func FetchURL(url, apikey string) ([]byte, error) {
 	var errs []error
 	httpProxy := viper.GetString("http-proxy")
 
@@ -73,20 +73,20 @@ func FetchURL(url, apikey string) (string, error) {
 	if apikey != "" {
 		req.Header["api-key"] = apikey
 	}
-	resp, body, err := req.Type("text").End()
+	resp, body, err := req.Type("text").EndBytes()
 	if len(errs) > 0 || resp == nil {
-		return "", fmt.Errorf("HTTP error. errs: %v, url: %s", err, url)
+		return nil, fmt.Errorf("HTTP error. errs: %v, url: %s", err, url)
 	}
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("HTTP error. errs: %v, status code: %d, url: %s", err, resp.StatusCode, url)
+		return nil, fmt.Errorf("HTTP error. errs: %v, status code: %d, url: %s", err, resp.StatusCode, url)
 	}
 	return body, nil
 }
 
 // FetchConcurrently fetches concurrently
-func FetchConcurrently(urls []string, concurrency, wait int) (responses []string, err error) {
+func FetchConcurrently(urls []string, concurrency, wait int) (responses [][]byte, err error) {
 	reqChan := make(chan string, len(urls))
-	resChan := make(chan string, len(urls))
+	resChan := make(chan []byte, len(urls))
 	errChan := make(chan error, len(urls))
 	defer close(reqChan)
 	defer close(resChan)
@@ -106,7 +106,7 @@ func FetchConcurrently(urls []string, concurrency, wait int) (responses []string
 			case url := <-reqChan:
 				var err error
 				for i := 1; i <= 3; i++ {
-					var res string
+					var res []byte
 					res, err = FetchURL(url, "")
 					if err == nil {
 						resChan <- res
@@ -130,11 +130,11 @@ func FetchConcurrently(urls []string, concurrency, wait int) (responses []string
 		case err := <-errChan:
 			errs = append(errs, err)
 		case <-timeout:
-			return []string{}, fmt.Errorf("Timeout Fetching URL")
+			return nil, fmt.Errorf("Timeout Fetching URL")
 		}
 	}
 	if 0 < len(errs) {
-		return []string{}, fmt.Errorf("%s", errs)
+		return nil, fmt.Errorf("%s", errs)
 
 	}
 	return responses, nil

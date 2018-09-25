@@ -366,8 +366,8 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 }
 
 // InsertMicrosoft :
-func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML) error {
-	cves, products := ConvertMicrosoft(cveXMLs)
+func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []models.MicrosoftBulletinSearch) error {
+	cves, products := ConvertMicrosoft(cveXMLs, xls)
 	bar := pb.StartNew(len(cves))
 
 	for _, p := range products {

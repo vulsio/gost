@@ -23,7 +23,7 @@ func RetrieveDebianCveDetails() (cves models.DebianJSON, err error) {
 	// 	return cves, err
 	// }
 
-	json.Unmarshal([]byte(cveJSON), &cves)
+	json.Unmarshal(cveJSON, &cves)
 
 	return cves, nil
 }

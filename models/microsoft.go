@@ -232,6 +232,22 @@ type MicrosoftCVE struct {
 	LastUpdateDate           time.Time                `json:"last_update_date"`
 }
 
+// MicrosoftBulletinSearch :
+type MicrosoftBulletinSearch struct {
+	DatePosted        string
+	BulletinID        string
+	BulletinKB        string
+	Severity          string
+	Impact            string
+	Title             string
+	AffectedProduct   string
+	ComponentKB       string
+	AffectedComponent string
+	Supersedes        string
+	Reboot            string
+	CVEs              string
+}
+
 // MicrosoftReference :
 type MicrosoftReference struct {
 	MicrosoftCVEID int64 `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`

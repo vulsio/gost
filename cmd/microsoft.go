@@ -42,8 +42,13 @@ func fetchMicrosoft(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
+	xls, err := fetcher.RetrieveMicrosoftBulletinSearch()
+	if err != nil {
+		return err
+	}
+
 	log15.Info("Insert Microsoft CVEs into DB", "db", driver.Name())
-	if err := driver.InsertMicrosoft(cves); err != nil {
+	if err := driver.InsertMicrosoft(cves, xls); err != nil {
 		log15.Error("Failed to insert.", "dbpath",
 			viper.GetString("dbpath"), "err", err)
 		return err
