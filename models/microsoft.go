@@ -208,6 +208,22 @@ func (m *Mstime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return nil
 }
 
+// MicrosoftBulletinSearch :
+type MicrosoftBulletinSearch struct {
+	DatePosted        string `xlsx:"0"`
+	BulletinID        string `xlsx:"1"`
+	BulletinKB        string `xlsx:"2"`
+	Severity          string `xlsx:"3"`
+	Impact            string `xlsx:"4"`
+	Title             string `xlsx:"5"`
+	AffectedProduct   string `xlsx:"6"`
+	ComponentKB       string `xlsx:"7"`
+	AffectedComponent string `xlsx:"8"`
+	Supersedes        string `xlsx:"11"`
+	Reboot            string `xlsx:"12"`
+	CVEs              string `xlsx:"13"`
+}
+
 // MicrosoftCVE :
 type MicrosoftCVE struct {
 	ID                       int64                    `json:",omitempty"`
@@ -230,22 +246,6 @@ type MicrosoftCVE struct {
 	ScoreSets                []MicrosoftScoreSet      `json:"score_sets"`
 	PublishDate              time.Time                `json:"publish_date"`
 	LastUpdateDate           time.Time                `json:"last_update_date"`
-}
-
-// MicrosoftBulletinSearch :
-type MicrosoftBulletinSearch struct {
-	DatePosted        string
-	BulletinID        string
-	BulletinKB        string
-	Severity          string
-	Impact            string
-	Title             string
-	AffectedProduct   string
-	ComponentKB       string
-	AffectedComponent string
-	Supersedes        string
-	Reboot            string
-	CVEs              string
 }
 
 // MicrosoftReference :

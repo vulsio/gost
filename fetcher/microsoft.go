@@ -71,45 +71,13 @@ func XlsToModel(bs []byte) (cves []models.MicrosoftBulletinSearch, err error) {
 		return nil, err
 	}
 	for _, sheet := range xlFile.Sheets {
-		for i, row := range sheet.Rows {
-			if i == 0 {
-				continue
-			}
+		for _, row := range sheet.Rows {
 			var cve models.MicrosoftBulletinSearch
-			for j, cell := range row.Cells {
-				text := cell.String()
-				switch j {
-				case 0:
-					// 01-31-01 or [$-110009]11/11/2008
-					cve.DatePosted = msDateRegexp.FindString(text)
-				case 1:
-					cve.BulletinID = text
-				case 2:
-					cve.BulletinKB = text
-				case 3:
-					cve.Severity = text
-				case 4:
-					cve.Impact = text
-				case 5:
-					cve.Title = text
-				case 6:
-					cve.AffectedProduct = text
-				case 7:
-					cve.ComponentKB = text
-				case 8:
-					cve.AffectedComponent = text
-				case 9:
-				case 10:
-				case 11:
-					cve.Supersedes = text
-				case 12:
-					cve.Reboot = text
-				case 13:
-					cve.CVEs = text
-				default:
-					log15.Info("NewData", "Index", j, "Content", text)
-				}
+			err := row.ReadStruct(&cve)
+			if err != nil {
+				return nil, err
 			}
+			cve.DatePosted = msDateRegexp.FindString(cve.DatePosted)
 			if len(cve.BulletinKB) == 0 {
 				continue
 			}
