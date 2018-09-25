@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cheggaaa/pb"
+	strip "github.com/grokify/html-strip-tags-go"
 	"github.com/inconshreveable/log15"
 	"github.com/jinzhu/gorm"
 	"github.com/knqyf263/gost/models"
@@ -104,7 +105,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 			for _, n := range vuln.Notes {
 				switch n.AttrType {
 				case "Description":
-					description = n.Value
+					description = strip.StripTags(n.Value)
 				case "FAQ":
 					faq = n.Value
 				case "Tag":

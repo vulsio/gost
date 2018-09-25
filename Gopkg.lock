@@ -75,6 +75,14 @@
   version = "v1.8.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:8dbe76014be3c83806abc61befcb5e1789d2d872bc8f98a8fb955405550c63be"
+  name = "github.com/grokify/html-strip-tags-go"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "e9e44961e26f513866063f54bf85070db95600f7"
+
+[[projects]]
   digest = "1:c0d19ab64b32ce9fe5cf4ddceba78d5bc9807f0016db6b1183599da3dcc24d10"
   name = "github.com/hashicorp/hcl"
   packages = [
@@ -456,6 +464,7 @@
     "github.com/cenkalti/backoff",
     "github.com/cheggaaa/pb",
     "github.com/go-redis/redis",
+    "github.com/grokify/html-strip-tags-go",
     "github.com/inconshreveable/log15",
     "github.com/jinzhu/gorm",
     "github.com/jinzhu/gorm/dialects/mysql",
