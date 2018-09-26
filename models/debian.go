@@ -22,7 +22,7 @@ type DebianCVE struct {
 	ID          int64
 	CveID       string
 	Scope       string
-	Description string
+	Description string `sql:"type:text"`
 	Package     []DebianPackage
 }
 
