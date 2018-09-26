@@ -21,13 +21,13 @@ func ListAllRedhatCves(before, after string, wait int) (entries []models.RedhatE
 			url += fmt.Sprintf("&before=%s", before)
 
 		}
-		body, err := util.FetchURL(url)
+		body, err := util.FetchURL(url, "")
 		if err != nil {
 			return entries, fmt.Errorf("Failed to fetch RedHat CVEs list: %v, url: %s", err, url)
 		}
 
 		entryList := []models.RedhatEntry{}
-		if err = json.Unmarshal([]byte(body), &entryList); err != nil {
+		if err = json.Unmarshal(body, &entryList); err != nil {
 			return nil, err
 		}
 		if len(entryList) == 0 {
@@ -55,19 +55,19 @@ func RetrieveRedhatCveDetails(urls []string) (cves []models.RedhatCVEJSON, err e
 
 	for _, cveJSON := range cveJSONs {
 		var cve models.RedhatCVEJSON
-		if err = json.Unmarshal([]byte(cveJSON), &cve); err != nil {
+		if err = json.Unmarshal(cveJSON, &cve); err != nil {
 			return nil, err
 		}
 		switch cve.TempAffectedRelease.(type) {
 		case []interface{}:
 			var ar models.RedhatCVEJSONAffectedReleaseArray
-			if err = json.Unmarshal([]byte(cveJSON), &ar); err != nil {
+			if err = json.Unmarshal(cveJSON, &ar); err != nil {
 				return nil, fmt.Errorf("Unknown affected_release type err: %s", err)
 			}
 			cve.AffectedRelease = ar.AffectedRelease
 		case map[string]interface{}:
 			var ar models.RedhatCVEJSONAffectedReleaseObject
-			if err = json.Unmarshal([]byte(cveJSON), &ar); err != nil {
+			if err = json.Unmarshal(cveJSON, &ar); err != nil {
 				return nil, fmt.Errorf("Unknown affected_release type err: %s", err)
 			}
 			cve.AffectedRelease = []models.RedhatAffectedRelease{ar.AffectedRelease}
@@ -79,13 +79,13 @@ func RetrieveRedhatCveDetails(urls []string) (cves []models.RedhatCVEJSON, err e
 		switch cve.TempPackageState.(type) {
 		case []interface{}:
 			var ps models.RedhatCVEJSONPackageStateArray
-			if err = json.Unmarshal([]byte(cveJSON), &ps); err != nil {
+			if err = json.Unmarshal(cveJSON, &ps); err != nil {
 				return nil, fmt.Errorf("Unknown package_state type err: %s", err)
 			}
 			cve.PackageState = ps.PackageState
 		case map[string]interface{}:
 			var ps models.RedhatCVEJSONPackageStateObject
-			if err = json.Unmarshal([]byte(cveJSON), &ps); err != nil {
+			if err = json.Unmarshal(cveJSON, &ps); err != nil {
 				return nil, fmt.Errorf("Unknown package_state type err: %s", err)
 			}
 			cve.PackageState = []models.RedhatPackageState{ps.PackageState}

@@ -11,7 +11,7 @@ import (
 // https://security-tracker.debian.org/tracker/data/json
 func RetrieveDebianCveDetails() (cves models.DebianJSON, err error) {
 	url := "https://security-tracker.debian.org/tracker/data/json"
-	cveJSON, err := util.FetchURL(url)
+	cveJSON, err := util.FetchURL(url, "")
 	if err != nil {
 		return cves,
 			fmt.Errorf("Failed to fetch cve data from Debian. err: %s", err)
@@ -23,7 +23,7 @@ func RetrieveDebianCveDetails() (cves models.DebianJSON, err error) {
 	// 	return cves, err
 	// }
 
-	json.Unmarshal([]byte(cveJSON), &cves)
+	json.Unmarshal(cveJSON, &cves)
 
 	return cves, nil
 }
