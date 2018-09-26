@@ -293,7 +293,7 @@ type MicrosoftRemediation struct {
 type MicrosoftScoreSet struct {
 	MicrosoftCVEID     int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
 	BaseScore          float64            `json:"base_score"`
-	TemporalScore      float64            `xml:"temporal_score"`
+	TemporalScore      float64            `json:"temporal_score"`
 	EnvironmentalScore float64            `json:"environmental_score"`
 	Vector             string             `json:"vector"`
 	Products           []MicrosoftProduct `json:"products"`
@@ -301,13 +301,13 @@ type MicrosoftScoreSet struct {
 
 // MicrosoftCveID :
 type MicrosoftCveID struct {
-	MicrosoftCVEID int64 `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
-	CveID          string
+	MicrosoftCVEID int64  `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	CveID          string `json:"cve_id"`
 }
 
 // MicrosoftProduct :
 type MicrosoftProduct struct {
-	MicrosoftCVEID int64 `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
-	ProductID      string
-	ProductName    string
+	MicrosoftCVEID int64  `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	ProductID      string `json:"product_id"`
+	ProductName    string `json:"product_name"`
 }
