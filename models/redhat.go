@@ -70,13 +70,13 @@ type RedhatCVE struct {
 	Cvss3                RedhatCvss3
 	Iava                 string
 	Cwe                  string
-	Statement            string
-	Acknowledgement      string
-	Mitigation           string
+	Statement            string `sql:"type:text"`
+	Acknowledgement      string `sql:"type:text"`
+	Mitigation           string `sql:"type:text"`
 	AffectedRelease      []RedhatAffectedRelease
 	PackageState         []RedhatPackageState
 	Name                 string
-	DocumentDistribution string
+	DocumentDistribution string `sql:"type:text"`
 
 	Details    []RedhatDetail    `json:",omitempty"`
 	References []RedhatReference `json:",omitempty"`
@@ -105,20 +105,21 @@ func (r RedhatCVE) GetPackages(sep string) (result string) {
 }
 
 type RedhatDetail struct {
-	RedhatCVEID int64 `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty"`
-	Detail      string
+	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty"`
+	Detail      string `sql:"type:text"`
 }
 
 type RedhatReference struct {
-	RedhatCVEID int64 `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty"`
-	Reference   string
+	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty"`
+	Reference   string `sql:"type:text"`
 }
 
 type RedhatBugzilla struct {
 	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty"`
-	Description string `json:"description"`
-	BugzillaID  string `json:"id"`
-	URL         string `json:"url"`
+	Description string `json:"description" sql:"type:text"`
+
+	BugzillaID string `json:"id"`
+	URL        string `json:"url"`
 }
 
 type RedhatCvss struct {

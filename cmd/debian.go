@@ -33,6 +33,8 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 	log15.Info("Fetched all CVEs from Debian")
 	cves, err := fetcher.RetrieveDebianCveDetails()
 
+	log15.Info("Fetched", "CVEs", len(cves))
+
 	log15.Info("Insert Debian CVEs into DB", "db", driver.Name())
 	if err := driver.InsertDebian(cves); err != nil {
 		log15.Error("Failed to insert.", "dbpath",
