@@ -366,19 +366,22 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 }
 
 // InsertMicrosoft :
-func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []models.MicrosoftBulletinSearch) error {
+func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []models.MicrosoftBulletinSearch) (err error) {
 	cves, products := ConvertMicrosoft(cveXMLs, xls)
 	bar := pb.StartNew(len(cves))
 
+	var pipe redis.Pipeliner
+	pipe = r.conn.Pipeline()
 	for _, p := range products {
-		var pipe redis.Pipeliner
-		pipe = r.conn.Pipeline()
 		if result := pipe.ZAdd(
 			zindMicrosoftProductIDPrefix+p.ProductID,
 			redis.Z{Score: 0, Member: p.ProductName},
 		); result.Err() != nil {
 			return fmt.Errorf("Failed to ZAdd kbID. err: %s", result.Err())
 		}
+	}
+	if _, err = pipe.Exec(); err != nil {
+		return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 	}
 
 	for _, cve := range cves {

@@ -35,6 +35,15 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 	return &c
 }
 
+// GetMicrosoftMulti :
+func (r *RDBDriver) GetMicrosoftMulti(cveIDs []string) map[string]models.MicrosoftCVE {
+	m := map[string]models.MicrosoftCVE{}
+	for _, cveID := range cveIDs {
+		m[cveID] = *r.GetMicrosoft(cveID)
+	}
+	return m
+}
+
 // InsertMicrosoft :
 func (r *RDBDriver) InsertMicrosoft(cveJSON []models.MicrosoftXML, cveXls []models.MicrosoftBulletinSearch) (err error) {
 	cves, _ := ConvertMicrosoft(cveJSON, cveXls)
