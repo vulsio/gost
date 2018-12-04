@@ -58,7 +58,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string) map[string]model
 
 	// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format
 	err := r.conn.
-		Not("fix_state", []string{"Not affected", "New", "Affected"}).
+		Not("fix_state", []string{"Not affected", "New"}).
 		Where(&models.RedhatPackageState{
 			Cpe:         cpe,
 			PackageName: pkgName,
@@ -94,8 +94,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string) map[string]model
 			if pkgstat.Cpe != cpe ||
 				pkgstat.PackageName != pkgName ||
 				pkgstat.FixState == "Not affected" ||
-				pkgstat.FixState == "New" ||
-				pkgstat.FixState == "Affected" {
+				pkgstat.FixState == "New" {
 				continue
 			}
 			pkgStats = append(pkgStats, pkgstat)

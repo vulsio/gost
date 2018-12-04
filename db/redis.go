@@ -161,8 +161,7 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string) (m map[string]
 			if pkgstat.Cpe != cpe ||
 				pkgstat.PackageName != pkgName ||
 				pkgstat.FixState == "Not affected" ||
-				pkgstat.FixState == "New" ||
-				pkgstat.FixState == "Affected" {
+				pkgstat.FixState == "New" {
 				continue
 			}
 			pkgStats = append(pkgStats, pkgstat)
