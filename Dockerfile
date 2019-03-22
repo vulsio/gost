@@ -23,7 +23,7 @@ RUN apk add --no-cache ca-certificates \
 
 COPY --from=builder /go/bin/gost /usr/local/bin/
 
-VOLUME [$WORKDIR, $LOGDIR]
+VOLUME ["$WORKDIR", "$LOGDIR"]
 WORKDIR $WORKDIR
 ENV PWD $WORKDIR
 
