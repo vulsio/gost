@@ -109,9 +109,9 @@ $ gost server
 [Aug 15 21:38:44]  INFO Opening DB (sqlite3)
 [Aug 15 21:38:44]  INFO Migrating DB (sqlite3)
 [Aug 15 21:38:44]  INFO Starting HTTP Server...
-[Aug 15 21:38:44]  INFO Listening on 127.0.0.1:11235
+[Aug 15 21:38:44]  INFO Listening on 127.0.0.1:1325
 
-$ curl http://127.0.0.1:11235/redhat/cves/CVE-2017-1000117 | jq .                                                                                                                     [~]
+$ curl http://127.0.0.1:1325/redhat/cves/CVE-2017-1000117 | jq .                                                                                                                     [~]
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100  1755  100  1755    0     0   243k      0 --:--:-- --:--:-- --:--:--  285k
@@ -214,14 +214,14 @@ access.log      gost.log        tracker.sqlite3
 $ docker run --rm -i \
         -v $PWD:/vuls \
         -v $PWD:/var/log/gost \
-        -p 1235:1235 \
+        -p 1325:1325 \
         vuls/gost server --bind=0.0.0.0
 ```
 
 ## HTTP Get to the server on Docker
 
 ```
-$ curl http://127.0.0.1:1235/debian/9/pkgs/expat/unfixed-cves | jq "."                                                                                         Fri Jul 27 16:03:15 2018
+$ curl http://127.0.0.1:1325/debian/9/pkgs/expat/unfixed-cves | jq "."                                                                                         Fri Jul 27 16:03:15 2018
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100   970  100   970    0     0  60308      0 --:--:-- --:--:-- --:--:-- 60625

@@ -23,9 +23,9 @@ func init() {
 	viper.BindPFlag("bind", serverCmd.PersistentFlags().Lookup("bind"))
 	viper.SetDefault("bind", "127.0.0.1")
 
-	serverCmd.PersistentFlags().String("port", "", "HTTP server port number (default: 1235")
+	serverCmd.PersistentFlags().String("port", "", "HTTP server port number (default: 1325")
 	viper.BindPFlag("port", serverCmd.PersistentFlags().Lookup("port"))
-	viper.SetDefault("port", "1235")
+	viper.SetDefault("port", "1325")
 }
 
 func executeServer(cmd *cobra.Command, args []string) (err error) {
