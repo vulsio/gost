@@ -1,0 +1,58 @@
+module github.com/knqyf263/gost
+
+go 1.12
+
+require (
+	github.com/BurntSushi/toml v0.3.1
+	github.com/cenkalti/backoff v2.0.0+incompatible
+	github.com/cheggaaa/pb v2.0.6+incompatible
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/fsnotify/fsnotify v1.4.7
+	github.com/go-redis/redis v6.14.1+incompatible
+	github.com/go-sql-driver/mysql v1.4.0
+	github.com/go-stack/stack v1.8.0
+	github.com/grokify/html-strip-tags-go v0.0.0-20180907063347-e9e44961e26f
+	github.com/hashicorp/hcl v1.0.0
+	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
+	github.com/inconshreveable/mousetrap v1.0.0
+	github.com/jinzhu/gorm v1.9.1
+	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a
+	github.com/knqyf263/trivy v0.1.2
+	github.com/labstack/echo v2.2.0+incompatible
+	github.com/labstack/gommon v0.2.7
+	github.com/lib/pq v1.0.0
+	github.com/magiconair/properties v1.8.0
+	github.com/mattn/go-colorable v0.1.1
+	github.com/mattn/go-isatty v0.0.5
+	github.com/mattn/go-runewidth v0.0.4
+	github.com/mattn/go-sqlite3 v1.9.0
+	github.com/mitchellh/go-homedir v1.1.0
+	github.com/mitchellh/mapstructure v1.0.0
+	github.com/moul/http2curl v1.0.0
+	github.com/parnurzeal/gorequest v0.2.15
+	github.com/pelletier/go-toml v1.2.0
+	github.com/pkg/errors v0.8.1
+	github.com/spf13/afero v1.1.2
+	github.com/spf13/cast v1.2.0
+	github.com/spf13/cobra v0.0.3
+	github.com/spf13/jwalterweatherman v1.0.0
+	github.com/spf13/pflag v1.0.2
+	github.com/spf13/viper v1.2.0
+	github.com/tealeg/xlsx v1.0.3
+	github.com/valyala/bytebufferpool v1.0.0
+	github.com/valyala/fasttemplate v0.0.0-20170224212429-dcecefd839c4
+	golang.org/x/net v0.0.0-20190502183928-7f726cade0ab
+	golang.org/x/sys v0.0.0-20190422165155-953cdadca894
+	golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2
+	golang.org/x/xerrors v0.0.0-20190513163551-3ee3066db522
+	google.golang.org/appengine v1.4.0
+	gopkg.in/VividCortex/ewma.v1 v1.1.1
+	gopkg.in/cheggaaa/pb.v1 v1.0.28
+	gopkg.in/cheggaaa/pb.v2 v2.0.6
+	gopkg.in/fatih/color.v1 v1.7.0
+	gopkg.in/mattn/go-colorable.v0 v0.0.9
+	gopkg.in/mattn/go-isatty.v0 v0.0.4
+	gopkg.in/mattn/go-runewidth.v0 v0.0.3
+	gopkg.in/src-d/go-git.v4 v4.12.0
+	gopkg.in/yaml.v2 v2.2.2
+)

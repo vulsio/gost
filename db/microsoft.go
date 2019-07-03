@@ -278,25 +278,25 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 			}
 
 			uniqCve[vuln.CVE] = models.MicrosoftCVE{
-				Title:       vuln.Title,
-				Description: description,
-				FAQ:         faq,
-				CveID:       vuln.CVE,
-				PublishDate: publishDate,
-				CWE:         vuln.CWE,
+				Title:                    vuln.Title,
+				Description:              description,
+				FAQ:                      faq,
+				CveID:                    vuln.CVE,
+				PublishDate:              publishDate,
+				CWE:                      vuln.CWE,
 				MicrosoftProductStatuses: productStatuses,
-				Impact:         impact,
-				Severity:       severity,
-				ExploitStatus:  exploitStatus,
-				Mitigation:     mitigation,
-				Workaround:     workaround,
-				VendorFix:      vendorFix,
-				NoneAvailable:  noneAvailable,
-				WillNotFix:     willNotFix,
-				KBIDs:          kbIDs,
-				References:     references,
-				ScoreSets:      scoreSets,
-				LastUpdateDate: lastUpdateDate,
+				Impact:                   impact,
+				Severity:                 severity,
+				ExploitStatus:            exploitStatus,
+				Mitigation:               mitigation,
+				Workaround:               workaround,
+				VendorFix:                vendorFix,
+				NoneAvailable:            noneAvailable,
+				WillNotFix:               willNotFix,
+				KBIDs:                    kbIDs,
+				References:               references,
+				ScoreSets:                scoreSets,
+				LastUpdateDate:           lastUpdateDate,
 			}
 		}
 	}
@@ -423,7 +423,7 @@ func getProductFromName(msProducts []models.MicrosoftProduct, productName string
 }
 
 // GetUnfixedCvesMicrosoft :
-func (r *RDBDriver) GetUnfixedCvesMicrosoft(major, pkgName string) map[string]models.MicrosoftCVE {
+func (r *RDBDriver) GetUnfixedCvesMicrosoft(major, pkgName string, detectWillNotFix ...bool) map[string]models.MicrosoftCVE {
 	m := map[string]models.MicrosoftCVE{}
 	return m
 }
