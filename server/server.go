@@ -10,7 +10,6 @@ import (
 	"github.com/knqyf263/gost/db"
 	"github.com/knqyf263/gost/util"
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/engine/standard"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/viper"
 )
@@ -18,7 +17,7 @@ import (
 // Start starts CVE dictionary HTTP Server.
 func Start(logDir string, driver db.DB) error {
 	e := echo.New()
-	e.SetDebug(viper.GetBool("debug"))
+	e.Debug =viper.GetBool("debug")
 
 	// Middleware
 	e.Use(middleware.Logger())
@@ -41,17 +40,16 @@ func Start(logDir string, driver db.DB) error {
 	}))
 
 	// Routes
-	e.Get("/health", health())
-	e.Get("/redhat/cves/:id", getRedhatCve(driver))
-	e.Get("/debian/cves/:id", getDebianCve(driver))
-
-	e.Get("/redhat/:release/pkgs/:name/unfixed-cves", getUnfixedCvesRedhat(driver))
-	e.Get("/debian/:release/pkgs/:name/unfixed-cves", getUnfixedCvesDebian(driver))
+	e.GET("/health", health())
+	e.GET("/redhat/cves/:id", getRedhatCve(driver))
+	e.GET("/debian/cves/:id", getDebianCve(driver))
+	e.GET("/redhat/:release/pkgs/:name/unfixed-cves", getUnfixedCvesRedhat(driver))
+	e.GET("/debian/:release/pkgs/:name/unfixed-cves", getUnfixedCvesDebian(driver))
 
 	bindURL := fmt.Sprintf("%s:%s", viper.GetString("bind"), viper.GetString("port"))
 	log15.Info("Listening", "URL", bindURL)
 
-	e.Run(standard.New(bindURL))
+	e.Start(bindURL)
 	return nil
 }
 
