@@ -51,7 +51,7 @@ func (r *RDBDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE 
 	return m
 }
 
-func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string) map[string]models.RedhatCVE {
+func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix bool) map[string]models.RedhatCVE {
 	m := map[string]models.RedhatCVE{}
 	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
 	pkgStats := []models.RedhatPackageState{}
@@ -95,6 +95,9 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string) map[string]model
 				pkgstat.PackageName != pkgName ||
 				pkgstat.FixState == "Not affected" ||
 				pkgstat.FixState == "New" {
+				continue
+
+			} else if ignoreWillNotFix && pkgstat.FixState == "Will not fix" {
 				continue
 			}
 			pkgStats = append(pkgStats, pkgstat)

@@ -20,7 +20,7 @@ type DB interface {
 	GetDebian(string) *models.DebianCVE
 	GetMicrosoft(string) *models.MicrosoftCVE
 	GetMicrosoftMulti([]string) map[string]models.MicrosoftCVE
-	GetUnfixedCvesRedhat(string, string) map[string]models.RedhatCVE
+	GetUnfixedCvesRedhat(string, string, bool) map[string]models.RedhatCVE
 	GetUnfixedCvesDebian(string, string) map[string]models.DebianCVE
 
 	InsertRedhat([]models.RedhatCVEJSON) error

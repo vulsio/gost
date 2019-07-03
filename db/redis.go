@@ -138,7 +138,7 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCV
 }
 
 // GetUnfixedCvesRedhat :
-func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string) (m map[string]models.RedhatCVE) {
+func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix bool) (m map[string]models.RedhatCVE) {
 	m = map[string]models.RedhatCVE{}
 
 	var result *redis.StringSliceCmd
@@ -162,6 +162,9 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string) (m map[string]
 				pkgstat.PackageName != pkgName ||
 				pkgstat.FixState == "Not affected" ||
 				pkgstat.FixState == "New" {
+				continue
+
+			} else if ignoreWillNotFix && pkgstat.FixState == "Will not fix" {
 				continue
 			}
 			pkgStats = append(pkgStats, pkgstat)
