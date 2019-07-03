@@ -87,7 +87,7 @@ func getUnfixedCvesRedhat(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		release := util.Major(c.Param("release"))
 		pkgName := c.Param("name")
-		cveDetail := driver.GetUnfixedCvesRedhat(release, pkgName)
+		cveDetail := driver.GetUnfixedCvesRedhat(release, pkgName, false)
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }
