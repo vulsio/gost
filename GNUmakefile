@@ -1,6 +1,4 @@
 .PHONY: \
-	dep \
-	depup \
 	build \
 	install \
 	all \
@@ -16,47 +14,48 @@
 	clean
 
 SRCS = $(shell git ls-files '*.go')
-PKGS =  ./cmd ./config ./db ./fetcher ./models ./notifier ./server ./util
+PKGS = $(shell go list ./...)
 VERSION := $(shell git describe --tags --abbrev=0)
 REVISION := $(shell git rev-parse --short HEAD)
 LDFLAGS := -X 'main.version=$(VERSION)' \
 	-X 'main.revision=$(REVISION)'
+GO := GO111MODULE=on go
+GO_OFF := GO111MODULE=off go
 
-all: dep build test
+all: build
 
-dep:
-	go get -u github.com/golang/dep/...
-	dep ensure -v
+build: main.go pretest
+	$(GO) build -ldflags "$(LDFLAGS)" -o gost  $<
 
-depup:
-	go get -u github.com/golang/dep/...
-	dep ensure -update -v
+install: main.go pretest
+	$(GO) install -ldflags "$(LDFLAGS)"
 
-build: main.go dep
-	go build -ldflags "$(LDFLAGS)" -o gost  $<
-
-install: main.go dep
-	go install -ldflags "$(LDFLAGS)"
-
-all: test
+b: 	main.go pretest
+	$(GO) build -ldflags "$(LDFLAGS)" -o vuls $<
 
 lint:
-	@ go get -v github.com/golang/lint/golint
-	$(foreach file,$(SRCS),golint $(file) || exit;)
+	$(GO_OFF) get -u golang.org/x/lint/golint
+	golint $(PKGS)
 
 vet:
-	$(foreach pkg,$(PKGS),go vet $(pkg);)
+	echo $(PKGS) | xargs env $(GO) vet || exit;
 
 fmt:
-	gofmt -w $(SRCS)
+	gofmt -s -w $(SRCS)
+
+mlint:
+	$(foreach file,$(SRCS),gometalinter $(file) || exit;)
 
 fmtcheck:
-	$(foreach file,$(SRCS),gofmt -d $(file);)
+	$(foreach file,$(SRCS),gofmt -s -d $(file);)
 
 pretest: lint vet fmtcheck
 
-test: pretest
-	$(foreach pkg,$(PKGS),go test -v $(pkg) || exit;)
+test: 
+	$(GO) test -cover -v ./... || exit;
+
+unused:
+	$(foreach pkg,$(PKGS),unused $(pkg);)
 
 integration:
 	go test -tags docker_integration -run TestIntegration -v
