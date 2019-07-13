@@ -10,7 +10,7 @@ require (
 	github.com/grokify/html-strip-tags-go v0.0.0-20190424092004-025bd760b278
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/jinzhu/gorm v1.9.10
-	github.com/knqyf263/trivy v0.1.3
+	github.com/knqyf263/trivy v0.1.4
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.2.9
 	github.com/mattn/go-runewidth v0.0.4
