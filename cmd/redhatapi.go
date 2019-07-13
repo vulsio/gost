@@ -10,27 +10,27 @@ import (
 	"github.com/spf13/viper"
 )
 
-// redhatCmd represents the redhat command
+// redHatAPICmd represents the redhatAPI command
 var redHatAPICmd = &cobra.Command{
-	Use:   "redhat api",
+	Use:   "redhatapi",
 	Short: "Fetch the CVE information from Red Hat API",
 	Long:  `Fetch the CVE information from Red Hat API`,
 	RunE:  fetchRedHatAPI,
 }
 
 func init() {
-	fetchCmd.AddCommand(redhatCmd)
+	fetchCmd.AddCommand(redHatAPICmd)
 
-	redhatCmd.PersistentFlags().String("after", "", "Fetch CVEs after the specified date (e.g. 2017-01-01) (default: 1970-01-01)")
-	viper.BindPFlag("after", redhatCmd.PersistentFlags().Lookup("after"))
+	redHatAPICmd.PersistentFlags().String("after", "", "Fetch CVEs after the specified date (e.g. 2017-01-01) (default: 1970-01-01)")
+	viper.BindPFlag("after", redHatAPICmd.PersistentFlags().Lookup("after"))
 	viper.SetDefault("after", "1970-01-01")
 
-	redhatCmd.PersistentFlags().String("before", "", "Fetch CVEs before the specified date (e.g. 2017-01-01)")
-	viper.BindPFlag("before", redhatCmd.PersistentFlags().Lookup("before"))
+	redHatAPICmd.PersistentFlags().String("before", "", "Fetch CVEs before the specified date (e.g. 2017-01-01)")
+	viper.BindPFlag("before", redHatAPICmd.PersistentFlags().Lookup("before"))
 	viper.SetDefault("before", "")
 
-	redhatCmd.PersistentFlags().Bool("list-only", false, "")
-	viper.BindPFlag("list-only", redhatCmd.PersistentFlags().Lookup("list-only"))
+	redHatAPICmd.PersistentFlags().Bool("list-only", false, "")
+	viper.BindPFlag("list-only", redHatAPICmd.PersistentFlags().Lookup("list-only"))
 	viper.SetDefault("list-only", false)
 }
 

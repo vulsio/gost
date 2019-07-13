@@ -12,11 +12,15 @@ import (
 )
 
 // redhatCmd represents the redhat command
-var redhatCmd = &cobra.Command{
+var redHatCmd = &cobra.Command{
 	Use:   "redhat",
 	Short: "Fetch the CVE information from knqyf263/vuln-list",
 	Long:  `Fetch the CVE information from knqyf263/vuln-list`,
 	RunE:  fetchRedHat,
+}
+
+func init() {
+	fetchCmd.AddCommand(redHatCmd)
 }
 
 func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
