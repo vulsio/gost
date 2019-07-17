@@ -423,7 +423,7 @@ func getProductFromName(msProducts []models.MicrosoftProduct, productName string
 }
 
 // GetUnfixedCvesMicrosoft :
-func (r *RDBDriver) GetUnfixedCvesMicrosoft(major, pkgName string) map[string]models.MicrosoftCVE {
+func (r *RDBDriver) GetUnfixedCvesMicrosoft(major, pkgName string, detectWillNotFix ...bool) map[string]models.MicrosoftCVE {
 	m := map[string]models.MicrosoftCVE{}
 	return m
 }
