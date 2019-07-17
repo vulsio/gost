@@ -59,7 +59,7 @@ Use "gost [command] --help" for more information about a command.
 ## Fetch vulnerability infomation updated after 2016-01-01
 
 ```
-$ gost fetch redhat --after 2016-01-01   
+$ gost fetch redhat 
 
 INFO[07-27|11:13:27] Initialize Database
 INFO[07-27|11:13:27] Opening DB.                              db=sqlite3
@@ -207,7 +207,7 @@ $ docker run --rm -i \
 $ docker run --rm -i \
 	-v $PWD:/vuls \
 	-v $PWD:/var/log/gost \
-	vuls/gost fetch redhat --after=2016-01-01
+	vuls/gost fetch redhat 
 $ ls 
 access.log      gost.log        tracker.sqlite3
 
