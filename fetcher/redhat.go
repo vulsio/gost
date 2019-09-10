@@ -8,14 +8,14 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/models"
-	"github.com/knqyf263/trivy/pkg/git"
-	trivyUtils "github.com/knqyf263/trivy/pkg/utils"
-	types "github.com/knqyf263/trivy/pkg/vulnsrc/redhat"
+	"github.com/aquasecurity/trivy/pkg/git"
+	trivyUtils "github.com/aquasecurity/trivy/pkg/utils"
+	types "github.com/aquasecurity/trivy/pkg/vulnsrc/redhat"
 	"golang.org/x/xerrors"
 )
 
 const (
-	repoURL   = "https://github.com/knqyf263/vuln-list.git"
+	repoURL   = "https://github.com/aquasecurity/vuln-list.git"
 	redhatDir = "redhat"
 )
 

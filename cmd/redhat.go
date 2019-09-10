@@ -4,8 +4,8 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/db"
 	"github.com/knqyf263/gost/fetcher"
-	trivyDB "github.com/knqyf263/trivy/pkg/db"
-	trivyLog "github.com/knqyf263/trivy/pkg/log"
+	trivyDB "github.com/aquasecurity/trivy/pkg/db"
+	trivyLog "github.com/aquasecurity/trivy/pkg/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
@@ -27,7 +27,7 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 	log15.Info("Initialize Database")
 
 	//TODO debug option
-	if err := trivyLog.InitLogger(true); err != nil {
+	if err := trivyLog.InitLogger(true, false); err != nil {
 		log15.Error("Fatal")
 		return nil
 	}
