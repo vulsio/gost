@@ -18,7 +18,7 @@ MAINTAINER knqyf263
 ENV LOGDIR /var/log/vuls
 ENV WORKDIR /vuls
 
-RUN apk add --no-cache ca-certificates \
+RUN apk add --no-cache ca-certificates git \
     && mkdir -p $WORKDIR $LOGDIR
 
 COPY --from=builder /go/bin/gost /usr/local/bin/
