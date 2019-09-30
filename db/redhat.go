@@ -1,6 +1,7 @@
 package db
 
 import (
+	"strings"
 	"fmt"
 	"time"
 
@@ -197,7 +198,11 @@ func ConvertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE, er
 
 		var publicDate time.Time
 		if cve.PublicDate != "" {
-			publicDate, err = time.Parse("2006-01-02T15:04:05", cve.PublicDate)
+			if strings.HasSuffix(cve.PublicDate, "Z") {
+				publicDate, err = time.Parse("2006-01-02T15:04:05Z", cve.PublicDate)
+			}else {
+				publicDate, err = time.Parse("2006-01-02T15:04:05", cve.PublicDate)
+			}
 			if err != nil {
 				return nil, fmt.Errorf("Failed to parse date. date: %s err: %s", cve.PublicDate, err)
 			}
