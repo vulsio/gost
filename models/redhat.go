@@ -18,7 +18,7 @@ type RedhatEntry struct {
 	CWE               string        `json:"CWE"`
 	AffectedPackages  []interface{} `json:"affected_packages"`
 	ResourceURL       string        `json:"resource_url"`
-	Cvss3Score        float64       `json:"cvss3_score"`
+	Cvss3Score        string        `json:"cvss3_score"`
 }
 
 type RedhatCVEJSON struct {
