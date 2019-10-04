@@ -135,6 +135,10 @@ func FetchRedHatVulnList() (entries []models.RedhatCVEJSON, err error) {
 			})
 		}
 
+		mitigation := models.RedhatMitigation{
+			Value: c.Mitigation,
+		}
+
 		entries = append(entries, models.RedhatCVEJSON{
 			ThreatSeverity:       c.ThreatSeverity,
 			PublicDate:           c.PublicDate,
@@ -145,7 +149,7 @@ func FetchRedHatVulnList() (entries []models.RedhatCVEJSON, err error) {
 			Cwe:                  c.Cwe,
 			Statement:            c.Statement,
 			Acknowledgement:      c.Acknowledgement,
-			Mitigation:           c.Mitigation,
+			Mitigation:           mitigation,
 			TempAffectedRelease:  c.TempAffectedRelease,
 			AffectedRelease:      releases,
 			PackageState:         states,

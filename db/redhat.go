@@ -219,7 +219,7 @@ func ConvertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE, er
 			Cwe:                  cve.Cwe,
 			Statement:            cve.Statement,
 			Acknowledgement:      cve.Acknowledgement,
-			Mitigation:           cve.Mitigation,
+			Mitigation:           cve.Mitigation.Value,
 			AffectedRelease:      cve.AffectedRelease,
 			PackageState:         cve.PackageState,
 			Name:                 cve.Name,
