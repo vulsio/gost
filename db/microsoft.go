@@ -69,10 +69,13 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(conn *gorm.DB, cves []models.Micros
 	var errs gorm.Errors
 	errs = errs.Add(tx.Delete(models.MicrosoftScoreSet{}).Error)
 	errs = errs.Add(tx.Delete(models.MicrosoftReference{}).Error)
+	errs = errs.Add(tx.Delete(models.MicrosoftKBID{}).Error)
 	errs = errs.Add(tx.Delete(models.MicrosoftRemediation{}).Error)
 	errs = errs.Add(tx.Delete(models.MicrosoftThreat{}).Error)
 	errs = errs.Add(tx.Delete(models.MicrosoftProductStatus{}).Error)
-	errs = errs.Add(tx.Delete(models.RedhatCVE{}).Error)
+	errs = errs.Add(tx.Delete(models.MicrosoftProduct{}).Error)
+	errs = errs.Add(tx.Delete(models.MicrosoftScoreSet{}).Error)
+	errs = errs.Add(tx.Delete(models.MicrosoftCVE{}).Error)
 	errs = util.DeleteNil(errs)
 	if len(errs.GetErrors()) > 0 {
 		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
