@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/xml"
+	"strings"
 	"time"
 )
 
@@ -200,6 +201,9 @@ func (m *Mstime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 		return err
 	}
 	format := "2006-01-02T15:04:05"
+	if strings.HasSuffix(timeStr, "Z") {
+		format = "2006-01-02T15:04:05Z"
+	}
 	t, err := time.Parse(format, timeStr)
 	if err != nil {
 		return err

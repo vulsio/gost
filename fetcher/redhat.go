@@ -6,11 +6,11 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/models"
 	"github.com/aquasecurity/trivy/pkg/git"
 	trivyUtils "github.com/aquasecurity/trivy/pkg/utils"
 	types "github.com/aquasecurity/trivy/pkg/vulnsrc/redhat"
+	"github.com/inconshreveable/log15"
+	"github.com/knqyf263/gost/models"
 	"golang.org/x/xerrors"
 )
 
