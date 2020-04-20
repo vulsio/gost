@@ -1,11 +1,11 @@
 package cmd
 
 import (
+	trivyDB "github.com/aquasecurity/trivy/pkg/db"
+	trivyLog "github.com/aquasecurity/trivy/pkg/log"
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/db"
 	"github.com/knqyf263/gost/fetcher"
-	trivyDB "github.com/aquasecurity/trivy/pkg/db"
-	trivyLog "github.com/aquasecurity/trivy/pkg/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"

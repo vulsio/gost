@@ -1,8 +1,8 @@
 package db
 
 import (
-	"strings"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -200,7 +200,7 @@ func ConvertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE, er
 		if cve.PublicDate != "" {
 			if strings.HasSuffix(cve.PublicDate, "Z") {
 				publicDate, err = time.Parse("2006-01-02T15:04:05Z", cve.PublicDate)
-			}else {
+			} else {
 				publicDate, err = time.Parse("2006-01-02T15:04:05", cve.PublicDate)
 			}
 			if err != nil {
