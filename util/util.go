@@ -71,7 +71,7 @@ func FetchURL(url, apikey string) ([]byte, error) {
 
 	req := gorequest.New().Proxy(httpProxy).Get(url)
 	if apikey != "" {
-		req.Header["api-key"] = apikey
+		req.Header["api-key"] = []string{apikey}
 	}
 	resp, body, err := req.Type("text").EndBytes()
 	if len(errs) > 0 || resp == nil {

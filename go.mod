@@ -23,7 +23,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/moul/http2curl v1.0.0 // indirect
-	github.com/parnurzeal/gorequest v0.2.15
+	github.com/parnurzeal/gorequest v0.2.16
 	github.com/pkg/errors v0.8.1
 	github.com/smartystreets/goconvey v0.0.0-20190731233626-505e41936337 // indirect
 	github.com/spf13/cobra v0.0.5
@@ -37,4 +37,5 @@ require (
 	gopkg.in/mattn/go-colorable.v0 v0.0.0-00010101000000-000000000000 // indirect
 	gopkg.in/mattn/go-isatty.v0 v0.0.0-00010101000000-000000000000 // indirect
 	gopkg.in/mattn/go-runewidth.v0 v0.0.4 // indirect
+	moul.io/http2curl v1.0.0 // indirect
 )
