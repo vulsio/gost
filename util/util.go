@@ -162,10 +162,15 @@ func SetLogger(logDir string, debug, logJSON bool) {
 	var hundler log15.Handler
 	if _, err := os.Stat(logDir); err == nil {
 		logPath := filepath.Join(logDir, "gost.log")
-		hundler = log15.MultiHandler(
-			log15.Must.FileHandler(logPath, logFormat),
-			lvlHundler,
-		)
+		if _, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); err != nil {
+			log15.Error("Failed to create a log file", "err", err)
+			hundler = lvlHundler
+		} else {
+			hundler = log15.MultiHandler(
+				log15.Must.FileHandler(logPath, logFormat),
+				lvlHundler,
+			)
+		}
 	} else {
 		hundler = lvlHundler
 	}
