@@ -122,7 +122,17 @@ var debVerCodename = map[string]string{
 	"10": "buster",
 }
 
+// GetUnfixedCvesDebian gets the CVEs related to debian_release.status = 'open', major, pkgName.
 func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]models.DebianCVE {
+	return r.getCvesDebianWithFixStatus(major, pkgName, "open")
+}
+
+// GetFixedCvesDebian gets the CVEs related to debian_release.status = 'resolved', major, pkgName.
+func (r *RDBDriver) GetFixedCvesDebian(major, pkgName string) map[string]models.DebianCVE {
+	return r.getCvesDebianWithFixStatus(major, pkgName, "resolved")
+}
+
+func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string) map[string]models.DebianCVE {
 	m := map[string]models.DebianCVE{}
 	codeName, ok := debVerCodename[major]
 	if !ok {
@@ -139,7 +149,7 @@ func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]model
 		Joins("join debian_packages on debian_releases.debian_package_id = debian_packages.id AND debian_packages.package_name = ?", pkgName).
 		Where(&models.DebianRelease{
 			ProductName: codeName,
-			Status:      "open",
+			Status:      fixStatus,
 		}).Scan(&results).Error
 
 	if err != nil && err != gorm.ErrRecordNotFound {
@@ -170,7 +180,7 @@ func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]model
 
 			rels := []models.DebianRelease{}
 			for _, rel := range pkg.Release {
-				if rel.ProductName == codeName && rel.Status == "open" {
+				if rel.ProductName == codeName && rel.Status == fixStatus {
 					rels = append(rels, rel)
 				}
 			}

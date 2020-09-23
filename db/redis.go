@@ -178,8 +178,17 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotF
 	return
 }
 
-// GetUnfixedCvesDebian :
-func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]models.DebianCVE) {
+// GetUnfixedCvesDebian : get the CVEs related to debian_release.status = 'open', major, pkgName
+func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]models.DebianCVE {
+	return r.getCvesDebianWithFixStatus(major, pkgName, "open")
+}
+
+// GetFixedCvesDebian : get the CVEs related to debian_release.status = 'resolved', major, pkgName
+func (r *RedisDriver) GetFixedCvesDebian(major, pkgName string) map[string]models.DebianCVE {
+	return r.getCvesDebianWithFixStatus(major, pkgName, "resolved")
+}
+
+func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string) (m map[string]models.DebianCVE) {
 	m = map[string]models.DebianCVE{}
 	codeName, ok := debVerCodename[major]
 	if !ok {
@@ -206,7 +215,7 @@ func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (m map[string]
 			}
 			rels := []models.DebianRelease{}
 			for _, rel := range pkg.Release {
-				if rel.ProductName == codeName && rel.Status == "open" {
+				if rel.ProductName == codeName && rel.Status == fixStatus {
 					rels = append(rels, rel)
 				}
 			}
