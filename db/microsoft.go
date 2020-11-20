@@ -19,7 +19,7 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 	c := models.MicrosoftCVE{}
 
 	var errs gorm.Errors
-	errs = errs.Add(r.conn.Where(&models.RedhatCVE{Name: cveID}).First(&c).Error)
+	errs = errs.Add(r.conn.Where(&models.MicrosoftCVE{CveID: cveID}).First(&c).Error)
 	errs = errs.Add(r.conn.Model(&c).Related(&c.MicrosoftProductStatuses).Error)
 	errs = errs.Add(r.conn.Model(&c).Related(&c.Impact).Error)
 	errs = errs.Add(r.conn.Model(&c).Related(&c.Severity).Error)
