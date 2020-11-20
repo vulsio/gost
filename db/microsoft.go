@@ -252,7 +252,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 				case "Will Not Fix":
 					willNotFix = append(willNotFix, remediation)
 				default:
-					log15.Info("New Remediations", "Type", r.AttrType)
+					log15.Debug("New Remediation", "Type", r)
 				}
 			}
 
