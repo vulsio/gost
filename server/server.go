@@ -45,6 +45,7 @@ func Start(logDir string, driver db.DB) error {
 	e.GET("/debian/cves/:id", getDebianCve(driver))
 	e.GET("/redhat/:release/pkgs/:name/unfixed-cves", getUnfixedCvesRedhat(driver))
 	e.GET("/debian/:release/pkgs/:name/unfixed-cves", getUnfixedCvesDebian(driver))
+	e.GET("/debian/:release/pkgs/:name/fixed-cves", getFixedCvesDebian(driver))
 
 	bindURL := fmt.Sprintf("%s:%s", viper.GetString("bind"), viper.GetString("port"))
 	log15.Info("Listening", "URL", bindURL)
@@ -96,6 +97,16 @@ func getUnfixedCvesDebian(driver db.DB) echo.HandlerFunc {
 		release := util.Major(c.Param("release"))
 		pkgName := c.Param("name")
 		cveDetail := driver.GetUnfixedCvesDebian(release, pkgName)
+		return c.JSON(http.StatusOK, &cveDetail)
+	}
+}
+
+// Handler
+func getFixedCvesDebian(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		release := util.Major(c.Param("release"))
+		pkgName := c.Param("name")
+		cveDetail := driver.GetFixedCvesDebian(release, pkgName)
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }
