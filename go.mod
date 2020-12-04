@@ -13,7 +13,7 @@ require (
 	github.com/cheggaaa/pb v2.0.7+incompatible
 	github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2 // indirect
-	github.com/go-redis/redis v6.15.5+incompatible
+	github.com/go-redis/redis/v8 v8.4.0
 	github.com/grokify/html-strip-tags-go v0.0.0-20190424092004-025bd760b278
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/jinzhu/gorm v1.9.10
@@ -22,14 +22,13 @@ require (
 	github.com/mattn/go-runewidth v0.0.4
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/moul/http2curl v1.0.0 // indirect
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/pkg/errors v0.8.1
 	github.com/smartystreets/goconvey v0.0.0-20190731233626-505e41936337 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
 	github.com/tealeg/xlsx v1.0.3
-	golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7
+	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
 	gopkg.in/VividCortex/ewma.v1 v1.1.1 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gopkg.in/cheggaaa/pb.v2 v2.0.7 // indirect
