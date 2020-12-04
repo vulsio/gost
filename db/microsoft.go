@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cheggaaa/pb"
+	"github.com/cheggaaa/pb/v3"
 	strip "github.com/grokify/html-strip-tags-go"
 	"github.com/inconshreveable/log15"
 	"github.com/jinzhu/gorm"

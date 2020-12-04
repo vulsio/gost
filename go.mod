@@ -10,7 +10,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/aquasecurity/trivy v0.1.6
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/cheggaaa/pb v2.0.7+incompatible
+	github.com/cheggaaa/pb/v3 v3.0.5
 	github.com/elazarl/goproxy v0.0.0-20190711103511-473e67f1d7d2 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2 // indirect
 	github.com/go-redis/redis/v8 v8.4.0
@@ -19,7 +19,7 @@ require (
 	github.com/jinzhu/gorm v1.9.10
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.3.0
-	github.com/mattn/go-runewidth v0.0.4
+	github.com/mattn/go-runewidth v0.0.7
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/parnurzeal/gorequest v0.2.16
@@ -29,12 +29,6 @@ require (
 	github.com/spf13/viper v1.4.0
 	github.com/tealeg/xlsx v1.0.3
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
-	gopkg.in/VividCortex/ewma.v1 v1.1.1 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
-	gopkg.in/cheggaaa/pb.v2 v2.0.7 // indirect
-	gopkg.in/fatih/color.v1 v1.7.0 // indirect
-	gopkg.in/mattn/go-colorable.v0 v0.0.0-00010101000000-000000000000 // indirect
-	gopkg.in/mattn/go-isatty.v0 v0.0.0-00010101000000-000000000000 // indirect
-	gopkg.in/mattn/go-runewidth.v0 v0.0.4 // indirect
 	moul.io/http2curl v1.0.0 // indirect
 )

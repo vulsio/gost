@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cheggaaa/pb/v3"
 	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/models"
 	"github.com/labstack/gommon/log"
-	"gopkg.in/cheggaaa/pb.v1"
 )
 
 /**
