@@ -36,7 +36,6 @@ func NewDB(dbType, dbPath string, debugSQL bool) (driver DB, locked bool, err er
 		return driver, false, err
 	}
 
-	log15.Info("Opening DB.", "db", driver.Name())
 	if locked, err := driver.OpenDB(dbType, dbPath, debugSQL); err != nil {
 		if locked {
 			return nil, true, err
@@ -44,7 +43,6 @@ func NewDB(dbType, dbPath string, debugSQL bool) (driver DB, locked bool, err er
 		return nil, false, err
 	}
 
-	log15.Info("Migrating DB.", "db", driver.Name())
 	if err := driver.MigrateDB(); err != nil {
 		log15.Error("Failed to migrate db.", "err", err)
 		return driver, false, err
