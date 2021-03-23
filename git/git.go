@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/trivydb"
 	"github.com/knqyf263/gost/util"
 	"golang.org/x/xerrors"
 	git "gopkg.in/src-d/go-git.v4"
@@ -56,21 +55,19 @@ func CloneOrPull(url, repoPath string) (map[string]struct{}, error) {
 	}
 
 	// Need to refresh all vulnerabilities
-	if trivydb.GetVersion() == "" {
-		err = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
-			if info.IsDir() {
-				return nil
-			}
-			rel, err := filepath.Rel(repoPath, path)
-			if err != nil {
-				return xerrors.Errorf("failed to get a relative path: %w", err)
-			}
-			updatedFiles[rel] = struct{}{}
+	err = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
 			return nil
-		})
-		if err != nil {
-			return nil, xerrors.Errorf("error in file walk: %w", err)
 		}
+		rel, err := filepath.Rel(repoPath, path)
+		if err != nil {
+			return xerrors.Errorf("failed to get a relative path: %w", err)
+		}
+		updatedFiles[rel] = struct{}{}
+		return nil
+	})
+	if err != nil {
+		return nil, xerrors.Errorf("error in file walk: %w", err)
 	}
 
 	return updatedFiles, nil

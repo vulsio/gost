@@ -4,7 +4,6 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/db"
 	"github.com/knqyf263/gost/fetcher"
-	"github.com/knqyf263/gost/trivydb"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
@@ -23,11 +22,6 @@ func init() {
 }
 
 func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
-	log15.Info("Initialize Database")
-	if err = trivydb.Init(); err != nil {
-		return xerrors.Errorf("error in vulnerability DB initialize: %w", err)
-	}
-
 	cves, err := fetcher.FetchRedHatVulnList()
 	if err != nil {
 		return xerrors.Errorf("error in vulnerability DB initialize: %w", err)
