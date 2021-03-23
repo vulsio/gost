@@ -1,11 +1,10 @@
 package cmd
 
 import (
-	trivyDB "github.com/aquasecurity/trivy/pkg/db"
-	trivyLog "github.com/aquasecurity/trivy/pkg/log"
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/db"
 	"github.com/knqyf263/gost/fetcher"
+	"github.com/knqyf263/gost/trivydb"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
@@ -25,14 +24,7 @@ func init() {
 
 func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 	log15.Info("Initialize Database")
-
-	//TODO debug option
-	if err := trivyLog.InitLogger(true, false); err != nil {
-		log15.Error("Fatal")
-		return nil
-	}
-
-	if err = trivyDB.Init(); err != nil {
+	if err = trivydb.Init(); err != nil {
 		return xerrors.Errorf("error in vulnerability DB initialize: %w", err)
 	}
 
