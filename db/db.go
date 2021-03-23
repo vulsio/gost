@@ -12,6 +12,7 @@ import (
 type DB interface {
 	Name() string
 	OpenDB(string, string, bool) (bool, error)
+	CloseDB() error
 	MigrateDB() error
 
 	GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error)

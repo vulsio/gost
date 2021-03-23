@@ -11,6 +11,7 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/models"
 	"github.com/labstack/gommon/log"
+	"golang.org/x/xerrors"
 )
 
 /**
@@ -80,6 +81,17 @@ func (r *RedisDriver) connectRedis(dbPath string) error {
 	r.conn = redis.NewClient(option)
 	err = r.conn.Ping(ctx).Err()
 	return err
+}
+
+// CloseDB close Database
+func (r *RedisDriver) CloseDB() (err error) {
+	if r.conn == nil {
+		return
+	}
+	if err = r.conn.Close(); err != nil {
+		return xerrors.Errorf("Failed to close DB. Type: %s. err: %w", r.name, err)
+	}
+	return
 }
 
 // MigrateDB migrates Database
