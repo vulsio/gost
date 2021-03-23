@@ -1,6 +1,6 @@
 module github.com/knqyf263/gost
 
-go 1.13
+go 1.16
 
 replace gopkg.in/mattn/go-colorable.v0 => github.com/mattn/go-colorable v0.1.0
 
@@ -28,7 +28,7 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
 	github.com/tealeg/xlsx v1.0.3
-	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	moul.io/http2curl v1.0.0 // indirect
 )
