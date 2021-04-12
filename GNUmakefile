@@ -52,7 +52,7 @@ fmtcheck:
 pretest: lint vet fmtcheck
 
 test: 
-	$(GO) test -cover -v ./... || exit;
+	$(GO) test -cover -v ./... -timeout 300s || exit;
 
 unused:
 	$(foreach pkg,$(PKGS),unused $(pkg);)

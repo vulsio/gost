@@ -120,16 +120,19 @@ var debVerCodename = map[string]string{
 	"8":  "jessie",
 	"9":  "stretch",
 	"10": "buster",
+	"11": "bullseye",
+	"12": "bookworm",
+	"13": "trixie",
 }
 
 // GetUnfixedCvesDebian gets the CVEs related to debian_release.status = 'open', major, pkgName.
 func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]models.DebianCVE {
-	return r.getCvesDebianWithFixStatus(major, pkgName, "open")
+	return r.getCvesDebianWithFixStatus1(major, pkgName, "open")
 }
 
 // GetFixedCvesDebian gets the CVEs related to debian_release.status = 'resolved', major, pkgName.
 func (r *RDBDriver) GetFixedCvesDebian(major, pkgName string) map[string]models.DebianCVE {
-	return r.getCvesDebianWithFixStatus(major, pkgName, "resolved")
+	return r.getCvesDebianWithFixStatus1(major, pkgName, "resolved")
 }
 
 func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string) map[string]models.DebianCVE {
@@ -194,6 +197,44 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 			debcve.Package = pkgs
 			m[debcve.CveID] = debcve
 		}
+	}
+	return m
+}
+
+func (r *RDBDriver) getCvesDebianWithFixStatus1(major, pkgName, fixStatus string) map[string]models.DebianCVE {
+	m := map[string]models.DebianCVE{}
+	codeName, ok := debVerCodename[major]
+	if !ok {
+		log15.Error("Debian %s is not supported yet", "err", major)
+		return m
+	}
+
+	debcves := []models.DebianCVE{}
+	err := r.conn.
+		Preload("Package", "package_name= ?", pkgName).
+		Preload("Package.Release", "status = ? AND product_name = ?", fixStatus, codeName).
+		Raw(`SELECT 
+				* 
+			FROM 
+				debian_cves dc , 
+				debian_packages dp, 
+				debian_releases dr 
+			WHERE 
+				dc.id = dp.debian_cve_id and 
+				dp.id = dr.debian_package_id and 
+				dp.package_name= ? and 
+				dr.product_name = ? and 
+				dr.status = ?`,
+			pkgName,
+			codeName,
+			fixStatus,
+		).Find(&debcves).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		log15.Error("Failed to get DebianCVE", pkgName, err)
+		return m
+	}
+	for _, debcve := range debcves {
+		m[debcve.CveID] = debcve
 	}
 	return m
 }
