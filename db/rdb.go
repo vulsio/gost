@@ -86,7 +86,7 @@ func (r *RDBDriver) CloseDB() (err error) {
 	if r.conn == nil {
 		return
 	}
-	if sqlDB, err := r.conn.DB(); err == nil {
+	if sqlDB, err := r.conn.DB(); err != nil {
 		return xerrors.Errorf("Failed to get DB Object. err : %w", err)
 	} else {
 		if err = sqlDB.Close(); err != nil {
