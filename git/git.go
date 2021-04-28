@@ -174,7 +174,7 @@ func pullByOSCommand(repoPath string) ([]string, error) {
 	}
 	commitHash := strings.TrimSpace(output)
 
-	pullCmd := []string{"pull", "origin", "master"}
+	pullCmd := []string{"pull", "origin", "main"}
 	_, err = util.Exec("git", append(commandArgs, pullCmd...))
 	if err != nil {
 		return nil, xerrors.Errorf("error in git pull: %w", err)
