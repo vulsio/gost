@@ -2,6 +2,7 @@ package fetcher
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"path/filepath"
@@ -40,7 +41,7 @@ func FetchRedHatVulnList() (entries []models.RedhatCVEJSON, err error) {
 		log15.Debug("Red Hat: no updated file")
 		return nil, nil
 	}
-	log15.Debug("Red Hat updated files: %d", len(targets))
+	log15.Debug(fmt.Sprintf("Red Hat updated files: %d", len(targets)))
 
 	var cves []RedhatCVE
 	err = util.FileWalk(rootDir, targets, func(r io.Reader, _ string) error {
