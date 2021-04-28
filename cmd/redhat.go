@@ -27,6 +27,7 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("error in vulnerability DB initialize: %w", err)
 	}
 
+	log15.Info("Initialize Database")
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
