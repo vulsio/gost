@@ -234,7 +234,7 @@ type MicrosoftCVE struct {
 	Title                    string                   `json:"title"`
 	Description              string                   `json:"description"`
 	FAQ                      string                   `json:"faq"`
-	CveID                    string                   `json:"cve_id"`
+	CveID                    string                   `json:"cve_id" gorm:"index:idx_microsoft_cves_cveid"`
 	CWE                      string                   `json:"cwe"`
 	MicrosoftProductStatuses []MicrosoftProductStatus `json:"microsoft_product_statuses"`
 	Impact                   []MicrosoftThreat        `json:"impact"`
@@ -254,7 +254,7 @@ type MicrosoftCVE struct {
 
 // MicrosoftReference :
 type MicrosoftReference struct {
-	MicrosoftCVEID int64 `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	MicrosoftCVEID int64 `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_reference_microsoft_cve_id"`
 	// External, Self
 	AttrType    string `json:"type"`
 	URL         string `json:"url"`
@@ -263,29 +263,29 @@ type MicrosoftReference struct {
 
 // MicrosoftKBID :
 type MicrosoftKBID struct {
-	MicrosoftCVEID int64  `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	MicrosoftCVEID int64  `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_kb_id_microsoft_cve_id"`
 	KBID           string `json:"kb_id"`
 }
 
 // MicrosoftProductStatus :
 type MicrosoftProductStatus struct {
-	MicrosoftCVEID int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
-	Products       []MicrosoftProduct `json:"products"`
+	MicrosoftCVEID int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_product_status_microsoft_cve_id"`
+	Products       []MicrosoftProduct `json:"products" gorm:"foreignKey:ProductID;references:MicrosoftCVEID"`
 	ProductStatus  string             `json:"product_status"`
 }
 
 // MicrosoftThreat :
 type MicrosoftThreat struct {
-	MicrosoftCVEID int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	MicrosoftCVEID int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_threat_microsoft_cve_id"`
 	Description    string             `json:"description"`
-	Products       []MicrosoftProduct `json:"products"`
+	Products       []MicrosoftProduct `json:"products" gorm:"foreignKey:ProductID;references:MicrosoftCVEID"`
 }
 
 // MicrosoftRemediation :
 type MicrosoftRemediation struct {
-	MicrosoftCVEID  int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	MicrosoftCVEID  int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_remediation_microsoft_cve_id"`
 	Description     string             `json:"description"`
-	Products        []MicrosoftProduct `json:"products"`
+	Products        []MicrosoftProduct `json:"products" gorm:"foreignKey:ProductID;references:MicrosoftCVEID"`
 	Entitlement     string             `json:"entitlement"`
 	RestartRequired string             `json:"restart_required"`
 	SubType         string             `json:"sub_type"`
@@ -295,23 +295,23 @@ type MicrosoftRemediation struct {
 
 // MicrosoftScoreSet :
 type MicrosoftScoreSet struct {
-	MicrosoftCVEID     int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	MicrosoftCVEID     int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_score_set_microsoft_cve_id"`
 	BaseScore          float64            `json:"base_score"`
 	TemporalScore      float64            `json:"temporal_score"`
 	EnvironmentalScore float64            `json:"environmental_score"`
 	Vector             string             `json:"vector"`
-	Products           []MicrosoftProduct `json:"products"`
+	Products           []MicrosoftProduct `json:"products" gorm:"foreignKey:ProductID;references:MicrosoftCVEID"`
 }
 
 // MicrosoftCveID :
 type MicrosoftCveID struct {
-	MicrosoftCVEID int64  `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	MicrosoftCVEID int64  `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_cve_id_microsoft_cve_id"`
 	CveID          string `json:"cve_id"`
 }
 
 // MicrosoftProduct :
 type MicrosoftProduct struct {
-	MicrosoftCVEID int64  `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty"`
+	MicrosoftCVEID int64  `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_product_microsoft_cve_id"`
 	ProductID      string `json:"product_id"`
 	ProductName    string `json:"product_name"`
 }

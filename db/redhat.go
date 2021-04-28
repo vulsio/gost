@@ -1,15 +1,16 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/inconshreveable/log15"
-	"github.com/jinzhu/gorm"
 	"github.com/knqyf263/gost/models"
 	"github.com/knqyf263/gost/util"
 	pb "gopkg.in/cheggaaa/pb.v1"
+	"gorm.io/gorm"
 )
 
 func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.RedhatCVE, err error) {
@@ -20,7 +21,7 @@ func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.Redhat
 
 	// TODO: insufficient
 	for _, a := range all {
-		r.conn.Model(&a).Related(&a.Cvss3).Related(&a.Details).Related(&a.PackageState)
+		r.conn.Model(&a).Association("Cvss3").DB.Association("Details").DB.Association("PackageState")
 		allCves = append(allCves, a)
 	}
 	return allCves, nil
@@ -28,15 +29,15 @@ func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.Redhat
 
 func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	c := models.RedhatCVE{}
-	var errs gorm.Errors
+	var errs util.Errors
 	errs = errs.Add(r.conn.Where(&models.RedhatCVE{Name: cveID}).First(&c).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.Details).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.References).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.Bugzilla).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.Cvss).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.Cvss3).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.AffectedRelease).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.PackageState).Error)
+	errs = errs.Add(r.conn.Model(&c).Association("Details").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("References").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("Bugzilla").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("Cvss").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("Cvss3").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("AffectedRelease").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("PackageState").Error)
 	errs = util.DeleteRecordNotFound(errs)
 	if len(errs.GetErrors()) > 0 {
 		log15.Error("Failed to delete old records", "err", errs.Error())
@@ -145,11 +146,11 @@ func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cve models.RedhatCVE) (
 	// Delete old records if found
 	old := models.RedhatCVE{}
 	result := tx.Where(&models.RedhatCVE{Name: cve.Name}).First(&old)
-	if !result.RecordNotFound() {
+	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		cve.ID = old.ID
 
 		// Delete old records
-		var errs gorm.Errors
+		var errs util.Errors
 		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatDetail{}).Error)
 		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatReference{}).Error)
 		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatBugzilla{}).Error)

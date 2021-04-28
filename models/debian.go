@@ -20,7 +20,7 @@ type DebianReleaseJSON struct {
 
 type DebianCVE struct {
 	ID          int64
-	CveID       string
+	CveID       string `gorm:"index:idx_debian_cves_cveid"`
 	Scope       string
 	Description string `sql:"type:text"`
 	Package     []DebianPackage
@@ -28,16 +28,16 @@ type DebianCVE struct {
 
 type DebianPackage struct {
 	ID          int64
-	DebianCVEID int64 `sql:"type:bigint REFERENCES debian_cves(id)"`
-	PackageName string
+	DebianCVEID int64  `sql:"type:bigint REFERENCES debian_cves(id)" gorm:"index:idx_debian_pacakges_debian_cve_id"`
+	PackageName string `gorm:"index:idx_debian_pacakges_package_name"`
 	Release     []DebianRelease
 }
 
 type DebianRelease struct {
 	ID              int64
-	DebianPackageID int64 `sql:"type:bigint REFERENCES debian_packages(id)"`
-	ProductName     string
-	Status          string
+	DebianPackageID int64  `sql:"type:bigint REFERENCES debian_packages(id)" gorm:"index:idx_debian_releases_debian_package_id"`
+	ProductName     string `gorm:"index:idx_debian_releases_product_name"`
+	Status          string `gorm:"index:idx_debian_releases_status"`
 	FixedVersion    string
 	Urgency         string
 	Version         string

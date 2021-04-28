@@ -9,25 +9,25 @@ import (
 	"github.com/cheggaaa/pb/v3"
 	strip "github.com/grokify/html-strip-tags-go"
 	"github.com/inconshreveable/log15"
-	"github.com/jinzhu/gorm"
 	"github.com/knqyf263/gost/models"
 	"github.com/knqyf263/gost/util"
+	"gorm.io/gorm"
 )
 
 // GetMicrosoft :
 func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 	c := models.MicrosoftCVE{}
 
-	var errs gorm.Errors
+	var errs util.Errors
 	errs = errs.Add(r.conn.Where(&models.MicrosoftCVE{CveID: cveID}).First(&c).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.MicrosoftProductStatuses).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.Impact).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.Severity).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.VendorFix).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.NoneAvailable).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.WillNotFix).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.References).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.ScoreSets).Error)
+	errs = errs.Add(r.conn.Model(&c).Association("MicrosoftProductStatuses").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("Impact").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("Severity").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("VendorFix").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("NoneAvailable").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("WillNotFix").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("References").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("ScoreSets").Error)
 	errs = util.DeleteRecordNotFound(errs)
 	if len(errs.GetErrors()) > 0 {
 		log15.Error("Failed to delete old records", "err", errs.Error())
@@ -66,16 +66,16 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(conn *gorm.DB, cves []models.Micros
 	}()
 
 	// Delete all old records
-	var errs gorm.Errors
-	errs = errs.Add(tx.Delete(models.MicrosoftScoreSet{}).Error)
-	errs = errs.Add(tx.Delete(models.MicrosoftReference{}).Error)
-	errs = errs.Add(tx.Delete(models.MicrosoftKBID{}).Error)
-	errs = errs.Add(tx.Delete(models.MicrosoftRemediation{}).Error)
-	errs = errs.Add(tx.Delete(models.MicrosoftThreat{}).Error)
-	errs = errs.Add(tx.Delete(models.MicrosoftProductStatus{}).Error)
-	errs = errs.Add(tx.Delete(models.MicrosoftProduct{}).Error)
-	errs = errs.Add(tx.Delete(models.MicrosoftScoreSet{}).Error)
-	errs = errs.Add(tx.Delete(models.MicrosoftCVE{}).Error)
+	var errs util.Errors
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftScoreSet{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftReference{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftKBID{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftRemediation{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftThreat{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftProductStatus{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftProduct{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftScoreSet{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftCVE{}).Error)
 	errs = util.DeleteNil(errs)
 	if len(errs.GetErrors()) > 0 {
 		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
