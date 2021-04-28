@@ -41,14 +41,16 @@ func (r *RDBDriver) Name() string {
 
 // OpenDB opens Database
 func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
-	defaultGormConfig := gorm.Config{Logger: logger.New(
-		log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer
-		logger.Config{
-			SlowThreshold:             time.Second,   // Slow SQL threshold
-			LogLevel:                  logger.Silent, // Log level
-			IgnoreRecordNotFoundError: true,          // Ignore ErrRecordNotFound error for logger
-		},
-	)}
+	defaultGormConfig := gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+		Logger: logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer
+			logger.Config{
+				SlowThreshold:             time.Second,   // Slow SQL threshold
+				LogLevel:                  logger.Silent, // Log level
+				IgnoreRecordNotFoundError: true,          // Ignore ErrRecordNotFound error for logger
+			},
+		)}
 
 	switch r.name {
 	case dialectSqlite3:
