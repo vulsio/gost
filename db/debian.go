@@ -172,7 +172,7 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 			if pkg.PackageName != pkgName {
 				continue
 			}
-			err = r.conn.Model(&pkg).Association("Release").Error
+			err = r.conn.Model(&pkg).Association("Release").Find(&pkg.Release)
 			if err != nil && err != gorm.ErrRecordNotFound {
 				log15.Error("Failed to get DebianRelease", pkg.Release, err)
 				return m
