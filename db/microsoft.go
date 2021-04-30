@@ -20,14 +20,14 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 
 	var errs util.Errors
 	errs = errs.Add(r.conn.Where(&models.MicrosoftCVE{CveID: cveID}).First(&c).Error)
-	errs = errs.Add(r.conn.Model(&c).Association("MicrosoftProductStatuses").Error)
-	errs = errs.Add(r.conn.Model(&c).Association("Impact").Error)
-	errs = errs.Add(r.conn.Model(&c).Association("Severity").Error)
-	errs = errs.Add(r.conn.Model(&c).Association("VendorFix").Error)
-	errs = errs.Add(r.conn.Model(&c).Association("NoneAvailable").Error)
-	errs = errs.Add(r.conn.Model(&c).Association("WillNotFix").Error)
-	errs = errs.Add(r.conn.Model(&c).Association("References").Error)
-	errs = errs.Add(r.conn.Model(&c).Association("ScoreSets").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("MicrosoftProductStatuses").Find(&c.MicrosoftProductStatuses))
+	errs = errs.Add(r.conn.Model(&c).Association("Impact").Find(&c.Impact))
+	errs = errs.Add(r.conn.Model(&c).Association("Severity").Find(&c.Severity))
+	errs = errs.Add(r.conn.Model(&c).Association("VendorFix").Find(&c.VendorFix))
+	errs = errs.Add(r.conn.Model(&c).Association("NoneAvailable").Find(&c.NoneAvailable))
+	errs = errs.Add(r.conn.Model(&c).Association("WillNotFix").Find(&c.WillNotFix))
+	errs = errs.Add(r.conn.Model(&c).Association("References").Find(&c.References))
+	errs = errs.Add(r.conn.Model(&c).Association("ScoreSets").Find(&c.ScoreSets))
 	errs = util.DeleteRecordNotFound(errs)
 	if len(errs.GetErrors()) > 0 {
 		log15.Error("Failed to delete old records", "err", errs.Error())

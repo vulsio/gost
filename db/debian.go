@@ -17,7 +17,7 @@ func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 		log15.Error("Failed to get Debian", "err", err)
 		return nil
 	}
-	err = r.conn.Model(&c).Association("Package").Error
+	err = r.conn.Model(&c).Association("Package").Find(&c.Package)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		log15.Error("Failed to get Debian", "err", err)
 		return nil
@@ -25,7 +25,7 @@ func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 
 	var newPkg []models.DebianPackage
 	for _, pkg := range c.Package {
-		err = r.conn.Model(&pkg).Association("Release").Error
+		err = r.conn.Model(&pkg).Association("Release").Find(&pkg.Release)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			log15.Error("Failed to get Debian", "err", err)
 			return nil

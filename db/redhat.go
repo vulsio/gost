@@ -21,7 +21,15 @@ func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.Redhat
 
 	// TODO: insufficient
 	for _, a := range all {
-		r.conn.Model(&a).Association("Cvss3").DB.Association("Details").DB.Association("PackageState")
+		if err = r.conn.Model(&a).Association("Cvss3").Find(&a.Cvss3); err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+		if err = r.conn.Model(&a).Association("Details").Find(&a.Details); err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+		if err = r.conn.Model(&a).Association("PackageState").Find(&a.PackageState); err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
 		allCves = append(allCves, a)
 	}
 	return allCves, nil
@@ -31,13 +39,13 @@ func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	c := models.RedhatCVE{}
 	var errs util.Errors
 	errs = errs.Add(r.conn.Where(&models.RedhatCVE{Name: cveID}).First(&c).Error)
-	errs = errs.Add(r.conn.Model(&c).Association("Details").Error)
-	errs = errs.Add(r.conn.Model(&c).Association("References").Error)
-	errs = errs.Add(r.conn.Model(&c).Association("Bugzilla").Error)
-	errs = errs.Add(r.conn.Model(&c).Association("Cvss").Error)
-	errs = errs.Add(r.conn.Model(&c).Association("Cvss3").Error)
-	errs = errs.Add(r.conn.Model(&c).Association("AffectedRelease").Error)
-	errs = errs.Add(r.conn.Model(&c).Association("PackageState").Error)
+	errs = errs.Add(r.conn.Model(&c).Association("Details").Find(&c.Details))
+	errs = errs.Add(r.conn.Model(&c).Association("References").Find(&c.References))
+	errs = errs.Add(r.conn.Model(&c).Association("Bugzilla").Find(&c.Bugzilla))
+	errs = errs.Add(r.conn.Model(&c).Association("Cvss").Find(&c.Cvss))
+	errs = errs.Add(r.conn.Model(&c).Association("Cvss3").Find(&c.Cvss3))
+	errs = errs.Add(r.conn.Model(&c).Association("AffectedRelease").Find(&c.AffectedRelease))
+	errs = errs.Add(r.conn.Model(&c).Association("PackageState").Find(&c.PackageState))
 	errs = util.DeleteRecordNotFound(errs)
 	if len(errs.GetErrors()) > 0 {
 		log15.Error("Failed to delete old records", "err", errs.Error())
