@@ -63,20 +63,20 @@ type RedhatCVE struct {
 	ID int64 `json:",omitempty"`
 
 	// gorm can't handle embedded struct
-	ThreatSeverity       string
-	PublicDate           time.Time
+	ThreatSeverity       string    `gorm:"type:varchar(255)"`
+	PublicDate           time.Time `gorm:"type:time"`
 	Bugzilla             RedhatBugzilla
 	Cvss                 RedhatCvss
 	Cvss3                RedhatCvss3
-	Iava                 string
-	Cwe                  string
-	Statement            string `sql:"type:text"`
-	Acknowledgement      string `sql:"type:text"`
-	Mitigation           string `sql:"type:text"`
+	Iava                 string `gorm:"type:varchar(255)"`
+	Cwe                  string `gorm:"type:varchar(255)"`
+	Statement            string `gorm:"type:text"`
+	Acknowledgement      string `gorm:"type:text"`
+	Mitigation           string `gorm:"type:text"`
 	AffectedRelease      []RedhatAffectedRelease
 	PackageState         []RedhatPackageState
-	Name                 string `gorm:"index:idx_redhat_cves_name"`
-	DocumentDistribution string `sql:"type:text"`
+	Name                 string `gorm:"type:varchar(255);index:idx_redhat_cves_name"`
+	DocumentDistribution string `gorm:"type:text"`
 
 	Details    []RedhatDetail    `json:",omitempty"`
 	References []RedhatReference `json:",omitempty"`
@@ -105,50 +105,50 @@ func (r RedhatCVE) GetPackages(sep string) (result string) {
 }
 
 type RedhatDetail struct {
-	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty" gorm:"index:idx_redhat_details_redhat_cve_id"`
-	Detail      string `sql:"type:text"`
+	RedhatCVEID int64  `json:",omitempty" gorm:"index:idx_redhat_details_redhat_cve_id"`
+	Detail      string `gorm:"type:text"`
 }
 
 type RedhatReference struct {
-	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty" gorm:"index:idx_redhat_references_redhat_cve_id"`
-	Reference   string `sql:"type:text"`
+	RedhatCVEID int64  `json:",omitempty" gorm:"index:idx_redhat_references_redhat_cve_id"`
+	Reference   string `gorm:"type:text"`
 }
 
 type RedhatBugzilla struct {
-	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty" gorm:"index:idx_redhat_bugzillas_redhat_cve_id"`
-	Description string `json:"description" sql:"type:text"`
+	RedhatCVEID int64  `json:",omitempty" gorm:"index:idx_redhat_bugzillas_redhat_cve_id"`
+	Description string `json:"description" gorm:"type:text"`
 
-	BugzillaID string `json:"id"`
-	URL        string `json:"url"`
+	BugzillaID string `json:"id" gorm:"type:varchar(255)"`
+	URL        string `json:"url" gorm:"type:varchar(255)"`
 }
 
 type RedhatCvss struct {
-	RedhatCVEID       int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty" gorm:"index:idx_redhat_cvsses_redhat_cve_id"`
-	CvssBaseScore     string `json:"cvss_base_score"`
-	CvssScoringVector string `json:"cvss_scoring_vector"`
-	Status            string `json:"status"`
+	RedhatCVEID       int64  `json:",omitempty" gorm:"index:idx_redhat_cvsses_redhat_cve_id"`
+	CvssBaseScore     string `json:"cvss_base_score" gorm:"type:varchar(255)"`
+	CvssScoringVector string `json:"cvss_scoring_vector" gorm:"type:varchar(255)"`
+	Status            string `json:"status" gorm:"type:varchar(255)"`
 }
 
 type RedhatCvss3 struct {
-	RedhatCVEID        int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty" gorm:"index:idx_redhat_cvss3_redhat_cve_id"`
-	Cvss3BaseScore     string `json:"cvss3_base_score"`
-	Cvss3ScoringVector string `json:"cvss3_scoring_vector"`
-	Status             string `json:"status"`
+	RedhatCVEID        int64  `json:",omitempty" gorm:"index:idx_redhat_cvss3_redhat_cve_id"`
+	Cvss3BaseScore     string `json:"cvss3_base_score" gorm:"type:varchar(255)"`
+	Cvss3ScoringVector string `json:"cvss3_scoring_vector" gorm:"type:varchar(255)"`
+	Status             string `json:"status" gorm:"type:varchar(255)"`
 }
 
 type RedhatAffectedRelease struct {
-	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty" gorm:"index:idx_redhat_affected_releases_redhat_cve_id"`
-	ProductName string `json:"product_name"`
-	ReleaseDate string `json:"release_date"`
-	Advisory    string `json:"advisory"`
-	Package     string `json:"package"`
-	Cpe         string `json:"cpe"`
+	RedhatCVEID int64  `json:",omitempty" gorm:"index:idx_redhat_affected_releases_redhat_cve_id"`
+	ProductName string `json:"product_name" gorm:"type:varchar(255)"`
+	ReleaseDate string `json:"release_date" gorm:"type:varchar(255)"`
+	Advisory    string `json:"advisory" gorm:"type:varchar(255)"`
+	Package     string `json:"package" gorm:"type:varchar(255)"`
+	Cpe         string `json:"cpe" gorm:"type:varchar(255)"`
 }
 
 type RedhatPackageState struct {
-	RedhatCVEID int64  `sql:"type:bigint REFERENCES redhat_cves(id)" json:",omitempty" gorm:"index:idx_redhat_package_states_redhat_cve_id"`
-	ProductName string `json:"product_name"`
-	FixState    string `json:"fix_state" gorm:"index:idx_redhat_package_states_fix_state"`
-	PackageName string `json:"package_name" gorm:"index:idx_redhat_package_states_package_name"`
-	Cpe         string `json:"cpe" gorm:"index:idx_redhat_package_states_cpe"`
+	RedhatCVEID int64  `json:",omitempty" gorm:"index:idx_redhat_package_states_redhat_cve_id"`
+	ProductName string `json:"product_name" gorm:"type:varchar(255)"`
+	FixState    string `json:"fix_state" gorm:"type:varchar(255);index:idx_redhat_package_states_fix_state"`
+	PackageName string `json:"package_name" gorm:"type:varchar(255);index:idx_redhat_package_states_package_name"`
+	Cpe         string `json:"cpe" gorm:"type:varchar(255);index:idx_redhat_package_states_cpe"`
 }

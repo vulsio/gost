@@ -231,87 +231,87 @@ type MicrosoftBulletinSearch struct {
 // MicrosoftCVE :
 type MicrosoftCVE struct {
 	ID                       int64                    `json:",omitempty"`
-	Title                    string                   `json:"title"`
-	Description              string                   `json:"description"`
-	FAQ                      string                   `json:"faq"`
-	CveID                    string                   `json:"cve_id" gorm:"index:idx_microsoft_cves_cveid"`
-	CWE                      string                   `json:"cwe"`
+	Title                    string                   `json:"title" gorm:"type:varchar(255)"`
+	Description              string                   `json:"description" gorm:"type:varchar(255)"`
+	FAQ                      string                   `json:"faq" gorm:"type:varchar(255)"`
+	CveID                    string                   `json:"cve_id" gorm:"type:varchar(255);index:idx_microsoft_cves_cveid"`
+	CWE                      string                   `json:"cwe" gorm:"type:varchar(255)"`
 	MicrosoftProductStatuses []MicrosoftProductStatus `json:"microsoft_product_statuses"`
 	Impact                   []MicrosoftThreat        `json:"impact"`
 	Severity                 []MicrosoftThreat        `json:"severity"`
-	ExploitStatus            string                   `json:"exploit_status"`
-	Mitigation               string                   `json:"mitigation"`
-	Workaround               string                   `json:"workaround"`
+	ExploitStatus            string                   `json:"exploit_status" gorm:"type:varchar(255)"`
+	Mitigation               string                   `json:"mitigation" gorm:"type:varchar(255)"`
+	Workaround               string                   `json:"workaround" gorm:"type:varchar(255)"`
 	VendorFix                []MicrosoftRemediation   `json:"vendor_fix"`
 	NoneAvailable            []MicrosoftRemediation   `json:"none_available"`
 	WillNotFix               []MicrosoftRemediation   `json:"will_not_fix"`
 	KBIDs                    []MicrosoftKBID          `json:"kb_ids"`
 	References               []MicrosoftReference     `json:"references"`
 	ScoreSets                []MicrosoftScoreSet      `json:"score_sets"`
-	PublishDate              time.Time                `json:"publish_date"`
-	LastUpdateDate           time.Time                `json:"last_update_date"`
+	PublishDate              time.Time                `json:"publish_date" gorm:"type:time"`
+	LastUpdateDate           time.Time                `json:"last_update_date" gorm:"type:time"`
 }
 
 // MicrosoftReference :
 type MicrosoftReference struct {
-	MicrosoftCVEID int64 `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_reference_microsoft_cve_id"`
+	MicrosoftCVEID int64 `json:",omitempty" gorm:"index:idx_microsoft_reference_microsoft_cve_id"`
 	// External, Self
-	AttrType    string `json:"type"`
-	URL         string `json:"url"`
-	Description string `json:"description"`
+	AttrType    string `json:"type" gorm:"type:varchar(255)"`
+	URL         string `json:"url" gorm:"type:varchar(255)"`
+	Description string `json:"description" gorm:"type:varchar(255)"`
 }
 
 // MicrosoftKBID :
 type MicrosoftKBID struct {
-	MicrosoftCVEID int64  `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_kb_id_microsoft_cve_id"`
-	KBID           string `json:"kb_id"`
+	MicrosoftCVEID int64  `json:",omitempty" gorm:"index:idx_microsoft_kb_id_microsoft_cve_id"`
+	KBID           string `json:"kb_id" gorm:"type:varchar(255)"`
 }
 
 // MicrosoftProductStatus :
 type MicrosoftProductStatus struct {
-	MicrosoftCVEID int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_product_status_microsoft_cve_id"`
-	Products       []MicrosoftProduct `json:"products" gorm:"foreignKey:ProductID;references:MicrosoftCVEID"`
-	ProductStatus  string             `json:"product_status"`
+	MicrosoftCVEID int64              `json:",omitempty" gorm:"index:idx_microsoft_product_status_microsoft_cve_id"`
+	Products       []MicrosoftProduct `json:"products" gorm:"foreignKey:MicrosoftCVEID;references:MicrosoftCVEID"`
+	ProductStatus  string             `json:"product_status" gorm:"type:varchar(255)"`
 }
 
 // MicrosoftThreat :
 type MicrosoftThreat struct {
-	MicrosoftCVEID int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_threat_microsoft_cve_id"`
-	Description    string             `json:"description"`
-	Products       []MicrosoftProduct `json:"products" gorm:"foreignKey:ProductID;references:MicrosoftCVEID"`
+	MicrosoftCVEID int64              `json:",omitempty" gorm:"index:idx_microsoft_threat_microsoft_cve_id"`
+	Description    string             `json:"description" gorm:"type:varchar(255)"`
+	Products       []MicrosoftProduct `json:"products" gorm:"foreignKey:MicrosoftCVEID;references:MicrosoftCVEID"`
 }
 
 // MicrosoftRemediation :
 type MicrosoftRemediation struct {
-	MicrosoftCVEID  int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_remediation_microsoft_cve_id"`
-	Description     string             `json:"description"`
-	Products        []MicrosoftProduct `json:"products" gorm:"foreignKey:ProductID;references:MicrosoftCVEID"`
-	Entitlement     string             `json:"entitlement"`
-	RestartRequired string             `json:"restart_required"`
-	SubType         string             `json:"sub_type"`
-	Supercedence    string             `json:"supercedence"`
-	URL             string             `json:"url"`
+	MicrosoftCVEID  int64              `json:",omitempty" gorm:"index:idx_microsoft_remediation_microsoft_cve_id"`
+	Description     string             `json:"description" gorm:"type:varchar(255)"`
+	Products        []MicrosoftProduct `json:"products" gorm:"foreignKey:MicrosoftCVEID;references:MicrosoftCVEID"`
+	Entitlement     string             `json:"entitlement" gorm:"type:varchar(255)"`
+	RestartRequired string             `json:"restart_required" gorm:"type:varchar(255)"`
+	SubType         string             `json:"sub_type" gorm:"type:varchar(255)"`
+	Supercedence    string             `json:"supercedence" gorm:"type:varchar(255)"`
+	URL             string             `json:"url" gorm:"type:varchar(255)"`
 }
 
 // MicrosoftScoreSet :
 type MicrosoftScoreSet struct {
-	MicrosoftCVEID     int64              `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_score_set_microsoft_cve_id"`
+	MicrosoftCVEID     int64              `json:",omitempty" gorm:"index:idx_microsoft_score_set_microsoft_cve_id"`
 	BaseScore          float64            `json:"base_score"`
 	TemporalScore      float64            `json:"temporal_score"`
 	EnvironmentalScore float64            `json:"environmental_score"`
-	Vector             string             `json:"vector"`
-	Products           []MicrosoftProduct `json:"products" gorm:"foreignKey:ProductID;references:MicrosoftCVEID"`
+	Vector             string             `json:"vector" gorm:"type:varchar(255)"`
+	Products           []MicrosoftProduct `json:"products" gorm:"foreignKey:MicrosoftCVEID;references:MicrosoftCVEID"`
 }
 
 // MicrosoftCveID :
 type MicrosoftCveID struct {
-	MicrosoftCVEID int64  `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_cve_id_microsoft_cve_id"`
-	CveID          string `json:"cve_id"`
+	MicrosoftCVEID int64  `json:",omitempty" gorm:"index:idx_microsoft_cve_id_microsoft_cve_id"`
+	CveID          string `json:"cve_id" gorm:"type:varchar(255)"`
 }
 
 // MicrosoftProduct :
 type MicrosoftProduct struct {
-	MicrosoftCVEID int64  `sql:"type:bigint REFERENCES microsoft_cves(id)" json:",omitempty" gorm:"index:idx_microsoft_product_microsoft_cve_id"`
-	ProductID      string `json:"product_id"`
-	ProductName    string `json:"product_name"`
+	MicrosoftCVEID int64  `json:",omitempty" gorm:"index:idx_microsoft_product_microsoft_cve_id"`
+	ProductID      string `json:"product_id" gorm:"type:varchar(255)"`
+	ProductName    string `json:"product_name" gorm:"type:varchar(255)"`
 }
