@@ -68,7 +68,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 
 	// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format
 	err := r.conn.
-		Not("fix_state", []string{"Not affected", "New"}).
+		Not(map[string]interface{}{"fix_state": []string{"Not affected", "New"}}).
 		Where(&models.RedhatPackageState{
 			Cpe:         cpe,
 			PackageName: pkgName,
