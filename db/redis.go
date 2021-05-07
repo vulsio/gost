@@ -100,6 +100,11 @@ func (r *RedisDriver) MigrateDB() error {
 	return nil
 }
 
+// IsGostModelV1 determines if the DB was created at the time of Gost Model v1
+func (r *RedisDriver) IsGostModelV1() (bool, error) {
+	return false, nil
+}
+
 // GetFetchMeta get FetchMeta from Database
 func (r *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
 	return &models.FetchMeta{GostRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion}, nil

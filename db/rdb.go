@@ -134,6 +134,31 @@ func (r *RDBDriver) MigrateDB() error {
 	return nil
 }
 
+// IsGostModelV1 determines if the DB was created at the time of Gost Model v1
+func (r *RDBDriver) IsGostModelV1() (bool, error) {
+	if r.conn.Migrator().HasTable(&models.FetchMeta{}) {
+		return false, nil
+	}
+
+	var (
+		count int64
+		err   error
+	)
+	switch r.name {
+	case dialectSqlite3:
+		err = r.conn.Table("sqlite_master").Where("type = ?", "table").Count(&count).Error
+	case dialectMysql:
+		err = r.conn.Table("information_schema.tables").Where("table_schema = ?", r.conn.Migrator().CurrentDatabase()).Count(&count).Error
+	case dialectPostgreSQL:
+		err = r.conn.Table("pg_tables").Where("schemaname = ?", "public").Count(&count).Error
+	}
+
+	if count > 0 {
+		return true, err
+	}
+	return false, err
+}
+
 // GetFetchMeta get FetchMeta from Database
 func (r *RDBDriver) GetFetchMeta() (fetchMeta *models.FetchMeta, err error) {
 	if err = r.conn.Take(&fetchMeta).Error; err != nil {
