@@ -9,6 +9,7 @@ import (
 	"github.com/cheggaaa/pb/v3"
 	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
+	"github.com/knqyf263/gost/config"
 	"github.com/knqyf263/gost/models"
 	"github.com/labstack/gommon/log"
 	"golang.org/x/xerrors"
@@ -96,6 +97,16 @@ func (r *RedisDriver) CloseDB() (err error) {
 
 // MigrateDB migrates Database
 func (r *RedisDriver) MigrateDB() error {
+	return nil
+}
+
+// GetFetchMeta get FetchMeta from Database
+func (r *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
+	return &models.FetchMeta{GostRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
+}
+
+// UpsertFetchMeta upsert FetchMeta to Database
+func (r *RedisDriver) UpsertFetchMeta(*models.FetchMeta) error {
 	return nil
 }
 

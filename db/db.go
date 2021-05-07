@@ -15,6 +15,9 @@ type DB interface {
 	CloseDB() error
 	MigrateDB() error
 
+	GetFetchMeta() (*models.FetchMeta, error)
+	UpsertFetchMeta(*models.FetchMeta) error
+
 	GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error)
 	GetRedhat(string) *models.RedhatCVE
 	GetRedhatMulti([]string) map[string]models.RedhatCVE

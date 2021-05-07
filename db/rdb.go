@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/knqyf263/gost/config"
 	"github.com/knqyf263/gost/models"
 	sqlite3 "github.com/mattn/go-sqlite3"
 	"golang.org/x/xerrors"
@@ -101,8 +102,9 @@ func (r *RDBDriver) CloseDB() (err error) {
 
 // MigrateDB migrates Database
 func (r *RDBDriver) MigrateDB() error {
-	//TODO Add FetchMeta
 	if err := r.conn.AutoMigrate(
+		&models.FetchMeta{},
+
 		&models.RedhatCVE{},
 		&models.RedhatDetail{},
 		&models.RedhatReference{},
@@ -130,4 +132,19 @@ func (r *RDBDriver) MigrateDB() error {
 	}
 
 	return nil
+}
+
+// GetFetchMeta get FetchMeta from Database
+func (r *RDBDriver) GetFetchMeta() (fetchMeta *models.FetchMeta, err error) {
+	if err = r.conn.Take(&fetchMeta).Error; err != nil {
+		return
+	}
+	return
+}
+
+// UpsertFetchMeta upsert FetchMeta to Database
+func (r *RDBDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
+	fetchMeta.GostRevision = config.Revision
+	fetchMeta.SchemaVersion = models.LatestSchemaVersion
+	return r.conn.Save(fetchMeta).Error
 }
