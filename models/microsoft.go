@@ -232,16 +232,16 @@ type MicrosoftBulletinSearch struct {
 type MicrosoftCVE struct {
 	ID                       int64                    `json:",omitempty"`
 	Title                    string                   `json:"title" gorm:"type:varchar(255)"`
-	Description              string                   `json:"description" gorm:"type:varchar(255)"`
-	FAQ                      string                   `json:"faq" gorm:"type:varchar(255)"`
+	Description              string                   `json:"description" gorm:"type:text"`
+	FAQ                      string                   `json:"faq" gorm:"type:text"`
 	CveID                    string                   `json:"cve_id" gorm:"type:varchar(255);index:idx_microsoft_cves_cveid"`
 	CWE                      string                   `json:"cwe" gorm:"type:varchar(255)"`
 	MicrosoftProductStatuses []MicrosoftProductStatus `json:"microsoft_product_statuses"`
 	Impact                   []MicrosoftThreat        `json:"impact"`
 	Severity                 []MicrosoftThreat        `json:"severity"`
 	ExploitStatus            string                   `json:"exploit_status" gorm:"type:varchar(255)"`
-	Mitigation               string                   `json:"mitigation" gorm:"type:varchar(255)"`
-	Workaround               string                   `json:"workaround" gorm:"type:varchar(255)"`
+	Mitigation               string                   `json:"mitigation" gorm:"type:text"`
+	Workaround               string                   `json:"workaround" gorm:"type:text"`
 	VendorFix                []MicrosoftRemediation   `json:"vendor_fix"`
 	NoneAvailable            []MicrosoftRemediation   `json:"none_available"`
 	WillNotFix               []MicrosoftRemediation   `json:"will_not_fix"`
@@ -259,7 +259,7 @@ type MicrosoftReference struct {
 	// External, Self
 	AttrType    string `json:"type" gorm:"type:varchar(255)"`
 	URL         string `json:"url" gorm:"type:varchar(255)"`
-	Description string `json:"description" gorm:"type:varchar(255)"`
+	Description string `json:"description" gorm:"type:text"`
 }
 
 // MicrosoftKBID :
@@ -281,7 +281,7 @@ type MicrosoftProductStatus struct {
 type MicrosoftThreat struct {
 	ID             int64              `json:"-"`
 	MicrosoftCVEID int64              `json:",omitempty" gorm:"index:idx_microsoft_threat_microsoft_cve_id"`
-	Description    string             `json:"description" gorm:"type:varchar(255)"`
+	Description    string             `json:"description" gorm:"type:text"`
 	Products       []MicrosoftProduct `json:"products" gorm:"foreignKey:MicrosoftCVEID;references:MicrosoftCVEID"`
 }
 
@@ -289,12 +289,12 @@ type MicrosoftThreat struct {
 type MicrosoftRemediation struct {
 	ID              int64              `json:"-"`
 	MicrosoftCVEID  int64              `json:",omitempty" gorm:"index:idx_microsoft_remediation_microsoft_cve_id"`
-	Description     string             `json:"description" gorm:"type:varchar(255)"`
+	Description     string             `json:"description" gorm:"type:text"`
 	Products        []MicrosoftProduct `json:"products" gorm:"foreignKey:MicrosoftCVEID;references:MicrosoftCVEID"`
 	Entitlement     string             `json:"entitlement" gorm:"type:varchar(255)"`
 	RestartRequired string             `json:"restart_required" gorm:"type:varchar(255)"`
 	SubType         string             `json:"sub_type" gorm:"type:varchar(255)"`
-	Supercedence    string             `json:"supercedence" gorm:"type:varchar(255)"`
+	Supercedence    string             `json:"supercedence" gorm:"type:text"`
 	URL             string             `json:"url" gorm:"type:varchar(255)"`
 }
 
