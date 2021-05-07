@@ -127,9 +127,8 @@ func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
 		return err
 	}
 
-	bar := pb.StartNew(len(cves))
-
 	log15.Info(fmt.Sprintf("Insert %d CVEs", len(cves)))
+	bar := pb.StartNew(len(cves))
 	for _, cve := range cves {
 		if err := r.deleteAndInsertRedhat(r.conn, cve); err != nil {
 			return fmt.Errorf("Failed to insert. cve: %s, err: %s",
