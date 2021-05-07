@@ -17,8 +17,8 @@ SRCS = $(shell git ls-files '*.go')
 PKGS = $(shell go list ./...)
 VERSION := $(shell git describe --tags --abbrev=0)
 REVISION := $(shell git rev-parse --short HEAD)
-LDFLAGS := -X 'main.version=$(VERSION)' \
-	-X 'main.revision=$(REVISION)'
+LDFLAGS := -X 'github.com/knqyf263/gost/config.Version=$(VERSION)' \
+	-X 'github.com/knqyf263/gost/config.Revision=$(REVISION)'
 GO := GO111MODULE=on go
 GO_OFF := GO111MODULE=off go
 
@@ -31,7 +31,7 @@ install: main.go pretest
 	$(GO) install -ldflags "$(LDFLAGS)"
 
 b: 	main.go pretest
-	$(GO) build -ldflags "$(LDFLAGS)" -o vuls $<
+	$(GO) build -ldflags "$(LDFLAGS)" -o gost $<
 
 lint:
 	$(GO_OFF) get -u golang.org/x/lint/golint
