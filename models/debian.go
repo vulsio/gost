@@ -29,7 +29,7 @@ type DebianCVE struct {
 type DebianPackage struct {
 	ID          int64
 	DebianCVEID int64  `gorm:"index:idx_debian_packages_debian_cve_id"`
-	PackageName string `gorm:"type:varchar(255);index:idx_debian_pacakges_package_name"`
+	PackageName string `gorm:"type:varchar(255);index:idx_debian_packages_package_name"`
 	Release     []DebianRelease
 }
 
