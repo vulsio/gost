@@ -19,7 +19,7 @@ type DebianReleaseJSON struct {
 }
 
 type DebianCVE struct {
-	ID          int64
+	ID          int64  `json:"-"`
 	CveID       string `gorm:"index:idx_debian_cves_cveid;type:varchar(255);"`
 	Scope       string `gorm:"type:varchar(255)"`
 	Description string `gorm:"type:text"`
@@ -27,15 +27,15 @@ type DebianCVE struct {
 }
 
 type DebianPackage struct {
-	ID          int64
-	DebianCVEID int64  `gorm:"index:idx_debian_packages_debian_cve_id"`
+	ID          int64  `json:"-"`
+	DebianCVEID int64  `json:"-" gorm:"index:idx_debian_packages_debian_cve_id"`
 	PackageName string `gorm:"type:varchar(255);index:idx_debian_packages_package_name"`
 	Release     []DebianRelease
 }
 
 type DebianRelease struct {
-	ID              int64
-	DebianPackageID int64  `gorm:"index:idx_debian_releases_debian_package_id"`
+	ID              int64  `json:"-"`
+	DebianPackageID int64  `json:"-" gorm:"index:idx_debian_releases_debian_package_id"`
 	ProductName     string `gorm:"type:varchar(255);index:idx_debian_releases_product_name"`
 	Status          string `gorm:"type:varchar(255);index:idx_debian_releases_status"`
 	FixedVersion    string `gorm:"type:varchar(255);"`
