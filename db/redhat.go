@@ -13,6 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// GetAfterTimeRedhat :
 func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.RedhatCVE, err error) {
 	all := []models.RedhatCVE{}
 	if err = r.conn.Where("public_date >= ?", after.Format("2006-01-02")).Find(&all).Error; err != nil {
@@ -35,6 +36,7 @@ func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.Redhat
 	return allCves, nil
 }
 
+// GetRedhat :
 func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	c := models.RedhatCVE{}
 	var errs util.Errors
@@ -53,6 +55,7 @@ func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	return &c
 }
 
+// GetRedhatMulti :
 func (r *RDBDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE {
 	m := map[string]models.RedhatCVE{}
 	for _, cveID := range cveIDs {
@@ -61,6 +64,7 @@ func (r *RDBDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE 
 	return m
 }
 
+// GetUnfixedCvesRedhat gets the unfixed CVEs.
 func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix bool) map[string]models.RedhatCVE {
 	m := map[string]models.RedhatCVE{}
 	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
@@ -121,6 +125,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 	return m
 }
 
+// InsertRedhat :
 func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
 	cves, err := ConvertRedhat(cveJSONs)
 	if err != nil {
@@ -177,7 +182,7 @@ func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cve models.RedhatCVE) (
 		errs = new
 
 		if len(errs.GetErrors()) > 0 {
-			return fmt.Errorf("Failed to delete old records. cve: %s, err: %s",
+			return fmt.Errorf("Failed to delete old records cve: %s, err: %s",
 				cve.Name, errs.Error())
 		}
 	}
@@ -187,6 +192,7 @@ func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cve models.RedhatCVE) (
 	return nil
 }
 
+// ConvertRedhat :
 func ConvertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE, err error) {
 	for _, cve := range cveJSONs {
 		var details []models.RedhatDetail
@@ -241,6 +247,7 @@ func ConvertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE, er
 	return cves, nil
 }
 
+// ClearIDRedhat :
 func ClearIDRedhat(cve *models.RedhatCVE) {
 	cve.ID = 0
 	cve.Bugzilla.RedhatCVEID = 0

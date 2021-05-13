@@ -189,6 +189,7 @@ func Major(osVer string) (majorVersion string) {
 
 var cacheDir string
 
+// DefaultCacheDir set default cache dir
 func DefaultCacheDir() string {
 	tmpDir, err := os.UserCacheDir()
 	if err != nil {
@@ -197,14 +198,17 @@ func DefaultCacheDir() string {
 	return filepath.Join(tmpDir, "trivy")
 }
 
+// CacheDir return cache dir path string
 func CacheDir() string {
 	return cacheDir
 }
 
+// SetCacheDir set cache dir path
 func SetCacheDir(dir string) {
 	cacheDir = dir
 }
 
+// FileWalk walks the file tree rooted at root
 func FileWalk(root string, targetFiles map[string]struct{}, walkFn func(r io.Reader, path string) error) error {
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
@@ -242,6 +246,7 @@ func FileWalk(root string, targetFiles map[string]struct{}, walkFn func(r io.Rea
 	return nil
 }
 
+// IsCommandAvailable check if command is available.
 func IsCommandAvailable(name string) bool {
 	cmd := exec.Command(name, "--help")
 	if err := cmd.Run(); err != nil {
@@ -250,6 +255,7 @@ func IsCommandAvailable(name string) bool {
 	return true
 }
 
+// Exists check if path exists
 func Exists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -261,6 +267,7 @@ func Exists(path string) (bool, error) {
 	return true, err
 }
 
+// StringInSlice search within Slice by String
 func StringInSlice(a string, list []string) bool {
 	for _, b := range list {
 		if b == a {
@@ -270,6 +277,7 @@ func StringInSlice(a string, list []string) bool {
 	return false
 }
 
+// Exec run the command
 func Exec(command string, args []string) (string, error) {
 	cmd := exec.Command(command, args...)
 	var stdoutBuf, stderrBuf bytes.Buffer
@@ -282,6 +290,7 @@ func Exec(command string, args []string) (string, error) {
 	return stdoutBuf.String(), nil
 }
 
+// FilterTargets filter targets
 func FilterTargets(prefixPath string, targets map[string]struct{}) (map[string]struct{}, error) {
 	filtered := map[string]struct{}{}
 	for filename := range targets {
@@ -300,13 +309,16 @@ func FilterTargets(prefixPath string, targets map[string]struct{}) (map[string]s
 }
 
 var (
+	// Quiet manages the display of NewSpinner, ProgressBar
 	Quiet = false
 )
 
+// Spinner has Spinner client
 type Spinner struct {
 	client *spinner.Spinner
 }
 
+// NewSpinner creates a Spinner
 func NewSpinner(suffix string) *Spinner {
 	if Quiet {
 		return &Spinner{}
@@ -316,12 +328,15 @@ func NewSpinner(suffix string) *Spinner {
 	return &Spinner{client: s}
 }
 
+// Start will start Spinner
 func (s *Spinner) Start() {
 	if s.client == nil {
 		return
 	}
 	s.client.Start()
 }
+
+// Stop will stop the Spinner
 func (s *Spinner) Stop() {
 	if s.client == nil {
 		return
@@ -329,10 +344,12 @@ func (s *Spinner) Stop() {
 	s.client.Stop()
 }
 
+// ProgressBar has ProgressBar client
 type ProgressBar struct {
 	client *pb.ProgressBar
 }
 
+// PbStartNew creates a ProgressBar
 func PbStartNew(total int) *ProgressBar {
 	if Quiet {
 		return &ProgressBar{}
@@ -341,12 +358,15 @@ func PbStartNew(total int) *ProgressBar {
 	return &ProgressBar{client: bar}
 }
 
+// Increment increments the ProgressBar
 func (p *ProgressBar) Increment() {
 	if p.client == nil {
 		return
 	}
 	p.client.Increment()
 }
+
+// Finish to exit the ProgressBar
 func (p *ProgressBar) Finish() {
 	if p.client == nil {
 		return
@@ -354,6 +374,7 @@ func (p *ProgressBar) Finish() {
 	p.client.Finish()
 }
 
+// Errors has a set of errors that occurred in GORM
 type Errors []error
 
 // Add adds an error to a given slice of errors

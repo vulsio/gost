@@ -20,6 +20,7 @@ type message struct {
 	Channel   string `json:"channel"`
 }
 
+// SendSlack sends a message to Slack
 func SendSlack(txt string, conf config.SlackConf) error {
 	msg := message{
 		Text:      "```" + txt + "```",

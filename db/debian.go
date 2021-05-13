@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// GetDebian :
 func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 	c := models.DebianCVE{}
 	err := r.conn.Where(&models.DebianCVE{CveID: cveID}).First(&c).Error
@@ -36,6 +37,7 @@ func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 	return &c
 }
 
+// InsertDebian :
 func (r *RDBDriver) InsertDebian(cveJSON models.DebianJSON) (err error) {
 	cves := ConvertDebian(cveJSON)
 	if err = r.deleteAndInsertDebian(r.conn, cves); err != nil {
@@ -76,6 +78,7 @@ func (r *RDBDriver) deleteAndInsertDebian(conn *gorm.DB, cves []models.DebianCVE
 	return nil
 }
 
+// ConvertDebian :
 func ConvertDebian(cveJSONs models.DebianJSON) (cves []models.DebianCVE) {
 	uniqCve := map[string]models.DebianCVE{}
 	for pkgName, cveMap := range cveJSONs {

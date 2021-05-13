@@ -5,8 +5,7 @@ import (
 	"time"
 )
 
-//TODO addFetchMeta
-
+// RedhatEntry :
 type RedhatEntry struct {
 	CveID             string        `json:"CVE"`
 	Severity          string        `json:"severity"`
@@ -21,6 +20,7 @@ type RedhatEntry struct {
 	Cvss3Score        float64       `json:"cvss3_score"`
 }
 
+// RedhatCVEJSON :
 type RedhatCVEJSON struct {
 	ThreatSeverity       string         `json:"threat_severity"`
 	PublicDate           string         `json:"public_date"`
@@ -43,22 +43,27 @@ type RedhatCVEJSON struct {
 	References []string `json:"references" gorm:"-"`
 }
 
+// RedhatCVEJSONAffectedReleaseArray :
 type RedhatCVEJSONAffectedReleaseArray struct {
 	AffectedRelease []RedhatAffectedRelease `json:"affected_release"`
 }
 
+// RedhatCVEJSONAffectedReleaseObject :
 type RedhatCVEJSONAffectedReleaseObject struct {
 	AffectedRelease RedhatAffectedRelease `json:"affected_release"`
 }
 
+// RedhatCVEJSONPackageStateArray :
 type RedhatCVEJSONPackageStateArray struct {
 	PackageState []RedhatPackageState `json:"package_state"`
 }
 
+// RedhatCVEJSONPackageStateObject :
 type RedhatCVEJSONPackageStateObject struct {
 	PackageState RedhatPackageState `json:"package_state"`
 }
 
+// RedhatCVE :
 type RedhatCVE struct {
 	ID int64 `json:"-"`
 
@@ -82,6 +87,7 @@ type RedhatCVE struct {
 	References []RedhatReference `json:",omitempty"`
 }
 
+// GetDetail returns details
 func (r RedhatCVE) GetDetail(sep string) string {
 	var details []string
 	for _, d := range r.Details {
@@ -90,6 +96,7 @@ func (r RedhatCVE) GetDetail(sep string) string {
 	return strings.Join(details, sep)
 }
 
+// GetPackages returns package names
 func (r RedhatCVE) GetPackages(sep string) (result string) {
 	pkgs := map[string]struct{}{}
 	for _, d := range r.PackageState {
@@ -104,18 +111,21 @@ func (r RedhatCVE) GetPackages(sep string) (result string) {
 	return strings.Join(pkgNames, sep)
 }
 
+// RedhatDetail :
 type RedhatDetail struct {
 	ID          int64  `json:"-"`
 	RedhatCVEID int64  `json:"-" gorm:"index:idx_redhat_details_redhat_cve_id"`
 	Detail      string `gorm:"type:text"`
 }
 
+// RedhatReference :
 type RedhatReference struct {
 	ID          int64  `json:"-"`
 	RedhatCVEID int64  `json:"-" gorm:"index:idx_redhat_references_redhat_cve_id"`
 	Reference   string `gorm:"type:text"`
 }
 
+// RedhatBugzilla :
 type RedhatBugzilla struct {
 	ID          int64  `json:"-"`
 	RedhatCVEID int64  `json:"-" gorm:"index:idx_redhat_bugzillas_redhat_cve_id"`
@@ -125,6 +135,7 @@ type RedhatBugzilla struct {
 	URL        string `json:"url" gorm:"type:varchar(255)"`
 }
 
+// RedhatCvss :
 type RedhatCvss struct {
 	ID                int64  `json:"-"`
 	RedhatCVEID       int64  `json:"-" gorm:"index:idx_redhat_cvsses_redhat_cve_id"`
@@ -133,6 +144,7 @@ type RedhatCvss struct {
 	Status            string `json:"status" gorm:"type:varchar(255)"`
 }
 
+// RedhatCvss3 :
 type RedhatCvss3 struct {
 	ID                 int64  `json:"-"`
 	RedhatCVEID        int64  `json:"-" gorm:"index:idx_redhat_cvss3_redhat_cve_id"`
@@ -141,6 +153,7 @@ type RedhatCvss3 struct {
 	Status             string `json:"status" gorm:"type:varchar(255)"`
 }
 
+// RedhatAffectedRelease :
 type RedhatAffectedRelease struct {
 	ID          int64  `json:"-"`
 	RedhatCVEID int64  `json:"-" gorm:"index:idx_redhat_affected_releases_redhat_cve_id"`
@@ -151,6 +164,7 @@ type RedhatAffectedRelease struct {
 	Cpe         string `json:"cpe" gorm:"type:varchar(255)"`
 }
 
+// RedhatPackageState :
 type RedhatPackageState struct {
 	ID          int64  `json:"-"`
 	RedhatCVEID int64  `json:"-" gorm:"index:idx_redhat_package_states_redhat_cve_id"`

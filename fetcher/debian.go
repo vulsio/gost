@@ -8,7 +8,7 @@ import (
 	"github.com/knqyf263/gost/util"
 )
 
-// https://security-tracker.debian.org/tracker/data/json
+// RetrieveDebianCveDetails returns CVE details from https://security-tracker.debian.org/tracker/data/json
 func RetrieveDebianCveDetails() (cves models.DebianJSON, err error) {
 	url := "https://security-tracker.debian.org/tracker/data/json"
 	cveJSON, err := util.FetchURL(url, "")
