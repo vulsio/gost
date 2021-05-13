@@ -5,14 +5,18 @@ import requests
 import pprint
 from concurrent.futures import ThreadPoolExecutor
 import logging
+import coloredlogs
 
 
 def diff_response(args: Tuple[str, str]):
     try:
         response_old = requests.get(
-            'http://127.0.0.1:1325/'+args[0]+'/cves/'+args[1]).json()
+            'http://127.0.0.1:1325/'+args[0]+'/cves/'+args[1], timeout=2).json()
         response_new = requests.get(
-            'http://127.0.0.1:1326/'+args[0]+'/cves/'+args[1]).json()
+            'http://127.0.0.1:1326/'+args[0]+'/cves/'+args[1], timeout=2).json()
+    except requests.ConnectionError as e:
+        logging.error(f'Failed to Connection..., err: {e}')
+        raise
     except Exception as e:
         logging.error(f'Failed to GET request..., err: {e}')
         raise
@@ -28,14 +32,19 @@ parser.add_argument('ostype', choices=['debian', 'redhat', 'microsoft'],
                     help='Specify the OS to be started in server mode when testing.')
 parser.add_argument('--cveid_list_path',
                     help='A file path containing a line by line list of CVE-IDs to be diffed in server mode results')
-parser.add_argument('--debug', action=argparse.BooleanOptionalAction, help='print debug message')
+parser.add_argument(
+    '--debug', action=argparse.BooleanOptionalAction, help='print debug message')
 args = parser.parse_args()
 
+logger = logging.getLogger()
+coloredlogs.install(logger=logger)
 log_level = logging.INFO
 if args.debug:
     log_level = logging.DEBUG
+    coloredlogs.install(level='DEBUG')
+
 logging.basicConfig(encoding='utf-8', level=log_level)
-logging.info(f'Start {args.ostype} Diff server mode results')
+logging.info(f'start {args.ostype} diff server mode results')
 
 cveid_path = None
 if args.cveid_list_path != None:

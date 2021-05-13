@@ -69,7 +69,7 @@ clean:
 	$(foreach pkg,$(PKGS),go clean $(pkg) || exit;)
 
 BRANCH := $(shell git symbolic-ref --short HEAD)
-integration-build:
+build-integration:
 	@ git stash save
 	$(GO) build -ldflags "$(LDFLAGS)" -o integration/gost.new
 	git checkout $(shell git describe --tags --abbrev=0)
@@ -78,19 +78,38 @@ integration-build:
 	git checkout $(BRANCH)
 	@ git stash apply stash@{0} && git stash drop stash@{0}
 
-fetch-all: integration-build
-	rm integration/gost.old.sqlite3
+clean-integration:
+	pkill gost.old
+	pkill gost.new
+	rm -f integration/gost.old integration/gost.new integration/gost.old.sqlite3 integration/gost.new.sqlite3
+	docker kill redis-old redis-new
+	docker rm redis-old redis-new
+
+fetch-rdb:
 	integration/gost.old fetch debian --dbpath=integration/gost.old.sqlite3
 	# integration/gost.old fetch redhat --dbpath=integration/gost.old.sqlite3
 	# integration/gost.old fetch microsoft --dbpath=integration/gost.old.sqlite3 --apikey=<APIKEY>
 	
-	rm integration/gost.new.sqlite3
 	integration/gost.new fetch debian --dbpath=integration/gost.new.sqlite3
 	# integration/gost.new fetch redhat --dbpath=integration/gost.new.sqlite3
 	# integration/gost.old fetch microsoft --dbpath=integration/gost.new.sqlite3 --apikey=<APIKEY>
 
+fetch-redis:
+	docker run --name redis-old -d -p 127.0.0.1:6379:6379 redis
+	docker run --name redis-new -d -p 127.0.0.1:6380:6379 redis
 
-diff-server-all:
+	integration/gost.old fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
+	# integration/gost.old fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
+	# integration/gost.old fetch microsoft --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --apikey=<APIKEY>
+
+	integration/gost.new fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
+	# integration/gost.new fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
+	# integration/gost.old fetch microsoft --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --apikey=<APIKEY>
+
+	docker stop redis-old
+	docker stop redis-new
+
+diff-server-rdb:
 	integration/gost.old server --dbpath=integration/gost.old.sqlite3 --port 1325 > /dev/null & 
 	integration/gost.new server --dbpath=integration/gost.new.sqlite3 --port 1326 > /dev/null &
 	@ python integration/diff_server_mode.py debian
@@ -98,3 +117,30 @@ diff-server-all:
 	# @ python integration/diff_server_mode.py microsoft
 	pkill gost.old 
 	pkill gost.new
+
+diff-server-redis:
+	docker start redis-old
+	docker start redis-new
+
+	integration/gost.old server --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --port 1325 > /dev/null & 
+	integration/gost.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null &
+	@ python integration/diff_server_mode.py debian
+	# @ python integration/diff_server_mode.py redhat
+	# @ python integration/diff_server_mode.py microsoft
+	pkill gost.old 
+	pkill gost.new
+
+	docker stop redis-old
+	docker stop redis-new
+
+diff-server-rdb-redis:
+	docker start redis-new
+
+	integration/gost.new server --dbpath=integration/gost.new.sqlite3 --port 1325 > /dev/null &
+	integration/gost.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null &
+	@ python integration/diff_server_mode.py debian
+	# @ python integration/diff_server_mode.py redhat
+	# @ python integration/diff_server_mode.py microsoft
+	pkill gost.new
+
+	docker stop redis-new
