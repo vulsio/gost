@@ -68,3 +68,8 @@ cov:
 clean:
 	$(foreach pkg,$(PKGS),go clean $(pkg) || exit;)
 
+diff-server-all:
+	@ python integration/diff_server_mode.py debian
+	@ python integration/diff_server_mode.py redhat
+	@ python integration/diff_server_mode.py microsoft
+
