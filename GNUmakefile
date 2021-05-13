@@ -68,28 +68,33 @@ cov:
 clean:
 	$(foreach pkg,$(PKGS),go clean $(pkg) || exit;)
 
+BRANCH := $(shell git symbolic-ref --short HEAD)
 integration-build:
-	BRANCH=$(shell git symbolic-ref --short HEAD)
-	@ git stash
-	@ $(GO) build -ldflags "$(LDFLAGS)" -o integration/gost.new
+	@ git stash save
+	$(GO) build -ldflags "$(LDFLAGS)" -o integration/gost.new
 	git checkout $(shell git describe --tags --abbrev=0)
-	@ $(GO) build -ldflags "$(LDFLAGS)" -o integration/gost.old
+	@git reset --hard
+	$(GO) build -ldflags "$(LDFLAGS)" -o integration/gost.old
 	git checkout $(BRANCH)
 	@ git stash apply stash@{0} && git stash drop stash@{0}
 
-
-fetch-all:
+fetch-all: integration-build
+	rm integration/gost.old.sqlite3
 	integration/gost.old fetch debian --dbpath=integration/gost.old.sqlite3
-	integration/gost.old fetch redhat --dbpath=integration/gost.old.sqlite3
+	# integration/gost.old fetch redhat --dbpath=integration/gost.old.sqlite3
 	# integration/gost.old fetch microsoft --dbpath=integration/gost.old.sqlite3 --apikey=<APIKEY>
+	
+	rm integration/gost.new.sqlite3
 	integration/gost.new fetch debian --dbpath=integration/gost.new.sqlite3
-	integration/gost.new fetch redhat --dbpath=integration/gost.new.sqlite3
+	# integration/gost.new fetch redhat --dbpath=integration/gost.new.sqlite3
 	# integration/gost.old fetch microsoft --dbpath=integration/gost.new.sqlite3 --apikey=<APIKEY>
 
-diff-server-all: integration-build fetch-all
-	# integration/gost.old servre --dbpath=integration/gost.old.sqlite3 --port 1325 &
-	# integration/gost.new server --dbpath=integration/gost.new.sqlite3 --port 1326 &
-	# @ python integration/diff_server_mode.py debian
+
+diff-server-all:
+	integration/gost.old server --dbpath=integration/gost.old.sqlite3 --port 1325 > /dev/null & 
+	integration/gost.new server --dbpath=integration/gost.new.sqlite3 --port 1326 > /dev/null &
+	@ python integration/diff_server_mode.py debian
 	# @ python integration/diff_server_mode.py redhat
 	# @ python integration/diff_server_mode.py microsoft
-
+	pkill gost.old 
+	pkill gost.new

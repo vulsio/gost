@@ -17,7 +17,7 @@ def diff_response(args: Tuple[str, str]):
         logging.error(f'Failed to GET request..., err: {e}')
         raise
 
-    diff = DeepDiff(response_new, response_old, ignore_order=True)
+    diff = DeepDiff(response_old, response_new, ignore_order=True)
     if diff != {}:
         logging.warning(
             f'There is a difference between old and new:\n {pprint.pformat({args[1]: diff}, indent=2)}')
