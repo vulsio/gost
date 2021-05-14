@@ -49,7 +49,7 @@ func init() {
 	pwd := os.Getenv("PWD")
 	viper.SetDefault("dbpath", filepath.Join(pwd, "gost.sqlite3"))
 
-	RootCmd.PersistentFlags().String("dbtype", "", "Database type to store data in (sqlite3, mysql or postgres supported)")
+	RootCmd.PersistentFlags().String("dbtype", "", "Database type to store data in (sqlite3, mysql, postgres or redis supported)")
 	viper.BindPFlag("dbtype", RootCmd.PersistentFlags().Lookup("dbtype"))
 	viper.SetDefault("dbtype", "sqlite3")
 

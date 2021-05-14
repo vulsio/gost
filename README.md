@@ -41,7 +41,7 @@ Available Commands:
 Flags:
       --config string       config file (default is $HOME/.gost.yaml)
       --dbpath string       /path/to/sqlite3 or SQL connection string
-      --dbtype string       Database type to store data in (sqlite3, mysql or postgres supported)
+      --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported)
       --debug               debug mode (default: false)
       --debug-sql           SQL debug mode
   -h, --help                help for gost
