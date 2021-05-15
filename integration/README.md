@@ -12,17 +12,20 @@ Use `127.0.0.1:1325` and `127.0.0.1:1326` to diff the server mode between the la
 If you have prepared the two addresses yourself, you can use the following Python script.
 ```terminal
 $ python diff_server_mode.py debian --help
-usage: diff_server_mode.py [-h] [--cveid_list_path CVEID_LIST_PATH] [--debug | --no-debug]
-                           {debian,redhat,microsoft}
+usage: diff_server_mode.py [-h] [--list_path LIST_PATH] [--debug | --no-debug]
+                           {cveid,package} {debian,redhat,microsoft}
 
 positional arguments:
+  {cveid,package}       Specify the mode to test.
   {debian,redhat,microsoft}
-                        Specify the OS to be started in server mode when testing.
+                        Specify the OS to be started in server mode when
+                        testing.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --cveid_list_path CVEID_LIST_PATH
-                        A file path containing a line by line list of CVE-IDs to be diffed in server mode results
+  --list_path LIST_PATH
+                        A file path containing a line by line list of CVE-IDs
+                        or Packages to be diffed in server mode results
   --debug, --no-debug   print debug message
 ```
 
@@ -35,11 +38,13 @@ Please run it in the top directory of the gost repository.
 - clean-integration: delete the gost process, binary, and docker container used in the test
 - fetch-rdb: fetch data for RDB for testing
 - fetch-redis: fetch data for Redis for testing
-- diff-server-rdb: take the result difference of server mode using RDB with CVE in CVE-ID list
-- diff-server-redis: take the result difference of server mode using Redis with CVE in CVE-ID list
-- diff-server-rdb-redis: take the difference in server mode results between RDB and Redis using CVE in the CVE-ID list
+- diff-cveid: Run tests for CVE ID in server mode
+- diff-package: Run tests for Package in server mode
+- diff-server-rdb: take the result difference of server mode using RDB
+- diff-server-redis: take the result difference of server mode using Redis
+- diff-server-rdb-redis: take the difference in server mode results between RDB and Redis
 
-## About the CVE ID list used for testing
+## About the CVE ID and Packages list used for testing
 Duplicates are removed from the latest fetched data and prepared.  
 For example, for sqlite3, you can get it as follows.  
 **NOTE: If there are blank lines, the test will fail, so please remove them from the list.**
@@ -47,10 +52,17 @@ For example, for sqlite3, you can get it as follows.
 $ sqlite3 gost.sqlite3
 SQLite version 3.31.1 2020-01-27 19:55:54
 Enter ".help" for usage hints.
+# CVE ID
 sqlite> .output integration/cveid_debian.txt
 sqlite> SELECT DISTINCT cve_id FROM debian_cves;
 sqlite> .output integration/cveid_redhat.txt
 sqlite> SELECT DISTINCT name FROM redhat_cves;
 sqlite> .output integration/cveid_microsoft.txt
 sqlite> SELECT DISTINCT cve_id FROM microsoft_cves;
+
+# Packages
+sqlite> .output integration/package_debian.txt
+sqlite> SELECT DISTINCT package_name FROM 'debian_packages';
+sqlite> .output integration/package_redhat.txt
+sqlite> SELECT DISTINCT package_name FROM 'redhat_package_states';
 ```
