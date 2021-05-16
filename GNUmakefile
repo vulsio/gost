@@ -76,7 +76,7 @@ build-integration:
 	@git reset --hard
 	$(GO) build -ldflags "$(LDFLAGS)" -o integration/gost.old
 	git checkout $(BRANCH)
-	@ git stash apply stash@{0} && git stash drop stash@{0}
+	-@ git stash apply stash@{0} && git stash drop stash@{0}
 
 clean-integration:
 	-pkill gost.old
