@@ -17,8 +17,8 @@ SRCS = $(shell git ls-files '*.go')
 PKGS = $(shell go list ./...)
 VERSION := $(shell git describe --tags --abbrev=0)
 REVISION := $(shell git rev-parse --short HEAD)
-LDFLAGS := -X 'main.version=$(VERSION)' \
-	-X 'main.revision=$(REVISION)'
+LDFLAGS := -X 'github.com/knqyf263/gost/config.Version=$(VERSION)' \
+	-X 'github.com/knqyf263/gost/config.Revision=$(REVISION)'
 GO := GO111MODULE=on go
 GO_OFF := GO111MODULE=off go
 
@@ -31,7 +31,7 @@ install: main.go pretest
 	$(GO) install -ldflags "$(LDFLAGS)"
 
 b: 	main.go pretest
-	$(GO) build -ldflags "$(LDFLAGS)" -o vuls $<
+	$(GO) build -ldflags "$(LDFLAGS)" -o gost $<
 
 lint:
 	$(GO_OFF) get -u golang.org/x/lint/golint
@@ -68,3 +68,72 @@ cov:
 clean:
 	$(foreach pkg,$(PKGS),go clean $(pkg) || exit;)
 
+BRANCH := $(shell git symbolic-ref --short HEAD)
+build-integration:
+	@ git stash save
+	$(GO) build -ldflags "$(LDFLAGS)" -o integration/gost.new
+	git checkout $(shell git describe --tags --abbrev=0)
+	@git reset --hard
+	$(GO) build -ldflags "$(LDFLAGS)" -o integration/gost.old
+	git checkout $(BRANCH)
+	@ git stash apply stash@{0} && git stash drop stash@{0}
+
+clean-integration:
+	-pkill gost.old
+	-pkill gost.new
+	-rm integration/gost.old integration/gost.new integration/gost.old.sqlite3 integration/gost.new.sqlite3
+	-docker kill redis-old redis-new
+	-docker rm redis-old redis-new
+
+fetch-rdb:
+	integration/gost.old fetch debian --dbpath=integration/gost.old.sqlite3
+	# integration/gost.old fetch redhat --dbpath=integration/gost.old.sqlite3
+	# integration/gost.old fetch microsoft --dbpath=integration/gost.old.sqlite3 --apikey=<APIKEY>
+	
+	integration/gost.new fetch debian --dbpath=integration/gost.new.sqlite3
+	# integration/gost.new fetch redhat --dbpath=integration/gost.new.sqlite3
+	# integration/gost.old fetch microsoft --dbpath=integration/gost.new.sqlite3 --apikey=<APIKEY>
+
+fetch-redis:
+	docker run --name redis-old -d -p 127.0.0.1:6379:6379 redis
+	docker run --name redis-new -d -p 127.0.0.1:6380:6379 redis
+
+	integration/gost.old fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
+	# integration/gost.old fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
+	# integration/gost.old fetch microsoft --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --apikey=<APIKEY>
+
+	integration/gost.new fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
+	# integration/gost.new fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
+	# integration/gost.old fetch microsoft --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --apikey=<APIKEY>
+
+diff-cveid:
+	@ python integration/diff_server_mode.py cveid debian
+	# @ python integration/diff_server_mode.py cveid redhat
+	# @ python integration/diff_server_mode.py cveid microsoft
+
+diff-package:
+	@ python integration/diff_server_mode.py package debian
+	# @ python integration/diff_server_mode.py package redhat
+
+diff-server-rdb:
+	integration/gost.old server --dbpath=integration/gost.old.sqlite3 --port 1325 > /dev/null & 
+	integration/gost.new server --dbpath=integration/gost.new.sqlite3 --port 1326 > /dev/null &
+	make diff-cveid
+	make diff-package
+	pkill gost.old 
+	pkill gost.new
+
+diff-server-redis:
+	integration/gost.old server --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --port 1325 > /dev/null & 
+	integration/gost.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null &
+	make diff-cveid
+	make diff-package
+	pkill gost.old 
+	pkill gost.new
+
+diff-server-rdb-redis:
+	integration/gost.new server --dbpath=integration/gost.new.sqlite3 --port 1325 > /dev/null &
+	integration/gost.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null &
+	make diff-cveid
+	make diff-package
+	pkill gost.new

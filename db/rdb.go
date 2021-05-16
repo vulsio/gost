@@ -1,19 +1,25 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
+	"log"
+	"os"
+	"time"
 
-	"github.com/jinzhu/gorm"
+	"github.com/knqyf263/gost/config"
 	"github.com/knqyf263/gost/models"
 	sqlite3 "github.com/mattn/go-sqlite3"
 	"golang.org/x/xerrors"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
-	// Required MySQL.  See http://jinzhu.me/gorm/database.html#connecting-to-a-database
-	_ "github.com/jinzhu/gorm/dialects/mysql"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
+	// Required MySQL.  See https://gorm.io/docs/connecting_to_the_database.html
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 
 	// Required SQLite3.
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"gorm.io/driver/sqlite"
 )
 
 // Supported DB dialects.
@@ -36,7 +42,33 @@ func (r *RDBDriver) Name() string {
 
 // OpenDB opens Database
 func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
-	r.conn, err = gorm.Open(dbType, dbPath)
+	gormConfig := gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+		Logger:                                   logger.Default.LogMode(logger.Silent),
+	}
+
+	if debugSQL {
+		gormConfig.Logger = logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				SlowThreshold: time.Second,
+				LogLevel:      logger.Info,
+				Colorful:      true,
+			},
+		)
+	}
+
+	switch r.name {
+	case dialectSqlite3:
+		r.conn, err = gorm.Open(sqlite.Open(dbPath), &gormConfig)
+	case dialectMysql:
+		r.conn, err = gorm.Open(mysql.Open(dbPath), &gormConfig)
+	case dialectPostgreSQL:
+		r.conn, err = gorm.Open(postgres.Open(dbPath), &gormConfig)
+	default:
+		err = xerrors.Errorf("Not Supported DB dialects. r.name: %s", r.name)
+	}
+
 	if err != nil {
 		msg := fmt.Sprintf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
 		if r.name == dialectSqlite3 {
@@ -47,7 +79,7 @@ func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, e
 		}
 		return false, fmt.Errorf(msg)
 	}
-	r.conn.LogMode(debugSQL)
+
 	if r.name == dialectSqlite3 {
 		r.conn.Exec("PRAGMA foreign_keys = ON")
 	}
@@ -59,7 +91,12 @@ func (r *RDBDriver) CloseDB() (err error) {
 	if r.conn == nil {
 		return
 	}
-	if err = r.conn.Close(); err != nil {
+
+	var sqlDB *sql.DB
+	if sqlDB, err = r.conn.DB(); err != nil {
+		return xerrors.Errorf("Failed to get DB Object. err : %w", err)
+	}
+	if err = sqlDB.Close(); err != nil {
 		return xerrors.Errorf("Failed to close DB. Type: %s. err: %w", r.name, err)
 	}
 	return
@@ -67,8 +104,9 @@ func (r *RDBDriver) CloseDB() (err error) {
 
 // MigrateDB migrates Database
 func (r *RDBDriver) MigrateDB() error {
-	//TODO Add FetchMeta
 	if err := r.conn.AutoMigrate(
+		&models.FetchMeta{},
+
 		&models.RedhatCVE{},
 		&models.RedhatDetail{},
 		&models.RedhatReference{},
@@ -91,70 +129,49 @@ func (r *RDBDriver) MigrateDB() error {
 		&models.MicrosoftCveID{},
 		&models.MicrosoftProduct{},
 		&models.MicrosoftKBID{},
-	).Error; err != nil {
-		return fmt.Errorf("Failed to migrate. err: %s", err)
+	); err != nil {
+		return xerrors.Errorf("Failed to migrate. err: %w", err)
 	}
 
-	var errs gorm.Errors
-	// redhat_cve
-	errs = errs.Add(r.conn.Model(&models.RedhatCVE{}).AddIndex("idx_redhat_cves_name", "name").Error)
-
-	// redhat_details
-	errs = errs.Add(r.conn.Model(&models.RedhatDetail{}).AddIndex("idx_redhat_details_redhat_cve_id", "redhat_cve_id").Error)
-
-	// redhat_references
-	errs = errs.Add(r.conn.Model(&models.RedhatReference{}).AddIndex("idx_redhat_references_redhat_cve_id", "redhat_cve_id").Error)
-
-	// redhat_bugzillas
-	errs = errs.Add(r.conn.Model(&models.RedhatBugzilla{}).AddIndex("idx_redhat_bugzillas_redhat_cve_id", "redhat_cve_id").Error)
-
-	// redhat_cvsses
-	errs = errs.Add(r.conn.Model(&models.RedhatCvss{}).AddIndex("idx_redhat_cvsses_redhat_cve_id", "redhat_cve_id").Error)
-
-	// redhat_cvss3
-	errs = errs.Add(r.conn.Model(&models.RedhatCvss3{}).AddIndex("idx_redhat_cvss3_redhat_cve_id", "redhat_cve_id").Error)
-
-	// redhat_affected_releases
-	errs = errs.Add(r.conn.Model(&models.RedhatAffectedRelease{}).AddIndex("idx_redhat_affected_releases_redhat_cve_id", "redhat_cve_id").Error)
-
-	// redhat_package_states
-	errs = errs.Add(r.conn.Model(&models.RedhatPackageState{}).AddIndex("idx_redhat_package_states_redhat_cve_id", "redhat_cve_id").Error)
-	errs = errs.Add(r.conn.Model(&models.RedhatPackageState{}).AddIndex("idx_redhat_package_states_cpe", "cpe").Error)
-	errs = errs.Add(r.conn.Model(&models.RedhatPackageState{}).AddIndex("idx_redhat_package_states_package_name", "package_name").Error)
-	errs = errs.Add(r.conn.Model(&models.RedhatPackageState{}).AddIndex("idx_redhat_package_states_fix_state", "fix_state").Error)
-
-	// debian_cves
-	errs = errs.Add(r.conn.Model(&models.DebianCVE{}).AddIndex("idx_debian_cves_cveid", "cve_id").Error)
-
-	// debian_packages
-	errs = errs.Add(r.conn.Model(&models.DebianPackage{}).AddIndex("idx_debian_pacakges_debian_cve_id", "debian_cve_id").Error)
-	errs = errs.Add(r.conn.Model(&models.DebianPackage{}).AddIndex("idx_debian_pacakges_package_name", "package_name").Error)
-
-	// debian_releases
-	errs = errs.Add(r.conn.Model(&models.DebianRelease{}).AddIndex("idx_debian_releases_debian_package_id", "debian_package_id").Error)
-	errs = errs.Add(r.conn.Model(&models.DebianRelease{}).AddIndex("idx_debian_releases_product_name", "product_name").Error)
-	errs = errs.Add(r.conn.Model(&models.DebianRelease{}).AddIndex("idx_debian_releases_status", "status").Error)
-
-	// microsoft_cves
-	errs = errs.Add(r.conn.Model(&models.MicrosoftCVE{}).AddIndex("idx_microsoft_cves_cveid", "cve_id").Error)
-	// microsoft_reference
-	errs = errs.Add(r.conn.Model(&models.MicrosoftReference{}).AddIndex("idx_microsoft_reference_microsoft_cve_id", "microsoft_cve_id").Error)
-	// microsoft_kb_id
-	errs = errs.Add(r.conn.Model(&models.MicrosoftKBID{}).AddIndex("idx_microsoft_kb_id_microsoft_cve_id", "microsoft_cve_id").Error)
-	// microsoft_product_status
-	errs = errs.Add(r.conn.Model(&models.MicrosoftProductStatus{}).AddIndex("idx_microsoft_product_status_microsoft_cve_id", "microsoft_cve_id").Error)
-	// microsoft_threat
-	errs = errs.Add(r.conn.Model(&models.MicrosoftThreat{}).AddIndex("idx_microsoft_threat_microsoft_cve_id", "microsoft_cve_id").Error)
-	// microsoft_remediation
-	errs = errs.Add(r.conn.Model(&models.MicrosoftRemediation{}).AddIndex("idx_microsoft_remediation_microsoft_cve_id", "microsoft_cve_id").Error)
-	// microsoft_score_set
-	errs = errs.Add(r.conn.Model(&models.MicrosoftScoreSet{}).AddIndex("idx_microsoft_score_set_microsoft_cve_id", "microsoft_cve_id").Error)
-	// microsoft_product
-	errs = errs.Add(r.conn.Model(&models.MicrosoftProduct{}).AddIndex("idx_microsoft_product_microsoft_cve_id", "microsoft_cve_id").Error)
-	// microsoft_kb_id
-	errs = errs.Add(r.conn.Model(&models.MicrosoftKBID{}).AddIndex("idx_microsoft_kb_id_microsoft_cve_id", "microsoft_cve_id").Error)
-	// microsoft_cve_id
-	errs = errs.Add(r.conn.Model(&models.MicrosoftCveID{}).AddIndex("idx_microsoft_cve_id_microsoft_cve_id", "microsoft_cve_id").Error)
-
 	return nil
+}
+
+// IsGostModelV1 determines if the DB was created at the time of Gost Model v1
+func (r *RDBDriver) IsGostModelV1() (bool, error) {
+	if r.conn.Migrator().HasTable(&models.FetchMeta{}) {
+		return false, nil
+	}
+
+	var (
+		count int64
+		err   error
+	)
+	switch r.name {
+	case dialectSqlite3:
+		err = r.conn.Table("sqlite_master").Where("type = ?", "table").Count(&count).Error
+	case dialectMysql:
+		err = r.conn.Table("information_schema.tables").Where("table_schema = ?", r.conn.Migrator().CurrentDatabase()).Count(&count).Error
+	case dialectPostgreSQL:
+		err = r.conn.Table("pg_tables").Where("schemaname = ?", "public").Count(&count).Error
+	}
+
+	if count > 0 {
+		return true, err
+	}
+	return false, err
+}
+
+// GetFetchMeta get FetchMeta from Database
+func (r *RDBDriver) GetFetchMeta() (fetchMeta *models.FetchMeta, err error) {
+	if err = r.conn.Take(&fetchMeta).Error; err != nil {
+		return
+	}
+	return
+}
+
+// UpsertFetchMeta upsert FetchMeta to Database
+func (r *RDBDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
+	fetchMeta.GostRevision = config.Revision
+	fetchMeta.SchemaVersion = models.LatestSchemaVersion
+	return r.conn.Save(fetchMeta).Error
 }

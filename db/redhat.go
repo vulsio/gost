@@ -1,17 +1,19 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/inconshreveable/log15"
-	"github.com/jinzhu/gorm"
 	"github.com/knqyf263/gost/models"
 	"github.com/knqyf263/gost/util"
 	pb "gopkg.in/cheggaaa/pb.v1"
+	"gorm.io/gorm"
 )
 
+// GetAfterTimeRedhat :
 func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.RedhatCVE, err error) {
 	all := []models.RedhatCVE{}
 	if err = r.conn.Where("public_date >= ?", after.Format("2006-01-02")).Find(&all).Error; err != nil {
@@ -20,23 +22,32 @@ func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.Redhat
 
 	// TODO: insufficient
 	for _, a := range all {
-		r.conn.Model(&a).Related(&a.Cvss3).Related(&a.Details).Related(&a.PackageState)
+		if err = r.conn.Model(&a).Association("Cvss3").Find(&a.Cvss3); err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+		if err = r.conn.Model(&a).Association("Details").Find(&a.Details); err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+		if err = r.conn.Model(&a).Association("PackageState").Find(&a.PackageState); err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
 		allCves = append(allCves, a)
 	}
 	return allCves, nil
 }
 
+// GetRedhat :
 func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	c := models.RedhatCVE{}
-	var errs gorm.Errors
+	var errs util.Errors
 	errs = errs.Add(r.conn.Where(&models.RedhatCVE{Name: cveID}).First(&c).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.Details).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.References).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.Bugzilla).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.Cvss).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.Cvss3).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.AffectedRelease).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.PackageState).Error)
+	errs = errs.Add(r.conn.Model(&c).Association("Details").Find(&c.Details))
+	errs = errs.Add(r.conn.Model(&c).Association("References").Find(&c.References))
+	errs = errs.Add(r.conn.Model(&c).Association("Bugzilla").Find(&c.Bugzilla))
+	errs = errs.Add(r.conn.Model(&c).Association("Cvss").Find(&c.Cvss))
+	errs = errs.Add(r.conn.Model(&c).Association("Cvss3").Find(&c.Cvss3))
+	errs = errs.Add(r.conn.Model(&c).Association("AffectedRelease").Find(&c.AffectedRelease))
+	errs = errs.Add(r.conn.Model(&c).Association("PackageState").Find(&c.PackageState))
 	errs = util.DeleteRecordNotFound(errs)
 	if len(errs.GetErrors()) > 0 {
 		log15.Error("Failed to delete old records", "err", errs.Error())
@@ -44,6 +55,7 @@ func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	return &c
 }
 
+// GetRedhatMulti :
 func (r *RDBDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE {
 	m := map[string]models.RedhatCVE{}
 	for _, cveID := range cveIDs {
@@ -52,6 +64,7 @@ func (r *RDBDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE 
 	return m
 }
 
+// GetUnfixedCvesRedhat gets the unfixed CVEs.
 func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix bool) map[string]models.RedhatCVE {
 	m := map[string]models.RedhatCVE{}
 	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
@@ -59,7 +72,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 
 	// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format
 	err := r.conn.
-		Not("fix_state", []string{"Not affected", "New"}).
+		Not(map[string]interface{}{"fix_state": []string{"Not affected", "New"}}).
 		Where(&models.RedhatPackageState{
 			Cpe:         cpe,
 			PackageName: pkgName,
@@ -112,15 +125,15 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 	return m
 }
 
+// InsertRedhat :
 func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
 	cves, err := ConvertRedhat(cveJSONs)
 	if err != nil {
 		return err
 	}
 
-	bar := pb.StartNew(len(cves))
-
 	log15.Info(fmt.Sprintf("Insert %d CVEs", len(cves)))
+	bar := pb.StartNew(len(cves))
 	for _, cve := range cves {
 		if err := r.deleteAndInsertRedhat(r.conn, cve); err != nil {
 			return fmt.Errorf("Failed to insert. cve: %s, err: %s",
@@ -145,11 +158,11 @@ func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cve models.RedhatCVE) (
 	// Delete old records if found
 	old := models.RedhatCVE{}
 	result := tx.Where(&models.RedhatCVE{Name: cve.Name}).First(&old)
-	if !result.RecordNotFound() {
+	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		cve.ID = old.ID
 
 		// Delete old records
-		var errs gorm.Errors
+		var errs util.Errors
 		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatDetail{}).Error)
 		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatReference{}).Error)
 		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatBugzilla{}).Error)
@@ -169,7 +182,7 @@ func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cve models.RedhatCVE) (
 		errs = new
 
 		if len(errs.GetErrors()) > 0 {
-			return fmt.Errorf("Failed to delete old records. cve: %s, err: %s",
+			return fmt.Errorf("Failed to delete old records cve: %s, err: %s",
 				cve.Name, errs.Error())
 		}
 	}
@@ -179,6 +192,7 @@ func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cve models.RedhatCVE) (
 	return nil
 }
 
+// ConvertRedhat :
 func ConvertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE, err error) {
 	for _, cve := range cveJSONs {
 		var details []models.RedhatDetail
@@ -233,6 +247,7 @@ func ConvertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE, er
 	return cves, nil
 }
 
+// ClearIDRedhat :
 func ClearIDRedhat(cve *models.RedhatCVE) {
 	cve.ID = 0
 	cve.Bugzilla.RedhatCVEID = 0

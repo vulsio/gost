@@ -9,6 +9,7 @@ import (
 	"github.com/knqyf263/gost/models"
 )
 
+// DiffRedhat returns the difference between the old and new CVE information
 func DiffRedhat(old, new *models.RedhatCVE, config config.RedhatWatchCve) (body string) {
 	if config.ThreatSeverity {
 		if old.ThreatSeverity != new.ThreatSeverity {

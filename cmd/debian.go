@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	"errors"
+
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/db"
 	"github.com/knqyf263/gost/fetcher"
+	"github.com/knqyf263/gost/models"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
+	"gorm.io/gorm"
 )
 
 // debianCmd represents the debian command
@@ -30,8 +35,24 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
+	fetchMeta, err := driver.GetFetchMeta()
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log15.Error("Failed to get FetchMeta from DB.", "err", err)
+			return err
+		}
+	} else {
+		if fetchMeta.OutDated() {
+			log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+			return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+		}
+	}
+
 	log15.Info("Fetched all CVEs from Debian")
 	cves, err := fetcher.RetrieveDebianCveDetails()
+	if err != nil {
+		return err
+	}
 
 	log15.Info("Fetched", "CVEs", len(cves))
 
@@ -39,6 +60,11 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 	if err := driver.InsertDebian(cves); err != nil {
 		log15.Error("Failed to insert.", "dbpath",
 			viper.GetString("dbpath"), "err", err)
+		return err
+	}
+
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
 		return err
 	}
 
