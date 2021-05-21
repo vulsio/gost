@@ -146,17 +146,16 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 		return m
 	}
 
-	type PackagesResponse struct {
-		ID          int64
+	type Result struct {
 		DebianCveID int64
 	}
 
-	pkgRes := []PackagesResponse{}
+	results := []Result{}
 	err := r.conn.
 		Table("debian_packages").
 		Select("id, debian_cve_id").
 		Where("package_name = ?", pkgName).
-		Scan(&pkgRes).Error
+		Scan(&results).Error
 
 	if err != nil && err != gorm.ErrRecordNotFound {
 		if fixStatus == "open" {
@@ -167,7 +166,7 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 		return m
 	}
 
-	for _, res := range pkgRes {
+	for _, res := range results {
 		debcve := models.DebianCVE{}
 		err := r.conn.
 			Preload("Package.Release", "status = ? AND product_name = ?", fixStatus, codeName).
