@@ -27,6 +27,7 @@ type DB interface {
 
 	InsertRedhat([]models.RedhatCVEJSON) error
 	InsertDebian(models.DebianJSON) error
+	InsertUbuntu([]models.UbuntuCVEJSON) error
 	InsertMicrosoft([]models.MicrosoftXML, []models.MicrosoftBulletinSearch) error
 }
 

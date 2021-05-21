@@ -401,6 +401,10 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 	return nil
 }
 
+func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) {
+	return nil
+}
+
 // InsertMicrosoft :
 func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []models.MicrosoftBulletinSearch) (err error) {
 	ctx := context.Background()
