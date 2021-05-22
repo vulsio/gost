@@ -277,12 +277,62 @@ func (r *RedisDriver) GetDebian(cveID string) *models.DebianCVE {
 
 // GetUnfixedCvesUbuntu :
 func (r *RedisDriver) GetUnfixedCvesUbuntu(major, pkgName string) map[string]models.UbuntuCVE {
-	return nil
+	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"needed", "pending"})
 }
 
 // GetFixedCvesUbuntu :
 func (r *RedisDriver) GetFixedCvesUbuntu(major, pkgName string) map[string]models.UbuntuCVE {
-	return nil
+	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"released"})
+}
+
+func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatus []string) (m map[string]models.UbuntuCVE) {
+	ctx := context.Background()
+	m = map[string]models.UbuntuCVE{}
+	codeName, ok := ubuntuVerCodename[major]
+	if !ok {
+		log15.Error("Not supported yet", "major", major)
+		return
+	}
+	var result *redis.StringSliceCmd
+	if result = r.conn.ZRange(ctx, zindUbuntuPrefix+pkgName, 0, -1); result.Err() != nil {
+		log.Error(result.Err())
+		return
+	}
+
+	for _, cveID := range result.Val() {
+		cve := r.GetUbuntu(cveID)
+		if cve == nil {
+			log15.Error("CVE is not found", "CVE-ID", cveID)
+			continue
+		}
+
+		patches := []models.UbuntuPatch{}
+		for _, p := range cve.Patches {
+			if p.PackageName != pkgName {
+				continue
+			}
+			relPatches := []models.UbuntuReleasePatch{}
+			for _, relPatch := range p.Patches {
+				if relPatch.ReleaseName == codeName {
+					for _, s := range fixStatus {
+						if s == relPatch.Status {
+							relPatches = append(relPatches, relPatch)
+						}
+					}
+				}
+			}
+			if len(relPatches) == 0 {
+				continue
+			}
+			p.Patches = relPatches
+			patches = append(patches, p)
+		}
+		if len(patches) != 0 {
+			cve.Patches = patches
+			m[cveID] = *cve
+		}
+	}
+	return
 }
 
 // GetUbuntu :
