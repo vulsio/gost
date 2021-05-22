@@ -9,6 +9,7 @@ import (
 	"golang.org/x/xerrors"
 )
 
+// ubuntuCmd represents the ubuntu command
 var ubuntuCmd = &cobra.Command{
 	Use:   "ubuntu",
 	Short: "Fetch the CVE information from aquasecurity/vuln-list",
@@ -26,7 +27,8 @@ func fetchUbuntu(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("error in vulnerability DB initialize: %w", err)
 	}
 
-	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dppath"), viper.GetBool("debug-sql"))
+	log15.Info("Initialize Database")
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
 			log15.Error("Failed to initialize DB. Close DB connection before fetching", "err", err)
@@ -34,7 +36,8 @@ func fetchUbuntu(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	log15.Info("Insert RedHat into DB", "db", driver.Name())
+	log15.Info("Fetched", "CVEs", len(cves))
+	log15.Info("Insert Ubuntu into DB", "db", driver.Name())
 	if err := driver.InsertUbuntu(cves); err != nil {
 		log15.Error("Failed to insert.", "dbpath", viper.GetString("dbpath"), "err", err)
 		return err
