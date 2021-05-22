@@ -50,7 +50,7 @@ func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	errs = errs.Add(r.conn.Model(&c).Association("PackageState").Find(&c.PackageState))
 	errs = util.DeleteRecordNotFound(errs)
 	if len(errs.GetErrors()) > 0 {
-		log15.Error("Failed to delete old records", "err", errs.Error())
+		log15.Error("Failed to get RedhatCVE", "err", errs.Error())
 	}
 	return &c
 }
