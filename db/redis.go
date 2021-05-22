@@ -18,12 +18,12 @@ import (
 # Redis Data Structure
 
 - HASH
-  ┌───┬────────────┬───────────────────────────┬──────────┬─────────────────────────────────┐
-  │NO │    HASH    │         FIELD             │  VALUE   │             PURPOSE             │
-  └───┴────────────┴───────────────────────────┴──────────┴─────────────────────────────────┘
-  ┌───┬────────────┬───────────────────────────┬──────────┬─────────────────────────────────┐
-  │ 1 │CVE#$CVEID  │  RedHat/Debian/Microsoft  │ $CVEJSON │     TO GET CVEJSON BY CVEID     │
-  └───┴────────────┴───────────────────────────┴──────────┴─────────────────────────────────┘
+  ┌───┬────────────┬──────────────────────────────────┬──────────┬─────────────────────────────────┐
+  │NO │    HASH    │         FIELD                    │  VALUE   │             PURPOSE             │
+  └───┴────────────┴──────────────────────────────────┴──────────┴─────────────────────────────────┘
+  ┌───┬────────────┬──────────────────────────────────┬──────────┬─────────────────────────────────┐
+  │ 1 │CVE#$CVEID  │  RedHat/Debian/Ubuntu/Microsoft  │ $CVEJSON │     TO GET CVEJSON BY CVEID     │
+  └───┴────────────┴──────────────────────────────────┴──────────┴─────────────────────────────────┘
 
 
 - ZINDE  X
@@ -34,6 +34,8 @@ import (
   │ 1 │CVE#R#$PKGNAME  │    0     │  $CVEID    │(RedHat) GET RELATED []CVEID BY PKGNAME    │
   ├───┼────────────────┼──────────┼────────────┼───────────────────────────────────────────┤
   │ 2 │CVE#D#$PKGNAME  │    0     │  $CVEID    │(Debian) GET RELATED []CVEID BY PKGNAME    │
+  ├───┼────────────────┼──────────┼────────────┼───────────────────────────────────────────┤
+  │ 3 │CVE#U#$PKGNAME  │    0     │  $CVEID    │(Ubuntu) GET RELATED []CVEID BY PKGNAME    │
   ├───┼────────────────┼──────────┼────────────┼───────────────────────────────────────────┤
   │ 3 │CVE#K#$KBID     │    0     │  $CVEID    │(Microsoft) GET RELATED []CVEID BY KBID    │
   ├───┼────────────────┼──────────┼────────────┼───────────────────────────────────────────┤
@@ -47,6 +49,7 @@ const (
 	hashKeyPrefix                = "CVE#"
 	zindRedHatPrefix             = "CVE#R#"
 	zindDebianPrefix             = "CVE#D#"
+	zindUbuntuPrefix             = "CVE#U#"
 	zindMicrosoftKBIDPrefix      = "CVE#K#"
 	zindMicrosoftProductIDPrefix = "CVE#P#"
 )
@@ -435,6 +438,39 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 }
 
 func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) {
+	ctx := context.Background()
+	cves := ConvertUbuntu(cveJSONs)
+	bar := pb.StartNew(len(cves))
+
+	for _, cve := range cves {
+		var pipe redis.Pipeliner
+		pipe = r.conn.Pipeline()
+		bar.Increment()
+
+		j, err := json.Marshal(cve)
+		if err != nil {
+			return fmt.Errorf("Failed to marshal json. err: %s", err)
+		}
+
+		if result := pipe.HSet(ctx, hashKeyPrefix+cve.Candidate, "Ubuntu", string(j)); result.Err() != nil {
+			return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
+		}
+
+		for _, pkg := range cve.Patches {
+			if result := pipe.ZAdd(
+				ctx,
+				zindUbuntuPrefix+pkg.PackageName,
+				&redis.Z{Score: 0, Member: cve.Candidate},
+			); result.Err() != nil {
+				return fmt.Errorf("Failed to ZAdd pkg name. err: %s", result.Err())
+			}
+		}
+
+		if _, err = pipe.Exec(ctx); err != nil {
+			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
+		}
+	}
+	bar.Finish()
 	return nil
 }
 

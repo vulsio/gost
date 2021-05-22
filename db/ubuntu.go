@@ -202,7 +202,6 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatus 
 			return m
 		}
 
-		// References, Notes, Bugs, UpstreamLinks
 		var errs gorm.Errors
 		errs = errs.Add(r.conn.Model(&cve).Related(&cve.References).Error)
 		errs = errs.Add(r.conn.Model(&cve).Related(&cve.Notes).Error)
