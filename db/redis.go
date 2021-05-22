@@ -272,6 +272,16 @@ func (r *RedisDriver) GetDebian(cveID string) *models.DebianCVE {
 	return &deb
 }
 
+// GetUnfixedCvesUbuntu :
+func (r *RedisDriver) GetUnfixedCvesUbuntu(major, pkgName string) map[string]models.UbuntuCVE {
+	return nil
+}
+
+// GetFixedCvesUbuntu :
+func (r *RedisDriver) GetFixedCvesUbuntu(major, pkgName string) map[string]models.UbuntuCVE {
+	return nil
+}
+
 // GetUbuntu :
 func (r *RedisDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 	ctx := context.Background()

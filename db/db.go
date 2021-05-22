@@ -25,6 +25,8 @@ type DB interface {
 	GetUnfixedCvesRedhat(string, string, bool) map[string]models.RedhatCVE
 	GetUnfixedCvesDebian(string, string) map[string]models.DebianCVE
 	GetFixedCvesDebian(string, string) map[string]models.DebianCVE
+	GetUnfixedCvesUbuntu(string, string) map[string]models.UbuntuCVE
+	GetFixedCvesUbuntu(string, string) map[string]models.UbuntuCVE
 
 	InsertRedhat([]models.RedhatCVEJSON) error
 	InsertDebian(models.DebianJSON) error

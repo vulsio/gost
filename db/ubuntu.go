@@ -145,3 +145,91 @@ func ConvertUbuntu(cveJSONs []models.UbuntuCVEJSON) (cves []models.UbuntuCVE) {
 
 	return cves
 }
+
+var ubuntuVerCodename = map[string]string{
+	"1404": "trusty",
+	"1604": "xenial",
+	"1804": "bionic",
+	"2004": "focal",
+	"2010": "groovy",
+	"2104": "hirsute",
+}
+
+func (r *RDBDriver) GetUnfixedCvesUbuntu(major, pkgName string) map[string]models.UbuntuCVE {
+	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"needed", "pending"})
+}
+
+func (r *RDBDriver) GetFixedCvesUbuntu(major, pkgName string) map[string]models.UbuntuCVE {
+	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"released"})
+}
+
+func (r *RDBDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatus []string) map[string]models.UbuntuCVE {
+	m := map[string]models.UbuntuCVE{}
+	codeName, ok := ubuntuVerCodename[major]
+	if !ok {
+		log15.Error("Ubuntu %s is not supported yet", "err", major)
+		return m
+	}
+
+	type Result struct {
+		UbuntuCveID int64
+	}
+
+	results := []Result{}
+	err := r.conn.
+		Table("ubuntu_patches").
+		Select("ubuntu_cve_id").
+		Where("package_name = ?", pkgName).
+		Scan(&results).Error
+
+	if err != nil && err != gorm.ErrRecordNotFound {
+		if fixStatus[0] == "released" {
+			log15.Error("Failed to get fixed cves of Ubuntu", "err", err)
+		} else {
+			log15.Error("Failed to get unfixed cves of Ubuntu", "err", err)
+		}
+	}
+
+	for _, res := range results {
+		cve := models.UbuntuCVE{}
+		err := r.conn.
+			Preload("Patches.Patches", "release_name = ? AND status IN (?)", codeName, fixStatus).
+			Preload("Patches", "package_name = ?", pkgName).
+			Where(&models.UbuntuCVE{ID: res.UbuntuCveID}).
+			First(&cve).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			log15.Error("Failed to getCvesUbuntuWithFixStatus", "err", err)
+			return m
+		}
+
+		// References, Notes, Bugs, UpstreamLinks
+		var errs gorm.Errors
+		errs = errs.Add(r.conn.Model(&cve).Related(&cve.References).Error)
+		errs = errs.Add(r.conn.Model(&cve).Related(&cve.Notes).Error)
+		errs = errs.Add(r.conn.Model(&cve).Related(&cve.Bugs).Error)
+
+		errs = errs.Add(r.conn.Model(&cve).Related(&cve.UpstreamLinks).Error)
+		var upstreamLinks []models.UbuntuUpstream
+		for _, u := range cve.UpstreamLinks {
+			errs = errs.Add(r.conn.Model(&u).Related(&u.Links).Error)
+			upstreamLinks = append(upstreamLinks, u)
+		}
+		cve.UpstreamLinks = upstreamLinks
+
+		errs = util.DeleteRecordNotFound(errs)
+		if len(errs.GetErrors()) > 0 {
+			log15.Error("Failed to get Ubuntu", "err", errs.Error())
+			return map[string]models.UbuntuCVE{}
+		}
+
+		if len(cve.Patches) != 0 {
+			for _, p := range cve.Patches {
+				if len(p.Patches) != 0 {
+					m[cve.Candidate] = cve
+				}
+			}
+		}
+	}
+
+	return m
+}
