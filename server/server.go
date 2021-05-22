@@ -43,6 +43,7 @@ func Start(logDir string, driver db.DB) error {
 	e.GET("/health", health())
 	e.GET("/redhat/cves/:id", getRedhatCve(driver))
 	e.GET("/debian/cves/:id", getDebianCve(driver))
+	e.GET("/ubuntu/cves/:id", getUbuntuCve(driver))
 	e.GET("/redhat/:release/pkgs/:name/unfixed-cves", getUnfixedCvesRedhat(driver))
 	e.GET("/debian/:release/pkgs/:name/unfixed-cves", getUnfixedCvesDebian(driver))
 	e.GET("/debian/:release/pkgs/:name/fixed-cves", getFixedCvesDebian(driver))
@@ -77,6 +78,16 @@ func getDebianCve(driver db.DB) echo.HandlerFunc {
 		cveid := c.Param("id")
 		//TODO error
 		cveDetail := driver.GetDebian(cveid)
+		return c.JSON(http.StatusOK, &cveDetail)
+	}
+}
+
+// Handler
+func getUbuntuCve(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		cveid := c.Param("id")
+		// TODO error
+		cveDetail := driver.GetUbuntu(cveid)
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }

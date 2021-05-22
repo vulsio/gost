@@ -272,6 +272,29 @@ func (r *RedisDriver) GetDebian(cveID string) *models.DebianCVE {
 	return &deb
 }
 
+// GetUbuntu :
+func (r *RedisDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
+	ctx := context.Background()
+	var result *redis.StringStringMapCmd
+	if result = r.conn.HGetAll(ctx, hashKeyPrefix+cveID); result.Err() != nil {
+		log.Error(result.Err())
+		return nil
+	}
+
+	c := models.UbuntuCVE{}
+	j, ok := result.Val()["Ubuntu"]
+	if !ok {
+		return nil
+	}
+
+	if err := json.Unmarshal([]byte(j), &c); err != nil {
+		xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
+		return nil
+	}
+
+	return &c
+}
+
 // GetMicrosoft :
 func (r *RedisDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 	ctx := context.Background()

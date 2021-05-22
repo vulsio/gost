@@ -9,7 +9,38 @@ import (
 	pb "gopkg.in/cheggaaa/pb.v1"
 )
 
-import "github.com/knqyf263/gost/models"
+func (r *RDBDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
+	c := models.UbuntuCVE{}
+	var errs gorm.Errors
+	errs = errs.Add(r.conn.Where(&models.UbuntuCVE{Candidate: cveID}).First(&c).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.References).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.Notes).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.Bugs).Error)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.Patches).Error)
+
+	var patches []models.UbuntuPatch
+	for _, p := range c.Patches {
+		errs = errs.Add(r.conn.Model(&p).Related(&p.Patches).Error)
+		patches = append(patches, p)
+	}
+	c.Patches = patches
+
+	errs = errs.Add(r.conn.Model(&c).Related(&c.UpstreamLinks).Error)
+	var upstreamLinks []models.UbuntuUpstream
+	for _, u := range c.UpstreamLinks {
+		errs = errs.Add(r.conn.Model(&u).Related(&u.Links).Error)
+		upstreamLinks = append(upstreamLinks, u)
+	}
+	c.UpstreamLinks = upstreamLinks
+
+	errs = util.DeleteRecordNotFound(errs)
+	if len(errs.GetErrors()) > 0 {
+		log15.Error("Failed to get Ubuntu", "err", errs.Error())
+		return nil
+	}
+
+	return &c
+}
 
 func (r *RDBDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) {
 	cves := ConvertUbuntu(cveJSONs)
