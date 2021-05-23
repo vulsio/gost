@@ -20,18 +20,18 @@ func (r *RDBDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 
 	var patches []models.UbuntuPatch
 	for _, p := range c.Patches {
-		errs = errs.Add(r.conn.Model(&p).Related(&p.Patches).Error)
+		errs = errs.Add(r.conn.Model(&p).Related(&p.ReleasePatches).Error)
 		patches = append(patches, p)
 	}
 	c.Patches = patches
 
-	errs = errs.Add(r.conn.Model(&c).Related(&c.UpstreamLinks).Error)
-	var upstreamLinks []models.UbuntuUpstream
-	for _, u := range c.UpstreamLinks {
-		errs = errs.Add(r.conn.Model(&u).Related(&u.Links).Error)
-		upstreamLinks = append(upstreamLinks, u)
+	errs = errs.Add(r.conn.Model(&c).Related(&c.Upstreams).Error)
+	var upstreams []models.UbuntuUpstream
+	for _, u := range c.Upstreams {
+		errs = errs.Add(r.conn.Model(&u).Related(&u.UpstreamLinks).Error)
+		upstreams = append(upstreams, u)
 	}
-	c.UpstreamLinks = upstreamLinks
+	c.Upstreams = upstreams
 
 	errs = util.DeleteRecordNotFound(errs)
 	if len(errs.GetErrors()) > 0 {
@@ -112,16 +112,16 @@ func ConvertUbuntu(cveJSONs []models.UbuntuCVEJSON) (cves []models.UbuntuCVE) {
 			for release, patch := range p {
 				releasePatch = append(releasePatch, models.UbuntuReleasePatch{ReleaseName: release, Status: patch.Status, Note: patch.Note})
 			}
-			patches = append(patches, models.UbuntuPatch{PackageName: pkgName, Patches: releasePatch})
+			patches = append(patches, models.UbuntuPatch{PackageName: pkgName, ReleasePatches: releasePatch})
 		}
 
-		var upstreamLinks []models.UbuntuUpstream
+		var upstreams []models.UbuntuUpstream
 		for pkgName, u := range cve.UpstreamLinks {
 			var links []models.UbuntuUpstreamLink
 			for _, link := range u {
 				links = append(links, models.UbuntuUpstreamLink{Link: link})
 			}
-			upstreamLinks = append(upstreamLinks, models.UbuntuUpstream{PackageName: pkgName, Links: links})
+			upstreams = append(upstreams, models.UbuntuUpstream{PackageName: pkgName, UpstreamLinks: links})
 		}
 
 		c := models.UbuntuCVE{
@@ -138,7 +138,7 @@ func ConvertUbuntu(cveJSONs []models.UbuntuCVEJSON) (cves []models.UbuntuCVE) {
 			DiscoveredBy:      cve.DiscoveredBy,
 			AssignedTo:        cve.AssignedTo,
 			Patches:           patches,
-			UpstreamLinks:     upstreamLinks,
+			Upstreams:         upstreams,
 		}
 		cves = append(cves, c)
 	}
@@ -193,7 +193,7 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatus 
 	for _, res := range results {
 		cve := models.UbuntuCVE{}
 		err := r.conn.
-			Preload("Patches.Patches", "release_name = ? AND status IN (?)", codeName, fixStatus).
+			Preload("Patches.ReleasePatches", "release_name = ? AND status IN (?)", codeName, fixStatus).
 			Preload("Patches", "package_name = ?", pkgName).
 			Where(&models.UbuntuCVE{ID: res.UbuntuCveID}).
 			First(&cve).Error
@@ -207,13 +207,13 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatus 
 		errs = errs.Add(r.conn.Model(&cve).Related(&cve.Notes).Error)
 		errs = errs.Add(r.conn.Model(&cve).Related(&cve.Bugs).Error)
 
-		errs = errs.Add(r.conn.Model(&cve).Related(&cve.UpstreamLinks).Error)
-		var upstreamLinks []models.UbuntuUpstream
-		for _, u := range cve.UpstreamLinks {
-			errs = errs.Add(r.conn.Model(&u).Related(&u.Links).Error)
-			upstreamLinks = append(upstreamLinks, u)
+		errs = errs.Add(r.conn.Model(&cve).Related(&cve.Upstreams).Error)
+		var upstreams []models.UbuntuUpstream
+		for _, u := range cve.Upstreams {
+			errs = errs.Add(r.conn.Model(&u).Related(&u.UpstreamLinks).Error)
+			upstreams = append(upstreams, u)
 		}
-		cve.UpstreamLinks = upstreamLinks
+		cve.Upstreams = upstreams
 
 		errs = util.DeleteRecordNotFound(errs)
 		if len(errs.GetErrors()) > 0 {
@@ -223,7 +223,7 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatus 
 
 		if len(cve.Patches) != 0 {
 			for _, p := range cve.Patches {
-				if len(p.Patches) != 0 {
+				if len(p.ReleasePatches) != 0 {
 					m[cve.Candidate] = cve
 				}
 			}

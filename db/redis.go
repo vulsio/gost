@@ -312,7 +312,7 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 				continue
 			}
 			relPatches := []models.UbuntuReleasePatch{}
-			for _, relPatch := range p.Patches {
+			for _, relPatch := range p.ReleasePatches {
 				if relPatch.ReleaseName == codeName {
 					for _, s := range fixStatus {
 						if s == relPatch.Status {
@@ -324,7 +324,7 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 			if len(relPatches) == 0 {
 				continue
 			}
-			p.Patches = relPatches
+			p.ReleasePatches = relPatches
 			patches = append(patches, p)
 		}
 		if len(patches) != 0 {
