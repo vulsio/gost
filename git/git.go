@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/util"
 	"golang.org/x/xerrors"
@@ -13,7 +14,16 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 )
 
-func CloneOrPull(url, repoPath string) (map[string]struct{}, error) {
+func getGitVersion() (string, error) {
+	output, err := util.Exec("git", []string{"--version"})
+	if err != nil {
+		return "", xerrors.Errorf("error in git --version: %w", err)
+	}
+	version := strings.TrimSpace(strings.TrimPrefix(output, "git version"))
+	return version, nil
+}
+
+func CloneOrPull(url, repoPath, osName string) (map[string]struct{}, error) {
 	exists, err := util.Exists(filepath.Join(repoPath, ".git"))
 	if err != nil {
 		return nil, xerrors.Errorf("failed to check if a file exists: %w", err)
@@ -22,7 +32,7 @@ func CloneOrPull(url, repoPath string) (map[string]struct{}, error) {
 	updatedFiles := map[string]struct{}{}
 	if exists {
 		log15.Debug("git pull")
-		files, err := pull(repoPath)
+		files, err := pull(repoPath, osName)
 		if err != nil {
 			return nil, xerrors.Errorf("failed to pull repository: %w", err)
 		}
@@ -48,7 +58,7 @@ func CloneOrPull(url, repoPath string) (map[string]struct{}, error) {
 		if err = os.MkdirAll(repoPath, 0700); err != nil {
 			return nil, xerrors.Errorf("failed to mkdir: %w", err)
 		}
-		if err := clone(url, repoPath); err != nil {
+		if err := clone(url, repoPath, osName); err != nil {
 			return nil, xerrors.Errorf("failed to clone repository: %w", err)
 		}
 
@@ -73,9 +83,9 @@ func CloneOrPull(url, repoPath string) (map[string]struct{}, error) {
 	return updatedFiles, nil
 }
 
-func clone(url, repoPath string) error {
+func clone(url, repoPath, osName string) error {
 	if util.IsCommandAvailable("git") {
-		return cloneByOSCommand(url, repoPath)
+		return cloneByOSCommand(url, repoPath, osName)
 	}
 
 	_, err := git.PlainClone(repoPath, false, &git.CloneOptions{
@@ -87,18 +97,63 @@ func clone(url, repoPath string) error {
 	return nil
 }
 
-func cloneByOSCommand(url, repoPath string) error {
-	commandAndArgs := []string{"clone", "--depth=1", url, repoPath}
-	_, err := util.Exec("git", commandAndArgs)
+func cloneByOSCommand(url, repoPath, osName string) error {
+	gitVersion, err := getGitVersion()
+	if err != nil {
+		return err
+	}
+
+	installed, err := version.NewVersion(gitVersion)
+	if err != nil {
+		return xerrors.Errorf("error in version.NewVersion(%s): %w", gitVersion, err)
+	}
+	sparseCheckoutEnableVer, err := version.NewVersion("2.25")
+	if err != nil {
+		return xerrors.Errorf("error in version.NewVersion(%s): %w", "2.25", err)
+	}
+	sparseOptionVer, err := version.NewVersion("2.27")
+	if err != nil {
+		return xerrors.Errorf("error in version.NewVersion(%s): %w", "2.27", err)
+	}
+
+	var commandAndArgs []string
+	if sparseCheckoutEnableVer.LessThanOrEqual(installed) {
+		if sparseOptionVer.LessThanOrEqual(installed) {
+			commandAndArgs = []string{"clone", "--depth=1", "--filter=blob:none", "--sparse", url, repoPath}
+		} else {
+			commandAndArgs = []string{"clone", "--depth=1", "--filter=blob:none", "--no-checkout", url, repoPath}
+		}
+	} else {
+		commandAndArgs = []string{"clone", "--depth=1", url, repoPath}
+	}
+	_, err = util.Exec("git", commandAndArgs)
 	if err != nil {
 		return xerrors.Errorf("error in git clone: %w", err)
 	}
+
+	if sparseCheckoutEnableVer.LessThanOrEqual(installed) {
+		gitDir := filepath.Join(repoPath, ".git")
+		commandArgs := []string{"--git-dir", gitDir, "--work-tree", repoPath}
+
+		initCmd := []string{"sparse-checkout", "init", "--cone"}
+		_, err = util.Exec("git", append(commandArgs, initCmd...))
+		if err != nil {
+			return xerrors.Errorf("error in git sparse-checkout init: %w", err)
+		}
+
+		setCmd := []string{"sparse-checkout", "set", osName}
+		_, err = util.Exec("git", append(commandArgs, setCmd...))
+		if err != nil {
+			return xerrors.Errorf("error in git sparse-checkout set: %w", err)
+		}
+	}
+
 	return nil
 }
 
-func pull(repoPath string) ([]string, error) {
+func pull(repoPath, osName string) ([]string, error) {
 	if util.IsCommandAvailable("git") {
-		return pullByOSCommand(repoPath)
+		return pullByOSCommand(repoPath, osName)
 	}
 
 	r, err := git.PlainOpen(repoPath)
@@ -163,9 +218,30 @@ func pull(repoPath string) ([]string, error) {
 	return updatedFiles, nil
 }
 
-func pullByOSCommand(repoPath string) ([]string, error) {
+func pullByOSCommand(repoPath, osName string) ([]string, error) {
+	gitVersion, err := getGitVersion()
+	if err != nil {
+		return nil, err
+	}
+
 	gitDir := filepath.Join(repoPath, ".git")
 	commandArgs := []string{"--git-dir", gitDir, "--work-tree", repoPath}
+
+	installed, err := version.NewVersion(gitVersion)
+	if err != nil {
+		return nil, xerrors.Errorf("error in version.NewVersion(%s): %w", gitVersion, err)
+	}
+	sparseCheckoutVer, err := version.NewVersion("2.25")
+	if err != nil {
+		return nil, xerrors.Errorf("error in version.NewVersion(%s): %w", "2.25", err)
+	}
+	if sparseCheckoutVer.LessThanOrEqual(installed) {
+		sparseCheckoutCmd := []string{"sparse-checkout", "set", osName}
+		_, err := util.Exec("git", append(commandArgs, sparseCheckoutCmd...))
+		if err != nil {
+			return nil, xerrors.Errorf("error in git sparse-checkout set: %w", err)
+		}
+	}
 
 	revParseCmd := []string{"rev-parse", "HEAD"}
 	output, err := util.Exec("git", append(commandArgs, revParseCmd...))
@@ -174,7 +250,7 @@ func pullByOSCommand(repoPath string) ([]string, error) {
 	}
 	commitHash := strings.TrimSpace(output)
 
-	pullCmd := []string{"pull", "origin", "master"}
+	pullCmd := []string{"pull", "origin", "main"}
 	_, err = util.Exec("git", append(commandArgs, pullCmd...))
 	if err != nil {
 		return nil, xerrors.Errorf("error in git pull: %w", err)

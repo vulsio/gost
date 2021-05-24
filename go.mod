@@ -12,6 +12,7 @@ require (
 	github.com/go-redis/redis/v8 v8.8.0
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/grokify/html-strip-tags-go v0.0.1
+	github.com/hashicorp/go-version v1.3.0 // indirect
 	github.com/inconshreveable/log15 v0.0.0-20201112154412-8562bdadbbac
 	github.com/jinzhu/gorm v1.9.16
 	github.com/kr/text v0.2.0 // indirect
