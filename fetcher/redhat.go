@@ -21,7 +21,7 @@ const (
 func FetchRedHatVulnList() (entries []models.RedhatCVEJSON, err error) {
 	// Clone vuln-list repository
 	dir := filepath.Join(util.CacheDir(), "vuln-list")
-	updatedFiles, err := git.CloneOrPull(repoURL, dir, "redhat")
+	updatedFiles, err := git.CloneOrPull(repoURL, dir, redhatDir)
 	if err != nil {
 		return nil, xerrors.Errorf("error in vulnsrc clone or pull: %w", err)
 	}
