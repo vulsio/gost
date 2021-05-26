@@ -198,8 +198,8 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []
 	for _, res := range results {
 		cve := models.UbuntuCVE{}
 		err := r.conn.
-			Preload("Patches", "package_name = ?", pkgName).
 			Preload("Patches.ReleasePatches", "release_name = ? AND status IN (?)", codeName, fixStatus).
+			Preload("Patches", "package_name = ?", pkgName).
 			Where(&models.UbuntuCVE{ID: res.UbuntuCveID}).
 			First(&cve).Error
 		if err != nil && err != gorm.ErrRecordNotFound {
