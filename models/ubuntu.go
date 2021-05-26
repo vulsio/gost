@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// UbuntuCVEJSON :
 type UbuntuCVEJSON struct {
 	PublicDateAtUSN   time.Time
 	CRD               time.Time
@@ -19,11 +20,13 @@ type UbuntuCVEJSON struct {
 	UpstreamLinks     map[string][]string
 }
 
+// UbuntuPatchJSON :
 type UbuntuPatchJSON struct {
 	Status string
 	Note   string
 }
 
+// UbuntuCVE :
 type UbuntuCVE struct {
 	ID int64 `json:"-"`
 
@@ -43,24 +46,28 @@ type UbuntuCVE struct {
 	Upstreams         []UbuntuUpstream  `json:"upstreams,omitempty"`
 }
 
+// UbuntuReference :
 type UbuntuReference struct {
 	ID          int64  `json:"-"`
 	UbuntuCVEID int64  `json:"-" gorm:"index:idx_ubuntu_reference_ubuntu_cve_id"`
 	Reference   string `json:"reference" gorm:"type:text"`
 }
 
+// UbuntuNote :
 type UbuntuNote struct {
 	ID          int64  `json:"-"`
 	UbuntuCVEID int64  `json:"-" gorm:"index:idx_ubuntu_note_ubuntu_cve_id"`
 	Note        string `json:"note" gorm:"type:text"`
 }
 
+// UbuntuBug :
 type UbuntuBug struct {
 	ID          int64  `json:"-"`
 	UbuntuCVEID int64  `json:"-" gorm:"index:idx_ubuntu_bug_ubuntu_cve_id"`
 	Bug         string `json:"bug" gorm:"type:text"`
 }
 
+// UbuntuPatch :
 type UbuntuPatch struct {
 	ID             int64                `json:"-"`
 	UbuntuCVEID    int64                `json:"-" gorm:"index:idx_ubuntu_patch_ubuntu_cve_id"`
@@ -68,6 +75,7 @@ type UbuntuPatch struct {
 	ReleasePatches []UbuntuReleasePatch `json:"release_patches"`
 }
 
+// UbuntuReleasePatch :
 type UbuntuReleasePatch struct {
 	ID            int64  `json:"-"`
 	UbuntuPatchID int64  `json:"-" gorm:"index:idx_ubuntu_release_patch_ubuntu_patch_id"`
@@ -76,6 +84,7 @@ type UbuntuReleasePatch struct {
 	Note          string `json:"note" gorm:"type:varchar(255)"`
 }
 
+// UbuntuUpstream :
 type UbuntuUpstream struct {
 	ID            int64                `json:"-"`
 	UbuntuCVEID   int64                `json:"-" gorm:"index:idx_ubuntu_upstream_ubuntu_cve_id"`
@@ -83,6 +92,7 @@ type UbuntuUpstream struct {
 	UpstreamLinks []UbuntuUpstreamLink `json:"upstream_links"`
 }
 
+// UbuntuUpstreamLink :
 type UbuntuUpstreamLink struct {
 	ID               int64  `json:"-"`
 	UbuntuUpstreamID int64  `json:"-" gorm:"index:idx_ubuntu_upstream_link_ubuntu_upstream_id"`

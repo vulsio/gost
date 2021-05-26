@@ -503,6 +503,7 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 	return nil
 }
 
+// InsertUbuntu :
 func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) {
 	ctx := context.Background()
 	cves := ConvertUbuntu(cveJSONs)

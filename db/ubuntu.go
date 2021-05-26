@@ -2,33 +2,34 @@ package db
 
 import (
 	"github.com/inconshreveable/log15"
-	"github.com/jinzhu/gorm"
 	"github.com/knqyf263/gost/models"
 	"github.com/knqyf263/gost/util"
 	"golang.org/x/xerrors"
 	pb "gopkg.in/cheggaaa/pb.v1"
+	"gorm.io/gorm"
 )
 
+// GetUbuntu :
 func (r *RDBDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 	c := models.UbuntuCVE{}
-	var errs gorm.Errors
+	var errs util.Errors
 	errs = errs.Add(r.conn.Where(&models.UbuntuCVE{Candidate: cveID}).First(&c).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.References).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.Notes).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.Bugs).Error)
-	errs = errs.Add(r.conn.Model(&c).Related(&c.Patches).Error)
+	errs = errs.Add(r.conn.Model(&c).Association("References").Find(&c.References))
+	errs = errs.Add(r.conn.Model(&c).Association("Notes").Find(&c.Notes))
+	errs = errs.Add(r.conn.Model(&c).Association("Bugs").Find(&c.Bugs))
+	errs = errs.Add(r.conn.Model(&c).Association("Patches").Find(&c.Patches))
 
 	var patches []models.UbuntuPatch
 	for _, p := range c.Patches {
-		errs = errs.Add(r.conn.Model(&p).Related(&p.ReleasePatches).Error)
+		errs = errs.Add(r.conn.Model(&p).Association("ReleasePatches").Find(&p.ReleasePatches))
 		patches = append(patches, p)
 	}
 	c.Patches = patches
 
-	errs = errs.Add(r.conn.Model(&c).Related(&c.Upstreams).Error)
+	errs = errs.Add(r.conn.Model(&c).Association("Upstreams").Find(&c.Upstreams))
 	var upstreams []models.UbuntuUpstream
 	for _, u := range c.Upstreams {
-		errs = errs.Add(r.conn.Model(&u).Related(&u.UpstreamLinks).Error)
+		errs = errs.Add(r.conn.Model(&u).Association("UpstreamLinks").Find(&u.UpstreamLinks))
 		upstreams = append(upstreams, u)
 	}
 	c.Upstreams = upstreams
@@ -42,6 +43,7 @@ func (r *RDBDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 	return &c
 }
 
+// InsertUbuntu :
 func (r *RDBDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) {
 	cves := ConvertUbuntu(cveJSONs)
 	if err = r.deleteAndInsertUbuntu(r.conn, cves); err != nil {
@@ -64,15 +66,15 @@ func (r *RDBDriver) deleteAndInsertUbuntu(conn *gorm.DB, cves []models.UbuntuCVE
 	}()
 
 	// Delete all old records
-	var errs gorm.Errors
-	errs = errs.Add(tx.Delete(models.UbuntuUpstreamLink{}).Error)
-	errs = errs.Add(tx.Delete(models.UbuntuUpstream{}).Error)
-	errs = errs.Add(tx.Delete(models.UbuntuReleasePatch{}).Error)
-	errs = errs.Add(tx.Delete(models.UbuntuPatch{}).Error)
-	errs = errs.Add(tx.Delete(models.UbuntuBug{}).Error)
-	errs = errs.Add(tx.Delete(models.UbuntuNote{}).Error)
-	errs = errs.Add(tx.Delete(models.UbuntuReference{}).Error)
-	errs = errs.Add(tx.Delete(models.UbuntuCVE{}).Error)
+	var errs util.Errors
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuUpstreamLink{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuUpstream{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuReleasePatch{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuPatch{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuBug{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuNote{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuReference{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuCVE{}).Error)
 	errs = util.DeleteNil(errs)
 
 	if len(errs.GetErrors()) > 0 {
@@ -89,6 +91,7 @@ func (r *RDBDriver) deleteAndInsertUbuntu(conn *gorm.DB, cves []models.UbuntuCVE
 	return nil
 }
 
+// ConvertUbuntu :
 func ConvertUbuntu(cveJSONs []models.UbuntuCVEJSON) (cves []models.UbuntuCVE) {
 	for _, cve := range cveJSONs {
 		var references []models.UbuntuReference
@@ -155,19 +158,21 @@ var ubuntuVerCodename = map[string]string{
 	"2104": "hirsute",
 }
 
-func (r *RDBDriver) GetUnfixedCvesUbuntu(major, pkgName string) map[string]models.UbuntuCVE {
-	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"needed", "pending"})
+// GetUnfixedCvesUbuntu gets the CVEs related to debian_release.status IN ('needed', 'pending'), ver, pkgName.
+func (r *RDBDriver) GetUnfixedCvesUbuntu(ver, pkgName string) map[string]models.UbuntuCVE {
+	return r.getCvesUbuntuWithFixStatus(ver, pkgName, []string{"needed", "pending"})
 }
 
-func (r *RDBDriver) GetFixedCvesUbuntu(major, pkgName string) map[string]models.UbuntuCVE {
-	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"released"})
+// GetFixedCvesUbuntu gets the CVEs related to debian_release.status IN ('released'), ver, pkgName.
+func (r *RDBDriver) GetFixedCvesUbuntu(ver, pkgName string) map[string]models.UbuntuCVE {
+	return r.getCvesUbuntuWithFixStatus(ver, pkgName, []string{"released"})
 }
 
-func (r *RDBDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatus []string) map[string]models.UbuntuCVE {
+func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []string) map[string]models.UbuntuCVE {
 	m := map[string]models.UbuntuCVE{}
-	codeName, ok := ubuntuVerCodename[major]
+	codeName, ok := ubuntuVerCodename[ver]
 	if !ok {
-		log15.Error("Ubuntu %s is not supported yet", "err", major)
+		log15.Error("Ubuntu %s is not supported yet", "err", ver)
 		return m
 	}
 
@@ -202,15 +207,15 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatus 
 			return m
 		}
 
-		var errs gorm.Errors
-		errs = errs.Add(r.conn.Model(&cve).Related(&cve.References).Error)
-		errs = errs.Add(r.conn.Model(&cve).Related(&cve.Notes).Error)
-		errs = errs.Add(r.conn.Model(&cve).Related(&cve.Bugs).Error)
+		var errs util.Errors
+		errs = errs.Add(r.conn.Model(&cve).Association("References").Find(&cve.References))
+		errs = errs.Add(r.conn.Model(&cve).Association("Notes").Find(&cve.Notes))
+		errs = errs.Add(r.conn.Model(&cve).Association("Bugs").Find(&cve.Bugs))
 
-		errs = errs.Add(r.conn.Model(&cve).Related(&cve.Upstreams).Error)
+		errs = errs.Add(r.conn.Model(&cve).Association("Upstreams").Find(&cve.Upstreams))
 		var upstreams []models.UbuntuUpstream
 		for _, u := range cve.Upstreams {
-			errs = errs.Add(r.conn.Model(&u).Related(&u.UpstreamLinks).Error)
+			errs = errs.Add(r.conn.Model(&u).Association("UpstreamLinks").Find(&u.UpstreamLinks))
 			upstreams = append(upstreams, u)
 		}
 		cve.Upstreams = upstreams

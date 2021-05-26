@@ -18,6 +18,7 @@ const (
 	ubuntuDir = "ubuntu"
 )
 
+// FetchUbuntuVulnList clones vuln-list and returns CVE JSONs
 func FetchUbuntuVulnList() (entries []models.UbuntuCVEJSON, err error) {
 	// Clone vuln-list repository
 	dir := filepath.Join(util.CacheDir(), "vuln-list")
