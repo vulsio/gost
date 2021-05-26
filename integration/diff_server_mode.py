@@ -12,6 +12,7 @@ def diff_cveid(args: Tuple[str, str]):
     # Endpoint
     # /redhat/cves/:id
     # /debian/cves/:id
+    # /ubuntu/cves/:id
     # /microsoft/cves/:id
     try:
         response_old = requests.get(
@@ -36,11 +37,16 @@ def diff_package(args: Tuple[str, str]):
     # /redhat/:release/pkgs/:name/unfixed-cves
     # /debian/:release/pkgs/:name/unfixed-cves
     # /debian/:release/pkgs/:name/fixed-cves
+    # /ubuntu/:release/pkgs/:name/unfixed-cves
+    # /ubuntu/:release/pkgs/:name/fixed-cves
 
     # ([releases], ['unfixed-cves', 'fixed-cves'])
     os_specific_urls: Tuple[list, list]
     if args[0] == 'debian':
         os_specific_urls = (['9', '10'], [
+                            'unfixed-cves', 'fixed-cves'])
+    elif args[0] == 'ubuntu':
+        os_specific_urls = (['1404', '1604', '1804', '2004', '2010', '2104'], [
                             'unfixed-cves', 'fixed-cves'])
     elif args[0] == 'redhat':
         os_specific_urls = (['3', '4', '5', '6', '7', '8'], ['unfixed-cves'])
@@ -82,7 +88,7 @@ def diff_response(args: Tuple[str, str, str]):
 parser = argparse.ArgumentParser()
 parser.add_argument('mode', choices=['cveid', 'package'],
                     help='Specify the mode to test.')
-parser.add_argument('ostype', choices=['debian', 'redhat', 'microsoft'],
+parser.add_argument('ostype', choices=['debian', 'ubuntu', 'redhat', 'microsoft'],
                     help='Specify the OS to be started in server mode when testing.')
 parser.add_argument('--list_path',
                     help='A file path containing a line by line list of CVE-IDs or Packages to be diffed in server mode results')
@@ -100,7 +106,8 @@ else:
     logger.setLevel(logging.INFO)
     stream_handler.setLevel(logging.INFO)
 
-formatter = logging.Formatter('%(levelname)s[%(asctime)s] %(message)s', "%m-%d|%H:%M:%S")
+formatter = logging.Formatter(
+    '%(levelname)s[%(asctime)s] %(message)s', "%m-%d|%H:%M:%S")
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 

@@ -11,21 +11,18 @@ Use `127.0.0.1:1325` and `127.0.0.1:1326` to diff the server mode between the la
 
 If you have prepared the two addresses yourself, you can use the following Python script.
 ```terminal
-$ python diff_server_mode.py debian --help
-usage: diff_server_mode.py [-h] [--list_path LIST_PATH] [--debug | --no-debug]
-                           {cveid,package} {debian,redhat,microsoft}
+$ python diff_server_mode.py --help
+usage: diff_server_mode.py [-h] [--list_path LIST_PATH] [--debug | --no-debug] {cveid,package} {debian,ubuntu,redhat,microsoft}
 
 positional arguments:
   {cveid,package}       Specify the mode to test.
-  {debian,redhat,microsoft}
-                        Specify the OS to be started in server mode when
-                        testing.
+  {debian,ubuntu,redhat,microsoft}
+                        Specify the OS to be started in server mode when testing.
 
 optional arguments:
   -h, --help            show this help message and exit
   --list_path LIST_PATH
-                        A file path containing a line by line list of CVE-IDs
-                        or Packages to be diffed in server mode results
+                        A file path containing a line by line list of CVE-IDs or Packages to be diffed in server mode results
   --debug, --no-debug   print debug message
 ```
 
@@ -55,6 +52,8 @@ Enter ".help" for usage hints.
 # CVE ID
 sqlite> .output integration/cveid_debian.txt
 sqlite> SELECT DISTINCT cve_id FROM debian_cves;
+sqlite> .output integration/cveid_ubuntu.txt
+sqlite> SELECT DISTINCT candidate FROM ubuntu_cves;
 sqlite> .output integration/cveid_redhat.txt
 sqlite> SELECT DISTINCT name FROM redhat_cves;
 sqlite> .output integration/cveid_microsoft.txt
@@ -63,6 +62,8 @@ sqlite> SELECT DISTINCT cve_id FROM microsoft_cves;
 # Packages
 sqlite> .output integration/package_debian.txt
 sqlite> SELECT DISTINCT package_name FROM 'debian_packages';
+sqlite> .output integration/package_ubuntu.txt
+sqlite> SELECT DISTINCT package_name FROM ubuntu_patches;
 sqlite> .output integration/package_redhat.txt
 sqlite> SELECT DISTINCT package_name FROM 'redhat_package_states';
 ```
