@@ -6,16 +6,14 @@ import (
 	"os"
 
 	"github.com/knqyf263/gost/cmd"
+	"github.com/knqyf263/gost/config"
 )
-
-// Revision of Git
-var revision string
 
 func main() {
 	var v = flag.Bool("v", false, "Show version")
 	flag.Parse()
 	if *v {
-		fmt.Printf("gost %s\n", revision)
+		fmt.Printf("gost-%s-%s\n", config.Version, config.Revision)
 		os.Exit(0)
 	}
 

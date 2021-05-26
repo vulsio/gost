@@ -1,11 +1,19 @@
 package config
 
+// Version of Gost
+var Version = "`make build` or `make install` will show the version"
+
+// Revision of Git
+var Revision string
+
+// Config for register and notify command
 type Config struct {
 	Redhat map[string]RedhatWatchCve `toml:"redhat"`
 	EMail  SMTPConf
 	Slack  SlackConf
 }
 
+// RedhatWatchCve for watch redhat cve
 type RedhatWatchCve struct {
 	ThreatSeverity  bool `toml:"threat_severity"`
 	Bugzilla        bool `toml:"bugzilla"`

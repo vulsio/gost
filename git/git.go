@@ -13,6 +13,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 )
 
+// CloneOrPull clones or pulls vuln-list repository
 func CloneOrPull(url, repoPath string) (map[string]struct{}, error) {
 	exists, err := util.Exists(filepath.Join(repoPath, ".git"))
 	if err != nil {
@@ -174,7 +175,7 @@ func pullByOSCommand(repoPath string) ([]string, error) {
 	}
 	commitHash := strings.TrimSpace(output)
 
-	pullCmd := []string{"pull", "origin", "master"}
+	pullCmd := []string{"pull", "origin", "main"}
 	_, err = util.Exec("git", append(commandArgs, pullCmd...))
 	if err != nil {
 		return nil, xerrors.Errorf("error in git pull: %w", err)
