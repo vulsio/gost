@@ -169,8 +169,8 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 	for _, res := range results {
 		debcve := models.DebianCVE{}
 		err := r.conn.
-			Preload("Package", "package_name = ?", pkgName).
 			Preload("Package.Release", "status = ? AND product_name = ?", fixStatus, codeName).
+			Preload("Package", "package_name = ?", pkgName).
 			Where(&models.DebianCVE{ID: res.DebianCveID}).
 			First(&debcve).Error
 		if err != nil && err != gorm.ErrRecordNotFound {
