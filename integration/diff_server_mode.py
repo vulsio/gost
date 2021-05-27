@@ -3,24 +3,36 @@ import logging
 from typing import Tuple
 from deepdiff import DeepDiff
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
 import pprint
 from concurrent.futures import ThreadPoolExecutor
 import os
 
 
 def diff_cveid(args: Tuple[str, str]):
+    session = requests.Session()
+    retries = Retry(total=5,
+                    backoff_factor=1,
+                    status_forcelist=[503, 504])
+    session.mount("http://", HTTPAdapter(max_retries=retries))
+
     # Endpoint
     # /redhat/cves/:id
     # /debian/cves/:id
     # /ubuntu/cves/:id
     # /microsoft/cves/:id
     try:
-        response_old = requests.get(
+        response_old = session.get(
             f'http://127.0.0.1:1325/{args[0]}/cves/{args[1]}', timeout=2).json()
-        response_new = requests.get(
+        response_new = session.get(
             f'http://127.0.0.1:1326/{args[0]}/cves/{args[1]}', timeout=2).json()
-    except requests.ConnectionError as e:
+    except requests.exceptions.ConnectionError as e:
         logger.error(f'Failed to Connection..., err: {e}')
+        raise
+    except requests.exceptions.ReadTimeout as e:
+        logger.error(
+            f'Failed to Read Response..., err: {e}, args: {args}')
         raise
     except Exception as e:
         logger.error(f'Failed to GET request..., err: {e}')
@@ -33,6 +45,12 @@ def diff_cveid(args: Tuple[str, str]):
 
 
 def diff_package(args: Tuple[str, str]):
+    session = requests.Session()
+    retries = Retry(total=5,
+                    backoff_factor=1,
+                    status_forcelist=[503, 504])
+    session.mount("http://", HTTPAdapter(max_retries=retries))
+
     # Endpoint
     # /redhat/:release/pkgs/:name/unfixed-cves
     # /debian/:release/pkgs/:name/unfixed-cves
@@ -58,12 +76,16 @@ def diff_package(args: Tuple[str, str]):
     for rel in os_specific_urls[0]:
         for fix_status in os_specific_urls[1]:
             try:
-                response_old = requests.get(
-                    f'http://127.0.0.1:1325/{args[0]}/{rel}/pkgs/{args[1]}/{fix_status}', timeout=2).json()
-                response_new = requests.get(
-                    f'http://127.0.0.1:1326/{args[0]}/{rel}/pkgs/{args[1]}/{fix_status}', timeout=2).json()
-            except requests.ConnectionError as e:
+                response_old = session.get(
+                    f'http://127.0.0.1:1325/{args[0]}/{rel}/pkgs/{args[1]}/{fix_status}', timeout=(2.0, 30.0)).json()
+                response_new = session.get(
+                    f'http://127.0.0.1:1326/{args[0]}/{rel}/pkgs/{args[1]}/{fix_status}', timeout=(2.0, 30.0)).json()
+            except requests.exceptions.ConnectionError as e:
                 logger.error(f'Failed to Connection..., err: {e}')
+                raise
+            except requests.exceptions.ReadTimeout as e:
+                logger.error(
+                    f'Failed to Read Response..., err: {e}, args: {args}')
                 raise
             except Exception as e:
                 logger.error(f'Failed to GET request..., err: {e}')
