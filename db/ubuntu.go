@@ -1,6 +1,8 @@
 package db
 
 import (
+	"strings"
+
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/models"
 	"github.com/knqyf263/gost/util"
@@ -94,6 +96,10 @@ func (r *RDBDriver) deleteAndInsertUbuntu(conn *gorm.DB, cves []models.UbuntuCVE
 // ConvertUbuntu :
 func ConvertUbuntu(cveJSONs []models.UbuntuCVEJSON) (cves []models.UbuntuCVE) {
 	for _, cve := range cveJSONs {
+		if strings.Contains(cve.Description, "** REJECT **") {
+			continue
+		}
+
 		var references []models.UbuntuReference
 		for _, r := range cve.References {
 			references = append(references, models.UbuntuReference{Reference: r})
