@@ -171,15 +171,7 @@ func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cve models.RedhatCVE) (
 		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatAffectedRelease{}).Error)
 		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatPackageState{}).Error)
 		errs = errs.Add(tx.Unscoped().Delete(&old).Error)
-
-		// Delete nil in errs
-		var new []error
-		for _, err := range errs {
-			if err != nil {
-				new = append(new, err)
-			}
-		}
-		errs = new
+		errs = util.DeleteNil(errs)
 
 		if len(errs.GetErrors()) > 0 {
 			return fmt.Errorf("Failed to delete old records cve: %s, err: %s",
