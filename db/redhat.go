@@ -10,7 +10,6 @@ import (
 	"github.com/knqyf263/gost/util"
 	pb "gopkg.in/cheggaaa/pb.v1"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // GetAfterTimeRedhat :
@@ -149,12 +148,22 @@ func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cves []models.RedhatCVE
 		tx.Commit()
 	}()
 
-	log15.Info(fmt.Sprintf("Insert %d CVEs", len(cves)))
+	var errs util.Errors
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatDetail{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatReference{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatBugzilla{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCvss{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCvss3{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatAffectedRelease{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatPackageState{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCVE{}).Error)
+	errs = util.DeleteNil(errs)
 
-	if err = tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Select(clause.Associations).Delete(&models.RedhatCVE{}).Error; err != nil {
-		return fmt.Errorf("Failed tp delete old records. err: %s", err)
+	if len(errs.GetErrors()) > 0 {
+		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
 	}
 
+	log15.Info(fmt.Sprintf("Insert %d CVEs", len(cves)))
 	bar := pb.StartNew(len(cves))
 	for idx := range chunkSlice(len(cves), 500) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
