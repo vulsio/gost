@@ -1,7 +1,6 @@
 package db
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/knqyf263/gost/util"
 	pb "gopkg.in/cheggaaa/pb.v1"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // GetAfterTimeRedhat :
@@ -132,20 +132,14 @@ func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
 		return err
 	}
 
-	log15.Info(fmt.Sprintf("Insert %d CVEs", len(cves)))
-	bar := pb.StartNew(len(cves))
-	for _, cve := range cves {
-		if err := r.deleteAndInsertRedhat(r.conn, cve); err != nil {
-			return fmt.Errorf("Failed to insert. cve: %s, err: %s",
-				cve.Name, err)
-		}
-		bar.Increment()
+	if err := r.deleteAndInsertRedhat(r.conn, cves); err != nil {
+		return fmt.Errorf("Failed to insert RedHat CVE data. err: %s", err)
 	}
-	bar.Finish()
+
 	return nil
 }
 
-func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cve models.RedhatCVE) (err error) {
+func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cves []models.RedhatCVE) (err error) {
 	tx := conn.Begin()
 	defer func() {
 		if err != nil {
@@ -155,32 +149,21 @@ func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cve models.RedhatCVE) (
 		tx.Commit()
 	}()
 
-	// Delete old records if found
-	old := models.RedhatCVE{}
-	result := tx.Where(&models.RedhatCVE{Name: cve.Name}).First(&old)
-	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		cve.ID = old.ID
+	log15.Info(fmt.Sprintf("Insert %d CVEs", len(cves)))
 
-		// Delete old records
-		var errs util.Errors
-		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatDetail{}).Error)
-		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatReference{}).Error)
-		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatBugzilla{}).Error)
-		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatCvss{}).Error)
-		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatCvss3{}).Error)
-		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatAffectedRelease{}).Error)
-		errs = errs.Add(tx.Where("redhat_cve_id = ?", old.ID).Delete(models.RedhatPackageState{}).Error)
-		errs = errs.Add(tx.Unscoped().Delete(&old).Error)
-		errs = util.DeleteNil(errs)
+	if err = tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Select(clause.Associations).Delete(&models.RedhatCVE{}).Error; err != nil {
+		return fmt.Errorf("Failed tp delete old records. err: %s", err)
+	}
 
-		if len(errs.GetErrors()) > 0 {
-			return fmt.Errorf("Failed to delete old records cve: %s, err: %s",
-				cve.Name, errs.Error())
+	bar := pb.StartNew(len(cves))
+	for idx := range chunkSlice(len(cves), 500) {
+		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
+			return fmt.Errorf("Failed to insert. err: %s", err)
 		}
+		bar.Add(idx.To - idx.From)
 	}
-	if err = tx.Create(&cve).Error; err != nil {
-		return err
-	}
+	bar.Finish()
+
 	return nil
 }
 

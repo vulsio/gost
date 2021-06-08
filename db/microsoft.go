@@ -54,7 +54,6 @@ func (r *RDBDriver) InsertMicrosoft(cveJSON []models.MicrosoftXML, cveXls []mode
 }
 
 func (r *RDBDriver) deleteAndInsertMicrosoft(conn *gorm.DB, cves []models.MicrosoftCVE) (err error) {
-	bar := pb.StartNew(len(cves))
 	tx := conn.Begin()
 
 	defer func() {
@@ -81,13 +80,15 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(conn *gorm.DB, cves []models.Micros
 		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
 	}
 
-	for _, cve := range cves {
-		if err = tx.Create(&cve).Error; err != nil {
-			return fmt.Errorf("Failed to insert. cve: %s, err: %s", cve.CveID, err)
+	bar := pb.StartNew(len(cves))
+	for idx := range chunkSlice(len(cves), 250) {
+		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
+			return fmt.Errorf("Failed to insert. err: %s", err)
 		}
-		bar.Increment()
+		bar.Add(idx.To - idx.From)
 	}
 	bar.Finish()
+
 	return nil
 }
 
