@@ -87,33 +87,33 @@ clean-integration:
 
 fetch-rdb:
 	integration/gost.old fetch debian --dbpath=integration/gost.old.sqlite3
-	# integration/gost.old fetch redhat --dbpath=integration/gost.old.sqlite3
+	integration/gost.old fetch redhat --dbpath=integration/gost.old.sqlite3
 	# integration/gost.old fetch microsoft --dbpath=integration/gost.old.sqlite3 --apikey=<APIKEY>
 	
 	integration/gost.new fetch debian --dbpath=integration/gost.new.sqlite3
-	# integration/gost.new fetch redhat --dbpath=integration/gost.new.sqlite3
-	# integration/gost.old fetch microsoft --dbpath=integration/gost.new.sqlite3 --apikey=<APIKEY>
+	integration/gost.new fetch redhat --dbpath=integration/gost.new.sqlite3
+	# integration/gost.new fetch microsoft --dbpath=integration/gost.new.sqlite3 --apikey=<APIKEY>
 
 fetch-redis:
 	docker run --name redis-old -d -p 127.0.0.1:6379:6379 redis
 	docker run --name redis-new -d -p 127.0.0.1:6380:6379 redis
 
 	integration/gost.old fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
-	# integration/gost.old fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
+	integration/gost.old fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
 	# integration/gost.old fetch microsoft --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --apikey=<APIKEY>
 
 	integration/gost.new fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
-	# integration/gost.new fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
+	integration/gost.new fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
 	# integration/gost.old fetch microsoft --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --apikey=<APIKEY>
 
 diff-cveid:
 	@ python integration/diff_server_mode.py cveid debian
-	# @ python integration/diff_server_mode.py cveid redhat
+	@ python integration/diff_server_mode.py cveid redhat
 	# @ python integration/diff_server_mode.py cveid microsoft
 
 diff-package:
 	@ python integration/diff_server_mode.py package debian
-	# @ python integration/diff_server_mode.py package redhat
+	@ python integration/diff_server_mode.py package redhat
 
 diff-server-rdb:
 	integration/gost.old server --dbpath=integration/gost.old.sqlite3 --port 1325 > /dev/null & 
