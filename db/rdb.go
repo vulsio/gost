@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -163,10 +164,11 @@ func (r *RDBDriver) IsGostModelV1() (bool, error) {
 
 // GetFetchMeta get FetchMeta from Database
 func (r *RDBDriver) GetFetchMeta() (fetchMeta *models.FetchMeta, err error) {
-	if err = r.conn.Take(&fetchMeta).Error; err != nil {
-		return
+	if err = r.conn.Take(&fetchMeta).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
 	}
-	return
+
+	return fetchMeta, nil
 }
 
 // UpsertFetchMeta upsert FetchMeta to Database
