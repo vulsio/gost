@@ -139,6 +139,8 @@ func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
 }
 
 func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cves []models.RedhatCVE) (err error) {
+	log15.Info(fmt.Sprintf("Insert %d CVEs", len(cves)))
+
 	bar := pb.StartNew(len(cves))
 	tx := conn.Begin()
 	defer func() {
@@ -164,7 +166,6 @@ func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cves []models.RedhatCVE
 		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
 	}
 
-	log15.Info(fmt.Sprintf("Insert %d CVEs", len(cves)))
 	for idx := range chunkSlice(len(cves), 500) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
 			return fmt.Errorf("Failed to insert. err: %s", err)
