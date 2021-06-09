@@ -56,6 +56,7 @@ func (r *RDBDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) {
 }
 
 func (r *RDBDriver) deleteAndInsertUbuntu(conn *gorm.DB, cves []models.UbuntuCVE) (err error) {
+	bar := pb.StartNew(len(cves))
 	tx := conn.Begin()
 
 	defer func() {
@@ -82,7 +83,6 @@ func (r *RDBDriver) deleteAndInsertUbuntu(conn *gorm.DB, cves []models.UbuntuCVE
 		return xerrors.Errorf("Failed to delete old. err: %s", errs.Error())
 	}
 
-	bar := pb.StartNew(len(cves))
 	for idx := range chunkSlice(len(cves), 15) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
 			return xerrors.Errorf("Failed to insert. err: %w", err)
