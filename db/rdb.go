@@ -157,7 +157,7 @@ func (r *RDBDriver) IsGostModelV1() (bool, error) {
 	}
 
 	if count > 0 {
-		return true, err
+		return true, nil
 	}
 	return false, err
 }
