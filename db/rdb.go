@@ -164,8 +164,11 @@ func (r *RDBDriver) IsGostModelV1() (bool, error) {
 
 // GetFetchMeta get FetchMeta from Database
 func (r *RDBDriver) GetFetchMeta() (fetchMeta *models.FetchMeta, err error) {
-	if err = r.conn.Take(&fetchMeta).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
+	if err = r.conn.Take(&fetchMeta).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+		return &models.FetchMeta{GostRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
 	}
 
 	return fetchMeta, nil
