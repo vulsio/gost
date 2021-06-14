@@ -127,7 +127,6 @@ func (r *RDBDriver) MigrateDB() error {
 		&models.MicrosoftRemediation{},
 		&models.MicrosoftReference{},
 		&models.MicrosoftScoreSet{},
-		&models.MicrosoftCveID{},
 		&models.MicrosoftProduct{},
 		&models.MicrosoftKBID{},
 	); err != nil {

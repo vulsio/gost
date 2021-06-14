@@ -309,17 +309,11 @@ type MicrosoftScoreSet struct {
 	Products           []MicrosoftProduct `json:"products" gorm:"foreignKey:MicrosoftCVEID;references:MicrosoftCVEID"`
 }
 
-// MicrosoftCveID :
-type MicrosoftCveID struct {
-	ID             int64  `json:"-"`
-	MicrosoftCVEID int64  `json:"-" gorm:"index:idx_microsoft_cve_id_microsoft_cve_id"`
-	CveID          string `json:"cve_id" gorm:"type:varchar(255)"`
-}
-
 // MicrosoftProduct :
 type MicrosoftProduct struct {
 	ID             int64  `json:"-"`
 	MicrosoftCVEID int64  `json:"-" gorm:"index:idx_microsoft_product_microsoft_cve_id"`
+	TableSource    string `json:"-" gorm:"type:varchar(255)"`
 	ProductID      string `json:"product_id" gorm:"type:varchar(255)"`
 	ProductName    string `json:"product_name" gorm:"type:varchar(255)"`
 }
