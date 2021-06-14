@@ -94,7 +94,7 @@ fetch-rdb:
 	integration/gost.new fetch debian --dbpath=integration/gost.new.sqlite3
 	# integration/gost.new fetch ubuntu --dbpath=integration/gost.new.sqlite3
 	# integration/gost.new fetch redhat --dbpath=integration/gost.new.sqlite3
-	# integration/gost.old fetch microsoft --dbpath=integration/gost.new.sqlite3 --apikey=<APIKEY>
+	# integration/gost.new fetch microsoft --dbpath=integration/gost.new.sqlite3 --apikey=<APIKEY>
 
 fetch-redis:
 	docker run --name redis-old -d -p 127.0.0.1:6379:6379 redis
@@ -108,7 +108,7 @@ fetch-redis:
 	integration/gost.new fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
 	# integration/gost.new fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
 	# integration/gost.new fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
-	# integration/gost.old fetch microsoft --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --apikey=<APIKEY>
+	# integration/gost.new fetch microsoft --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --apikey=<APIKEY>
 
 diff-cveid:
 	@ python integration/diff_server_mode.py cveid debian

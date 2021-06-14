@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -165,7 +166,7 @@ func (r *RDBDriver) IsGostModelV1() (bool, error) {
 	}
 
 	if count > 0 {
-		return true, err
+		return true, nil
 	}
 	return false, err
 }
@@ -173,9 +174,13 @@ func (r *RDBDriver) IsGostModelV1() (bool, error) {
 // GetFetchMeta get FetchMeta from Database
 func (r *RDBDriver) GetFetchMeta() (fetchMeta *models.FetchMeta, err error) {
 	if err = r.conn.Take(&fetchMeta).Error; err != nil {
-		return
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+		return &models.FetchMeta{GostRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
 	}
-	return
+
+	return fetchMeta, nil
 }
 
 // UpsertFetchMeta upsert FetchMeta to Database
