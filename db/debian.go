@@ -4,12 +4,13 @@ import (
 	"fmt"
 
 	"github.com/inconshreveable/log15"
-	"github.com/jinzhu/gorm"
 	"github.com/knqyf263/gost/models"
 	"github.com/knqyf263/gost/util"
 	pb "gopkg.in/cheggaaa/pb.v1"
+	"gorm.io/gorm"
 )
 
+// GetDebian :
 func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 	c := models.DebianCVE{}
 	err := r.conn.Where(&models.DebianCVE{CveID: cveID}).First(&c).Error
@@ -17,7 +18,7 @@ func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 		log15.Error("Failed to get Debian", "err", err)
 		return nil
 	}
-	err = r.conn.Model(&c).Related(&c.Package).Error
+	err = r.conn.Model(&c).Association("Package").Find(&c.Package)
 	if err != nil && err != gorm.ErrRecordNotFound {
 		log15.Error("Failed to get Debian", "err", err)
 		return nil
@@ -25,7 +26,7 @@ func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 
 	var newPkg []models.DebianPackage
 	for _, pkg := range c.Package {
-		err = r.conn.Model(&pkg).Related(&pkg.Release).Error
+		err = r.conn.Model(&pkg).Association("Release").Find(&pkg.Release)
 		if err != nil && err != gorm.ErrRecordNotFound {
 			log15.Error("Failed to get Debian", "err", err)
 			return nil
@@ -36,6 +37,7 @@ func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 	return &c
 }
 
+// InsertDebian :
 func (r *RDBDriver) InsertDebian(cveJSON models.DebianJSON) (err error) {
 	cves := ConvertDebian(cveJSON)
 	if err = r.deleteAndInsertDebian(r.conn, cves); err != nil {
@@ -56,10 +58,10 @@ func (r *RDBDriver) deleteAndInsertDebian(conn *gorm.DB, cves []models.DebianCVE
 	}()
 
 	// Delete all old records
-	var errs gorm.Errors
-	errs = errs.Add(tx.Delete(models.DebianRelease{}).Error)
-	errs = errs.Add(tx.Delete(models.DebianPackage{}).Error)
-	errs = errs.Add(tx.Delete(models.DebianCVE{}).Error)
+	var errs util.Errors
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianRelease{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianPackage{}).Error)
+	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianCVE{}).Error)
 	errs = util.DeleteNil(errs)
 
 	if len(errs.GetErrors()) > 0 {
@@ -76,6 +78,7 @@ func (r *RDBDriver) deleteAndInsertDebian(conn *gorm.DB, cves []models.DebianCVE
 	return nil
 }
 
+// ConvertDebian :
 func ConvertDebian(cveJSONs models.DebianJSON) (cves []models.DebianCVE) {
 	uniqCve := map[string]models.DebianCVE{}
 	for pkgName, cveMap := range cveJSONs {
@@ -120,6 +123,9 @@ var debVerCodename = map[string]string{
 	"8":  "jessie",
 	"9":  "stretch",
 	"10": "buster",
+	"11": "bullseye",
+	"12": "bookworm",
+	"13": "trixie",
 }
 
 // GetUnfixedCvesDebian gets the CVEs related to debian_release.status = 'open', major, pkgName.
@@ -172,7 +178,7 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 			if pkg.PackageName != pkgName {
 				continue
 			}
-			err = r.conn.Model(&pkg).Related(&pkg.Release).Error
+			err = r.conn.Model(&pkg).Association("Release").Find(&pkg.Release)
 			if err != nil && err != gorm.ErrRecordNotFound {
 				log15.Error("Failed to get DebianRelease", pkg.Release, err)
 				return m

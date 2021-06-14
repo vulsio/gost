@@ -6,6 +6,7 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/models"
+	"golang.org/x/xerrors"
 )
 
 // DB is interface for a database driver
@@ -14,6 +15,10 @@ type DB interface {
 	OpenDB(string, string, bool) (bool, error)
 	CloseDB() error
 	MigrateDB() error
+
+	IsGostModelV1() (bool, error)
+	GetFetchMeta() (*models.FetchMeta, error)
+	UpsertFetchMeta(*models.FetchMeta) error
 
 	GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error)
 	GetRedhat(string) *models.RedhatCVE
@@ -42,6 +47,16 @@ func NewDB(dbType, dbPath string, debugSQL bool) (driver DB, locked bool, err er
 			return nil, true, err
 		}
 		return nil, false, err
+	}
+
+	isV1, err := driver.IsGostModelV1()
+	if err != nil {
+		log15.Error("Failed to IsGostModelV1.", "err", err)
+		return nil, false, err
+	}
+	if isV1 {
+		log15.Error("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again")
+		return nil, false, xerrors.New("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again.")
 	}
 
 	if err := driver.MigrateDB(); err != nil {
