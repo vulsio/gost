@@ -2,6 +2,7 @@ package fetcher
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"path/filepath"
@@ -18,6 +19,7 @@ const (
 	redhatDir = "redhat"
 )
 
+// FetchRedHatVulnList clones vuln-list and returns CVE JSONs
 func FetchRedHatVulnList() (entries []models.RedhatCVEJSON, err error) {
 	// Clone vuln-list repository
 	dir := filepath.Join(util.CacheDir(), "vuln-list")
@@ -40,7 +42,7 @@ func FetchRedHatVulnList() (entries []models.RedhatCVEJSON, err error) {
 		log15.Debug("Red Hat: no updated file")
 		return nil, nil
 	}
-	log15.Debug("Red Hat updated files: %d", len(targets))
+	log15.Debug(fmt.Sprintf("Red Hat updated files: %d", len(targets)))
 
 	var cves []RedhatCVE
 	err = util.FileWalk(rootDir, targets, func(r io.Reader, _ string) error {
@@ -157,6 +159,7 @@ func FetchRedHatVulnList() (entries []models.RedhatCVEJSON, err error) {
 	return entries, nil
 }
 
+// RedhatCVE :
 type RedhatCVE struct {
 	ThreatSeverity       string         `json:"threat_severity"`
 	PublicDate           string         `json:"public_date"`
@@ -179,48 +182,58 @@ type RedhatCVE struct {
 	References []string `json:"references"`
 }
 
+// RedhatCVEAffectedReleaseArray :
 type RedhatCVEAffectedReleaseArray struct {
 	AffectedRelease []RedhatAffectedRelease `json:"affected_release"`
 }
 
+// RedhatCVEAffectedReleaseObject :
 type RedhatCVEAffectedReleaseObject struct {
 	AffectedRelease RedhatAffectedRelease `json:"affected_release"`
 }
 
+// RedhatCVEPackageStateArray :
 type RedhatCVEPackageStateArray struct {
 	PackageState []RedhatPackageState `json:"package_state"`
 }
 
+// RedhatCVEPackageStateObject :
 type RedhatCVEPackageStateObject struct {
 	PackageState RedhatPackageState `json:"package_state"`
 }
 
+// RedhatDetail :
 type RedhatDetail struct {
 	Detail string `sql:"type:text"`
 }
 
+// RedhatReference :
 type RedhatReference struct {
 	Reference string `sql:"type:text"`
 }
 
+// RedhatBugzilla :
 type RedhatBugzilla struct {
 	Description string `json:"description" sql:"type:text"`
 	BugzillaID  string `json:"id"`
 	URL         string `json:"url"`
 }
 
+// RedhatCvss :
 type RedhatCvss struct {
 	CvssBaseScore     string `json:"cvss_base_score"`
 	CvssScoringVector string `json:"cvss_scoring_vector"`
 	Status            string `json:"status"`
 }
 
+// RedhatCvss3 :
 type RedhatCvss3 struct {
 	Cvss3BaseScore     string `json:"cvss3_base_score"`
 	Cvss3ScoringVector string `json:"cvss3_scoring_vector"`
 	Status             string `json:"status"`
 }
 
+// RedhatAffectedRelease :
 type RedhatAffectedRelease struct {
 	ProductName string `json:"product_name"`
 	ReleaseDate string `json:"release_date"`
@@ -229,6 +242,7 @@ type RedhatAffectedRelease struct {
 	Cpe         string `json:"cpe"`
 }
 
+// RedhatPackageState :
 type RedhatPackageState struct {
 	ProductName string `json:"product_name"`
 	FixState    string `json:"fix_state"`
