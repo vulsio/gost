@@ -4,6 +4,7 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/db"
 	"github.com/knqyf263/gost/fetcher"
+	"github.com/knqyf263/gost/models"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
@@ -36,10 +37,25 @@ func fetchUbuntu(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
+	fetchMeta, err := driver.GetFetchMeta()
+	if err != nil {
+		log15.Error("Failed to get FetchMeta from DB.", "err", err)
+		return err
+	}
+	if fetchMeta.OutDated() {
+		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+	}
+
 	log15.Info("Fetched", "CVEs", len(cves))
 	log15.Info("Insert Ubuntu into DB", "db", driver.Name())
 	if err := driver.InsertUbuntu(cves); err != nil {
 		log15.Error("Failed to insert.", "dbpath", viper.GetString("dbpath"), "err", err)
+		return err
+	}
+
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		log15.Error("Failed to upsert FetchMeta to DB.", "dbpath", viper.GetString("dbpath"), "err", err)
 		return err
 	}
 
