@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
-	"gorm.io/gorm"
 )
 
 // microsoftCmd represents the microsoft command
@@ -41,15 +40,12 @@ func fetchMicrosoft(cmd *cobra.Command, args []string) (err error) {
 
 	fetchMeta, err := driver.GetFetchMeta()
 	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			log15.Error("Failed to get FetchMeta from DB.", "err", err)
-			return err
-		}
-	} else {
-		if fetchMeta.OutDated() {
-			log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
-			return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
-		}
+		log15.Error("Failed to get FetchMeta from DB.", "err", err)
+		return err
+	}
+	if fetchMeta.OutDated() {
+		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
 	}
 
 	log15.Info("Fetched all CVEs from Microsoft")

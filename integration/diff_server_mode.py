@@ -28,7 +28,7 @@ def diff_cveid(args: Tuple[str, str]):
     diff = DeepDiff(response_old, response_new, ignore_order=True)
     if diff != {}:
         logger.warning(
-            f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({args[1]: diff}, indent=2)}\n response_old:{pprint.pformat(response_old, indent=2)}\n response_new:{pprint.pformat(response_new, indent=2)}')
+            f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": "cveid", "args": args, "diff": diff}, indent=2)}')
 
 
 def diff_package(args: Tuple[str, str]):
@@ -66,7 +66,7 @@ def diff_package(args: Tuple[str, str]):
             diff = DeepDiff(response_old, response_new, ignore_order=True)
             if diff != {}:
                 logger.warning(
-                    f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({args[1]: diff}, indent=2)}\n response_old:{pprint.pformat(response_old, indent=2)}\n response_new:{pprint.pformat(response_new, indent=2)}')
+                    f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": "package", "args": args, "diff": diff}, indent=2)}')
 
 
 def diff_response(args: Tuple[str, str, str]):
