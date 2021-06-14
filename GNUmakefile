@@ -104,7 +104,7 @@ fetch-redis:
 
 	integration/gost.new fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
 	integration/gost.new fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
-	# integration/gost.old fetch microsoft --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --apikey=<APIKEY>
+	# integration/gost.new fetch microsoft --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --apikey=<APIKEY>
 
 diff-cveid:
 	@ python integration/diff_server_mode.py cveid debian
