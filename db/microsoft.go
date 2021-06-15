@@ -438,11 +438,11 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 		for _, bs := range bss {
 			var products []models.MicrosoftProduct
 			if len(bs.AffectedProduct) != 0 {
-				product := getProductFromName(&msProducts, bs.AffectedProduct)
+				product := getProductFromName(msProducts, bs.AffectedProduct)
 				products = append(products, product)
 			}
 			if len(bs.AffectedComponent) != 0 {
-				product := getProductFromName(&msProducts, bs.AffectedComponent)
+				product := getProductFromName(msProducts, bs.AffectedComponent)
 				products = append(products, product)
 			}
 
@@ -543,21 +543,15 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 	return cves, msProducts
 }
 
-func getProductFromName(msProducts *[]models.MicrosoftProduct, productName string) models.MicrosoftProduct {
-	for _, msp := range *msProducts {
+func getProductFromName(msProducts []models.MicrosoftProduct, productName string) models.MicrosoftProduct {
+	for _, msp := range msProducts {
 		if productName == msp.ProductName {
 			return msp
 		}
 	}
-
-	newProduct := models.MicrosoftProduct{
-		ProductID:   fmt.Sprint(len(*msProducts)),
+	return models.MicrosoftProduct{
 		ProductName: productName,
 	}
-
-	*msProducts = append(*msProducts, newProduct)
-
-	return newProduct
 }
 
 // GetUnfixedCvesMicrosoft :
