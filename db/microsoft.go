@@ -429,6 +429,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 		if len(cveID) == 0 {
 			continue
 		}
+
 		uniqImpact := map[string]models.MicrosoftThreat{}
 		uniqSeverity := map[string]models.MicrosoftThreat{}
 		uniqKBIDs := map[string]bool{}
@@ -448,7 +449,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 
 			impact := models.MicrosoftThreat{
 				Description: bs.Impact,
-				Products:    products,
+				Products:    append([]models.MicrosoftProduct(nil), products...),
 				AttrType:    "Impact",
 			}
 			if i, ok := uniqImpact[bs.Impact]; ok {
@@ -458,7 +459,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 
 			severity := models.MicrosoftThreat{
 				Description: bs.Severity,
-				Products:    products,
+				Products:    append([]models.MicrosoftProduct(nil), products...),
 				AttrType:    "Severity",
 			}
 			if s, ok := uniqSeverity[bs.Severity]; ok {
@@ -467,7 +468,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 			uniqSeverity[bs.Severity] = severity
 
 			rem := models.MicrosoftRemediation{
-				Products:        products,
+				Products:        append([]models.MicrosoftProduct(nil), products...),
 				RestartRequired: bs.Reboot,
 				Supercedence:    bs.Supersedes,
 				AttrType:        "Vendor Fix",
