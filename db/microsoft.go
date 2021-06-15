@@ -91,7 +91,7 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 
 	errs = errs.Add(r.conn.Model(&c).Association("KBIDs").Find(&c.KBIDs))
 	if len(c.KBIDs) > 0 {
-		c.References = nil
+		c.KBIDs = nil
 	}
 
 	errs = util.DeleteRecordNotFound(errs)
