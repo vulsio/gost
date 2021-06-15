@@ -90,7 +90,7 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 	}
 
 	errs = errs.Add(r.conn.Model(&c).Association("KBIDs").Find(&c.KBIDs))
-	if len(c.KBIDs) > 0 {
+	if len(c.KBIDs) == 0 {
 		c.KBIDs = nil
 	}
 
