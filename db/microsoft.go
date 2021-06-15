@@ -449,6 +449,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 			impact := models.MicrosoftThreat{
 				Description: bs.Impact,
 				Products:    products,
+				AttrType:    "Impact",
 			}
 			if i, ok := uniqImpact[bs.Impact]; ok {
 				impact.Products = append(impact.Products, i.Products...)
@@ -458,6 +459,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 			severity := models.MicrosoftThreat{
 				Description: bs.Severity,
 				Products:    products,
+				AttrType:    "Severity",
 			}
 			if s, ok := uniqSeverity[bs.Severity]; ok {
 				severity.Products = append(severity.Products, s.Products...)
@@ -468,6 +470,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 				Products:        products,
 				RestartRequired: bs.Reboot,
 				Supercedence:    bs.Supersedes,
+				AttrType:        "Vendor Fix",
 			}
 			vendorFix = append(vendorFix, rem)
 
@@ -506,6 +509,12 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 			index = index + 1
 		}
 
+		for i := range vendorFix {
+			for j := range vendorFix[i].Products {
+				vendorFix[i].Products[j].TableSource = fmt.Sprintf("VendorFix:%d", i)
+			}
+		}
+
 		for k := range uniqKBIDs {
 			kbID := models.MicrosoftKBID{
 				KBID: k,
@@ -514,11 +523,11 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 		}
 
 		uniqCve[cveID] = models.MicrosoftCVE{
-			Title:          title,
-			CveID:          cveID,
-			Impact:         impact,
-			Severity:       severity,
-			VendorFix:      vendorFix,
+			Title:    title,
+			CveID:    cveID,
+			Impact:   impact,
+			Severity: severity,
+			// VendorFix:      vendorFix,
 			KBIDs:          kbIDs,
 			PublishDate:    publishDate,
 			LastUpdateDate: publishDate,
