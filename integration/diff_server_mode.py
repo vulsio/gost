@@ -111,9 +111,9 @@ if args.list_path != None:
     list_path = args.list_path
 else:
     if args.mode == 'cveid':
-        list_path = 'integration/cveid_' + args.ostype + '.txt'
+        list_path = 'integration/cveid/cveid_' + args.ostype + '.txt'
     if args.mode == 'package':
-        list_path = 'integration/package_' + args.ostype + '.txt'
+        list_path = 'integration/package/package_' + args.ostype + '.txt'
 
 if list_path == None:
     logger.error(
