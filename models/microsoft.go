@@ -283,6 +283,7 @@ type MicrosoftThreat struct {
 	MicrosoftCVEID int64              `json:"-" gorm:"index:idx_microsoft_threat_microsoft_cve_id"`
 	Description    string             `json:"description" gorm:"type:text"`
 	Products       []MicrosoftProduct `json:"products" gorm:"foreignKey:MicrosoftCVEID;references:MicrosoftCVEID"`
+	AttrType       string             `json:"-" gorm:"type:varchar(255)"`
 }
 
 // MicrosoftRemediation :

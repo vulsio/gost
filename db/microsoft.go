@@ -26,12 +26,12 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 		errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("MicrosoftProductStatus:%d", i)).Find(&c.MicrosoftProductStatuses[i].Products).Error)
 	}
 
-	errs = errs.Add(r.conn.Model(&c).Association("Impact").Find(&c.Impact))
+	errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Impact'", c.ID).Find(&c.Impact).Error)
 	for i := range c.Impact {
 		errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("Impact:%d", i)).Find(&c.Impact[i].Products).Error)
 	}
 
-	errs = errs.Add(r.conn.Model(&c).Association("Severity").Find(&c.Severity))
+	errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Severity'", c.ID).Find(&c.Severity).Error)
 	for i := range c.Severity {
 		errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("Severity:%d", i)).Find(&c.Severity[i].Products).Error)
 	}
@@ -199,6 +199,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 				threat := models.MicrosoftThreat{
 					Description: t.Description,
 					Products:    products,
+					AttrType:    t.AttrType,
 				}
 
 				switch t.AttrType {
