@@ -53,7 +53,7 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 
 	errs = errs.Add(r.conn.Model(&c).Association("ScoreSets").Find(&c.ScoreSets))
 	for i := range c.ScoreSets {
-		errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("MicrosoftScoreSets:%d", i)).Find(&c.ScoreSets[i].Products).Error)
+		errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("MicrosoftScoreSet:%d", i)).Find(&c.ScoreSets[i].Products).Error)
 	}
 
 	errs = errs.Add(r.conn.Model(&c).Association("References").Find(&c.References))
