@@ -36,17 +36,17 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 		errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("Severity:%d", i)).Find(&c.Severity[i].Products).Error)
 	}
 
-	errs = errs.Add(r.conn.Model(&c).Association("VendorFix").Find(&c.VendorFix))
+	errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Vendor Fix'", c.ID).Find(&c.VendorFix).Error)
 	for i := range c.VendorFix {
 		errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("VendorFix:%d", i)).Find(&c.VendorFix[i].Products).Error)
 	}
 
-	errs = errs.Add(r.conn.Model(&c).Association("NoneAvailable").Find(&c.NoneAvailable))
+	errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND attr_type = 'None Available'", c.ID).Find(&c.NoneAvailable).Error)
 	for i := range c.NoneAvailable {
 		errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("NoneAvailable:%d", i)).Find(&c.NoneAvailable[i].Products).Error)
 	}
 
-	errs = errs.Add(r.conn.Model(&c).Association("WillNotFix").Find(&c.WillNotFix))
+	errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Will Not Fix'", c.ID).Find(&c.WillNotFix).Error)
 	for i := range c.WillNotFix {
 		errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("WillNotFix:%d", i)).Find(&c.WillNotFix[i].Products).Error)
 	}
@@ -294,6 +294,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 					SubType:         r.SubType,
 					Supercedence:    r.Supercedence,
 					URL:             r.URL,
+					AttrType:        r.AttrType,
 				}
 				switch r.AttrType {
 				case "Workaround":
@@ -451,18 +452,22 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 
 		var impact, severity []models.MicrosoftThreat
 		var kbIDs []models.MicrosoftKBID
-		for index, i := range uniqImpact {
+		index := 0
+		for _, i := range uniqImpact {
 			for j := range i.Products {
-				i.Products[j].TableSource = fmt.Sprintf("Impact:%s", index)
+				i.Products[j].TableSource = fmt.Sprintf("Impact:%d", index)
 			}
 			impact = append(impact, i)
+			index = index + 1
 		}
 
-		for index, s := range uniqSeverity {
+		index = 0
+		for _, s := range uniqSeverity {
 			for j := range s.Products {
-				s.Products[j].TableSource = fmt.Sprintf("Impact:%s", index)
+				s.Products[j].TableSource = fmt.Sprintf("Severity:%d", index)
 			}
-			severity = append(impact, s)
+			severity = append(severity, s)
+			index = index + 1
 		}
 
 		for k := range uniqKBIDs {

@@ -296,6 +296,7 @@ type MicrosoftRemediation struct {
 	SubType         string             `json:"sub_type" gorm:"type:varchar(255)"`
 	Supercedence    string             `json:"supercedence" gorm:"type:text"`
 	URL             string             `json:"url" gorm:"type:varchar(255)"`
+	AttrType        string             `json:"-" gorm:"type:varchar(255)"`
 }
 
 // MicrosoftScoreSet :
