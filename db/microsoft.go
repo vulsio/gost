@@ -421,8 +421,6 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 		return msProducts[i].ProductID < msProducts[j].ProductID
 	})
 
-	log15.Info("debug", "sortedMSProducts", msProducts)
-
 	// csv
 	cveBulletinSearch := map[string][]models.MicrosoftBulletinSearch{}
 	for _, b := range cveXls {
