@@ -22,7 +22,7 @@ const (
 func FetchUbuntuVulnList() (entries []models.UbuntuCVEJSON, err error) {
 	// Clone vuln-list repository
 	dir := filepath.Join(util.CacheDir(), "vuln-list")
-	updatedFiles, err := git.CloneOrPull(repoURL, dir)
+	updatedFiles, err := git.CloneOrPull(repoURL, dir, ubuntuDir)
 	if err != nil {
 		return nil, xerrors.Errorf("error in vulnsrc clone or pull: %w", err)
 	}
