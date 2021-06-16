@@ -11,9 +11,7 @@ COPY . $GOPATH/src/$REPOSITORY
 RUN cd $GOPATH/src/$REPOSITORY && make install
 
 
-FROM alpine:3.7
-
-MAINTAINER knqyf263
+FROM alpine:3.13
 
 ENV LOGDIR /var/log/vuls
 ENV WORKDIR /vuls
