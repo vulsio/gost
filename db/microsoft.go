@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -415,6 +416,12 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 		}
 		msProducts = append(msProducts, msProduct)
 	}
+
+	sort.Slice(msProducts, func(i, j int) bool {
+		return msProducts[i].ProductID < msProducts[j].ProductID
+	})
+
+	log15.Info("debug", "sortedMSProducts", msProducts)
 
 	// csv
 	cveBulletinSearch := map[string][]models.MicrosoftBulletinSearch{}
