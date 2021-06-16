@@ -206,7 +206,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 				var products []models.MicrosoftProduct
 				for _, productID := range p.ProductID {
 					product := models.MicrosoftProduct{
-						TableSource: fmt.Sprintf("MicrosoftProductStatus:%d", i),
+						Category:    fmt.Sprintf("MicrosoftProductStatus:%d", i),
 						ProductID:   productID,
 						ProductName: uniqProduct[productID],
 					}
@@ -226,7 +226,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 				var products []models.MicrosoftProduct
 				for _, productID := range t.ProductID {
 					product := models.MicrosoftProduct{
-						TableSource: "MicrosoftThreat",
+						Category:    "MicrosoftThreat",
 						ProductID:   productID,
 						ProductName: uniqProduct[productID],
 					}
@@ -262,7 +262,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 			index := 0
 			for _, i := range uniqImpact {
 				for j := range i.Products {
-					i.Products[j].TableSource = fmt.Sprintf("Impact:%d", index)
+					i.Products[j].Category = fmt.Sprintf("Impact:%d", index)
 				}
 				impact = append(impact, i)
 				index = index + 1
@@ -271,7 +271,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 			index = 0
 			for _, s := range uniqSeverity {
 				for j := range s.Products {
-					s.Products[j].TableSource = fmt.Sprintf("Severity:%d", index)
+					s.Products[j].Category = fmt.Sprintf("Severity:%d", index)
 				}
 				severity = append(severity, s)
 				index = index + 1
@@ -305,7 +305,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 			index = 0
 			for _, scoreSet := range uniqScoreSets {
 				for j := range scoreSet.Products {
-					scoreSet.Products[j].TableSource = fmt.Sprintf("MicrosoftScoreSet:%d", index)
+					scoreSet.Products[j].Category = fmt.Sprintf("MicrosoftScoreSet:%d", index)
 				}
 				scoreSets = append(scoreSets, scoreSet)
 				index = index + 1
@@ -340,7 +340,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 					mitigation = r.Description
 				case "Vendor Fix":
 					for j := range remediation.Products {
-						remediation.Products[j].TableSource = fmt.Sprintf("VendorFix:%d", len(vendorFix))
+						remediation.Products[j].Category = fmt.Sprintf("VendorFix:%d", len(vendorFix))
 					}
 					vendorFix = append(vendorFix, remediation)
 					if _, err := strconv.Atoi(r.Description); err == nil {
@@ -348,12 +348,12 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 					}
 				case "None Available":
 					for j := range remediation.Products {
-						remediation.Products[j].TableSource = fmt.Sprintf("NoneAvailable:%d", len(noneAvailable))
+						remediation.Products[j].Category = fmt.Sprintf("NoneAvailable:%d", len(noneAvailable))
 					}
 					noneAvailable = append(noneAvailable, remediation)
 				case "Will Not Fix":
 					for j := range remediation.Products {
-						remediation.Products[j].TableSource = fmt.Sprintf("WillNotFix:%d", len(willNotFix))
+						remediation.Products[j].Category = fmt.Sprintf("WillNotFix:%d", len(willNotFix))
 					}
 					willNotFix = append(willNotFix, remediation)
 				default:
@@ -500,7 +500,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 		index := 0
 		for _, i := range uniqImpact {
 			for j := range i.Products {
-				i.Products[j].TableSource = fmt.Sprintf("Impact:%d", index)
+				i.Products[j].Category = fmt.Sprintf("Impact:%d", index)
 			}
 			impact = append(impact, i)
 			index = index + 1
@@ -509,7 +509,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 		index = 0
 		for _, s := range uniqSeverity {
 			for j := range s.Products {
-				s.Products[j].TableSource = fmt.Sprintf("Severity:%d", index)
+				s.Products[j].Category = fmt.Sprintf("Severity:%d", index)
 			}
 			severity = append(severity, s)
 			index = index + 1
@@ -517,7 +517,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 
 		for i := range vendorFix {
 			for j := range vendorFix[i].Products {
-				vendorFix[i].Products[j].TableSource = fmt.Sprintf("VendorFix:%d", i)
+				vendorFix[i].Products[j].Category = fmt.Sprintf("VendorFix:%d", i)
 			}
 		}
 
