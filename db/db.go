@@ -24,14 +24,18 @@ type DB interface {
 	GetRedhat(string) *models.RedhatCVE
 	GetRedhatMulti([]string) map[string]models.RedhatCVE
 	GetDebian(string) *models.DebianCVE
+	GetUbuntu(string) *models.UbuntuCVE
 	GetMicrosoft(string) *models.MicrosoftCVE
 	GetMicrosoftMulti([]string) map[string]models.MicrosoftCVE
 	GetUnfixedCvesRedhat(string, string, bool) map[string]models.RedhatCVE
 	GetUnfixedCvesDebian(string, string) map[string]models.DebianCVE
 	GetFixedCvesDebian(string, string) map[string]models.DebianCVE
+	GetUnfixedCvesUbuntu(string, string) map[string]models.UbuntuCVE
+	GetFixedCvesUbuntu(string, string) map[string]models.UbuntuCVE
 
 	InsertRedhat([]models.RedhatCVEJSON) error
 	InsertDebian(models.DebianJSON) error
+	InsertUbuntu([]models.UbuntuCVEJSON) error
 	InsertMicrosoft([]models.MicrosoftXML, []models.MicrosoftBulletinSearch) error
 }
 

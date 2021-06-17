@@ -1,7 +1,7 @@
 # gost (go-security-tracker)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](https://github.com/knqyf263/gost/blob/master/LICENSE)
 
-`gost` builds a local copy of Security Tracker(Redhat/Debian/Microsoft).   
+`gost` builds a local copy of Security Tracker(Redhat/Debian/Ubuntu/Microsoft).   
 After you register CVEs to watch list, `gost` notify via E-mail/Slack if there is an update.
 The pronunciation of `gost` is the same as the English word "ghost".
 
@@ -10,7 +10,7 @@ The pronunciation of `gost` is the same as the English word "ghost".
 # Abstract
 `gost` is written in Go, and therefore you can just grab the binary releases and drop it in your $PATH.
 
-`gost` builds a local copy of Security Tracker ([Redhat](https://access.redhat.com/security/security-updates/) or [Debian](https://security-tracker.debian.org/tracker/) or [Microsoft](https://portal.msrc.microsoft.com/en-us/security-guidance)). 
+`gost` builds a local copy of Security Tracker ([Redhat](https://access.redhat.com/security/security-updates/) or [Debian](https://security-tracker.debian.org/tracker/) or [Ubuntu](https://people.canonical.com/~ubuntu-security/cve/) or [Microsoft](https://portal.msrc.microsoft.com/en-us/security-guidance)). 
 
 A system administrator always monitor `Security Tracker`. It can be a burden. For example, after the vulnerability is found, we have to wait until the patch comes out. I hope anyone notifies me if there is an update. 
 
@@ -85,6 +85,19 @@ INFO[07-27|15:30:49] Migrating DB.                            db=sqlite3
 INFO[07-27|15:30:49] Fetched all CVEs from Debian
 INFO[07-27|15:31:09] Insert Debian CVEs into DB               db=sqlite3
  21428 / 21428 [================] 100.00% 5s
+```
+
+# Fetch Ubuntu
+
+## Fetch vulnerability infomation 
+
+```
+$ gost fetch ubuntu 
+
+INFO[05-23|06:28:18] Initialize Database 
+INFO[05-23|06:28:18] Fetched                                  CVEs=36737
+INFO[05-23|06:28:18] Insert Ubuntu into DB                    db=sqlite3
+ 36737 / 36737 [============================================================================] 100.00% 55s
 ```
 
 # Fetch Microsoft
@@ -197,13 +210,17 @@ $ go get github.com/knqyf263/gost
 
 # Docker Setup, Fetch, Run as Serer and Curl
 
-## Fetch Debian and RedHat then start as a server mode
+## Fetch Debian, Ubuntu, and RedHat then start as a server mode
 
 ```
 $ docker run --rm -i \ 
 	 -v $PWD:/vuls \
 	 -v $PWD:/var/log/gost \
 	 vuls/gost fetch debian
+   $ docker run --rm -i \ 
+	 -v $PWD:/vuls \
+	 -v $PWD:/var/log/gost \
+	 vuls/gost fetch ubuntu
 $ docker run --rm -i \
 	-v $PWD:/vuls \
 	-v $PWD:/var/log/gost \
@@ -252,10 +269,6 @@ $ curl http://127.0.0.1:1325/debian/9/pkgs/expat/unfixed-cves | jq "."          
   }
 }
 ```
-
-
-# TODO
-- Ubuntu(https://people.canonical.com/~ubuntu-security/cve/)
 
 # Contribute
 
