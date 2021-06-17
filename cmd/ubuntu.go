@@ -10,20 +10,20 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// redhatCmd represents the redhat command
-var redHatCmd = &cobra.Command{
-	Use:   "redhat",
+// ubuntuCmd represents the ubuntu command
+var ubuntuCmd = &cobra.Command{
+	Use:   "ubuntu",
 	Short: "Fetch the CVE information from aquasecurity/vuln-list",
 	Long:  `Fetch the CVE information from aquasecurity/vuln-list`,
-	RunE:  fetchRedHat,
+	RunE:  fetchUbuntu,
 }
 
 func init() {
-	fetchCmd.AddCommand(redHatCmd)
+	fetchCmd.AddCommand(ubuntuCmd)
 }
 
-func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
-	cves, err := fetcher.FetchRedHatVulnList()
+func fetchUbuntu(cmd *cobra.Command, args []string) (err error) {
+	cves, err := fetcher.FetchUbuntuVulnList()
 	if err != nil {
 		return xerrors.Errorf("error in vulnerability DB initialize: %w", err)
 	}
@@ -47,8 +47,9 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
 	}
 
-	log15.Info("Insert RedHat into DB", "db", driver.Name())
-	if err := driver.InsertRedhat(cves); err != nil {
+	log15.Info("Fetched", "CVEs", len(cves))
+	log15.Info("Insert Ubuntu into DB", "db", driver.Name())
+	if err := driver.InsertUbuntu(cves); err != nil {
 		log15.Error("Failed to insert.", "dbpath", viper.GetString("dbpath"), "err", err)
 		return err
 	}

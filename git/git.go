@@ -23,6 +23,7 @@ func getGitVersion() (string, error) {
 	return version, nil
 }
 
+// CloneOrPull clone/pull aquasecurity/vuln-list
 func CloneOrPull(url, repoPath, osDir string) (map[string]struct{}, error) {
 	exists, err := util.Exists(filepath.Join(repoPath, ".git"))
 	if err != nil {

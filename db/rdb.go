@@ -121,6 +121,15 @@ func (r *RDBDriver) MigrateDB() error {
 		&models.DebianPackage{},
 		&models.DebianRelease{},
 
+		&models.UbuntuCVE{},
+		&models.UbuntuReference{},
+		&models.UbuntuNote{},
+		&models.UbuntuBug{},
+		&models.UbuntuPatch{},
+		&models.UbuntuReleasePatch{},
+		&models.UbuntuUpstream{},
+		&models.UbuntuUpstreamLink{},
+
 		&models.MicrosoftCVE{},
 		&models.MicrosoftProductStatus{},
 		&models.MicrosoftThreat{},

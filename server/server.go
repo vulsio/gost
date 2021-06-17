@@ -43,10 +43,13 @@ func Start(logDir string, driver db.DB) error {
 	e.GET("/health", health())
 	e.GET("/redhat/cves/:id", getRedhatCve(driver))
 	e.GET("/debian/cves/:id", getDebianCve(driver))
+	e.GET("/ubuntu/cves/:id", getUbuntuCve(driver))
 	e.GET("/microsoft/cves/:id", getMicrosoftCve(driver))
 	e.GET("/redhat/:release/pkgs/:name/unfixed-cves", getUnfixedCvesRedhat(driver))
 	e.GET("/debian/:release/pkgs/:name/unfixed-cves", getUnfixedCvesDebian(driver))
 	e.GET("/debian/:release/pkgs/:name/fixed-cves", getFixedCvesDebian(driver))
+	e.GET("/ubuntu/:release/pkgs/:name/unfixed-cves", getUnfixedCvesUbuntu(driver))
+	e.GET("/ubuntu/:release/pkgs/:name/fixed-cves", getFixedCvesUbuntu(driver))
 
 	bindURL := fmt.Sprintf("%s:%s", viper.GetString("bind"), viper.GetString("port"))
 	log15.Info("Listening", "URL", bindURL)
@@ -78,6 +81,16 @@ func getDebianCve(driver db.DB) echo.HandlerFunc {
 		cveid := c.Param("id")
 		//TODO error
 		cveDetail := driver.GetDebian(cveid)
+		return c.JSON(http.StatusOK, &cveDetail)
+	}
+}
+
+// Handler
+func getUbuntuCve(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		cveid := c.Param("id")
+		// TODO error
+		cveDetail := driver.GetUbuntu(cveid)
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }
@@ -118,6 +131,26 @@ func getFixedCvesDebian(driver db.DB) echo.HandlerFunc {
 		release := util.Major(c.Param("release"))
 		pkgName := c.Param("name")
 		cveDetail := driver.GetFixedCvesDebian(release, pkgName)
+		return c.JSON(http.StatusOK, &cveDetail)
+	}
+}
+
+// Handler
+func getUnfixedCvesUbuntu(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		release := util.Major(c.Param("release"))
+		pkgName := c.Param("name")
+		cveDetail := driver.GetUnfixedCvesUbuntu(release, pkgName)
+		return c.JSON(http.StatusOK, &cveDetail)
+	}
+}
+
+// Handler
+func getFixedCvesUbuntu(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		release := util.Major(c.Param("release"))
+		pkgName := c.Param("name")
+		cveDetail := driver.GetFixedCvesUbuntu(release, pkgName)
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }
