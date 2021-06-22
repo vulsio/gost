@@ -27,7 +27,7 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 		c.MicrosoftProductStatuses = nil
 	} else {
 		for i := range c.MicrosoftProductStatuses {
-			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("MicrosoftProductStatus:%d", i)).Find(&c.MicrosoftProductStatuses[i].Products).Error)
+			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("MicrosoftProductStatus:%d", i)).Find(&c.MicrosoftProductStatuses[i].Products).Error)
 		}
 	}
 
@@ -36,7 +36,7 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 		c.Impact = nil
 	} else {
 		for i := range c.Impact {
-			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("Impact:%d", i)).Find(&c.Impact[i].Products).Error)
+			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("Impact:%d", i)).Find(&c.Impact[i].Products).Error)
 		}
 	}
 
@@ -45,7 +45,7 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 		c.Severity = nil
 	} else {
 		for i := range c.Severity {
-			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("Severity:%d", i)).Find(&c.Severity[i].Products).Error)
+			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("Severity:%d", i)).Find(&c.Severity[i].Products).Error)
 		}
 	}
 
@@ -54,7 +54,7 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 		c.VendorFix = nil
 	} else {
 		for i := range c.VendorFix {
-			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("VendorFix:%d", i)).Find(&c.VendorFix[i].Products).Error)
+			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("VendorFix:%d", i)).Find(&c.VendorFix[i].Products).Error)
 		}
 	}
 
@@ -63,7 +63,7 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 		c.NoneAvailable = nil
 	} else {
 		for i := range c.NoneAvailable {
-			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("NoneAvailable:%d", i)).Find(&c.NoneAvailable[i].Products).Error)
+			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("NoneAvailable:%d", i)).Find(&c.NoneAvailable[i].Products).Error)
 		}
 	}
 
@@ -72,7 +72,7 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 		c.WillNotFix = nil
 	} else {
 		for i := range c.WillNotFix {
-			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("WillNotFix:%d", i)).Find(&c.WillNotFix[i].Products).Error)
+			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("WillNotFix:%d", i)).Find(&c.WillNotFix[i].Products).Error)
 		}
 	}
 
@@ -81,7 +81,7 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 		c.ScoreSets = nil
 	} else {
 		for i := range c.ScoreSets {
-			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND table_source = ?", c.ID, fmt.Sprintf("MicrosoftScoreSet:%d", i)).Find(&c.ScoreSets[i].Products).Error)
+			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("MicrosoftScoreSet:%d", i)).Find(&c.ScoreSets[i].Products).Error)
 		}
 	}
 
