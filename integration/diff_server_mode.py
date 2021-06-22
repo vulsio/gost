@@ -12,14 +12,11 @@ import json
 
 
 def convert_redis_only_none(response, os):
-    if response == None:
-        return json.loads('{"public_data_at_usn": "0001-01-01T00:00:00Z","crd": "0001-01-01T00:00:00Z","candidate": "","public_date": "0001-01-01T00:00:00Z","references": [],"description": "","ubuntu_description": "","notes": [],"bugs": [],"priority": "","discovered_by": "","assigned_to": "","patches": null,"upstreams": null}')
-
     if os == "redhat":
-        if response["details"] == None:
-            response["details"] = []
-        if response["references"] == None:
-            response["references"] = []
+        if response["Details"] == None:
+            response["Details"] = []
+        if response["References"] == None:
+            response["References"] = []
     elif os == "ubuntu":
         if response["references"] == None:
             response["references"] = []
