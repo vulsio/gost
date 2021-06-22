@@ -278,6 +278,7 @@ capi4hylafax
 capnproto
 capstone
 cargo
+caribou
 castor
 catdoc
 catfish
@@ -447,6 +448,7 @@ cyrus-sasl2
 cyrus-sasl2-heimdal
 cyrus-sasl2-mit
 cyrus21-imapd
+dacs
 dar
 darktable
 das-watchdog
@@ -734,7 +736,6 @@ focuswriter
 fontconfig
 fontforge
 foo2zjs
-foomatic-db-engine
 foomatic-filters
 foomatic-gui
 fop
@@ -1192,6 +1193,7 @@ hunspell
 hybserv
 hylafax
 hyperestraier
+hyperkitty
 hypermail
 hztty
 ia32-libs
@@ -1296,6 +1298,7 @@ jackson-dataformat-cbor
 jackson-dataformat-xml
 jackson-jr
 jailer
+jakarta-el-api
 jakarta-jmeter
 jakarta-taglibs-standard
 jansson
@@ -1335,6 +1338,7 @@ jqueryui
 jruby
 jsch
 json-c
+json-smart
 jsonpickle
 jsoup
 jspwiki
@@ -1371,6 +1375,7 @@ kdelibs
 kdenetwork
 kdepim
 kdepim-runtime
+kdepim4
 kdepimlibs
 kdeplasma-addons
 kdeutils
@@ -1608,6 +1613,7 @@ libgig
 libgit2
 libglpng
 libgnomesu
+libgrss
 libgsf
 libgssapi
 libgssglue
@@ -1652,6 +1658,8 @@ libjamon-java
 libjbcrypt-java
 libjboss-remoting-java
 libjcat
+libjdom1-java
+libjdom2-java
 libjfreechart-java
 libjgraphx-java
 libjgroups-java
@@ -1664,7 +1672,6 @@ libjs-handlebars
 libjs-i18next
 libjs-jquery-file-upload
 libjs-swfupload
-libjsoncpp
 libjss-java
 libkdcraw
 libkohana2-php
@@ -1692,7 +1699,6 @@ libmodplug
 libmodule-metadata-perl
 libmodule-signature-perl
 libmojolicious-perl
-libmp3-info-perl
 libmp3splt
 libmspack
 libmtp
@@ -1731,7 +1737,6 @@ liboping
 libosinfo
 libosip2
 libotr
-libowasp-antisamy-java
 libpam-heimdal
 libpam-krb5
 libpam-ldap
@@ -2107,7 +2112,6 @@ lxcfs
 lxd
 lxdm
 lxml
-lxr
 lxr-cvs
 lxsession
 lxterminal
@@ -2143,6 +2147,8 @@ man2html
 manila
 manila-ui
 mantis
+manuskript
+mapcache
 mapproxy
 mapserver
 maradns
@@ -2288,6 +2294,7 @@ mpg123
 mpg321
 mplayer
 mplayer2
+mpmath
 mpop
 mpv
 mr
@@ -2354,6 +2361,7 @@ nas
 nasm
 nautilus
 nautilus-python
+navit
 nbd
 nbdkit
 ncbi-tools6
@@ -2372,9 +2380,12 @@ neovim
 nescc
 net-snmp
 net6
+netams
 netapplet
 netatalk
 netbeans
+netcdf
+netcdf-parallel
 netcf
 netdata
 netdisco-mibs-installer
@@ -2438,8 +2449,10 @@ node-cached-path-relative
 node-chart.js
 node-chownr
 node-cli
+node-color-string
 node-connect
 node-cookie-signature
+node-css-what
 node-debug
 node-deep-extend
 node-dot
@@ -2451,6 +2464,7 @@ node-fetch
 node-fresh
 node-fstream
 node-glob-parent
+node-got
 node-growl
 node-handlebars
 node-hoek
@@ -2500,6 +2514,7 @@ node-stringstream
 node-superagent
 node-tar
 node-tough-cookie
+node-trim-newlines
 node-ua-parser-js
 node-url-parse
 node-uuid
@@ -2614,6 +2629,7 @@ ogle
 ohcount
 ojs
 okular
+olm
 olsrd
 onionshare
 oops
@@ -2782,6 +2798,7 @@ perdition
 perl
 perltidy
 petris
+pg-partman
 pgbouncer
 pgfouine
 pglogical
@@ -2815,7 +2832,6 @@ php-horde-ldap
 php-horde-lz4
 php-horde-text-filter
 php-horde-trean
-php-horde-turba
 php-horde-util
 php-htmlpurifier
 php-imagick
@@ -2944,6 +2960,7 @@ postgresql-common
 postgresql-ocaml
 postgresql-pljava
 postgrey
+postorius
 postsrsd
 potrace
 pound
@@ -3093,10 +3110,10 @@ python-soappy
 python-swiftclient
 python-tablib
 python-tornado
-python-tornado4
 python-urllib3
 python-uvicorn
 python-virtualenv
+python-websockets
 python-werkzeug
 python-xml
 python2.2
@@ -3237,8 +3254,10 @@ rhapsody
 rhn-client-tools
 rhnsd
 rhythmbox
+ripgrep
 rkhunter
 rkt
+rlottie
 rlpr
 rmysql
 robocode
@@ -3707,6 +3726,7 @@ texmaker
 textpattern
 tftp-hpa
 tgt
+thefuck
 thermald
 three.js
 thrift
