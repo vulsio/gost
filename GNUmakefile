@@ -100,15 +100,15 @@ fetch-redis:
 	docker run --name redis-old -d -p 127.0.0.1:6379:6379 redis
 	docker run --name redis-new -d -p 127.0.0.1:6380:6379 redis
 
-	integration/gost.old fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --batch-size 500
-	# integration/gost.old fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --batch-size 15
-	# integration/gost.old fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --batch-size 500
-	# integration/gost.old fetch microsoft --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --batch-size 200 --apikey=<APIKEY>
+	integration/gost.old fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
+	# integration/gost.old fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
+	# integration/gost.old fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6379/0"
+	# integration/gost.old fetch microsoft --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --apikey=<APIKEY>
 
-	integration/gost.new fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --batch-size 500
-	# integration/gost.new fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --batch-size 15
-	# integration/gost.new fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --batch-size 500
-	# integration/gost.new fetch microsoft --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --batch-size 200 --apikey=<APIKEY>
+	integration/gost.new fetch debian --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
+	# integration/gost.new fetch ubuntu --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
+	# integration/gost.new fetch redhat --dbtype redis --dbpath "redis://127.0.0.1:6380/0"
+	# integration/gost.new fetch microsoft --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --apikey=<APIKEY>
 
 diff-cveid:
 	@ python integration/diff_server_mode.py cveid debian
