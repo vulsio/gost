@@ -34,16 +34,16 @@ type UbuntuCVE struct {
 	CRD               time.Time         `json:"crd"`
 	Candidate         string            `json:"candidate" gorm:"type:varchar(255);index:idx_ubuntu_cve_candidate"`
 	PublicDate        time.Time         `json:"public_date"`
-	References        []UbuntuReference `json:"references,omitempty"`
+	References        []UbuntuReference `json:"references"`
 	Description       string            `json:"description" gorm:"type:text"`
 	UbuntuDescription string            `json:"ubuntu_description" gorm:"type:text"`
-	Notes             []UbuntuNote      `json:"notes,omitempty"`
-	Bugs              []UbuntuBug       `json:"bugs,omitempty"`
+	Notes             []UbuntuNote      `json:"notes"`
+	Bugs              []UbuntuBug       `json:"bugs"`
 	Priority          string            `json:"priority" gorm:"type:varchar(255)"`
 	DiscoveredBy      string            `json:"discovered_by" gorm:"type:varchar(255)"`
 	AssignedTo        string            `json:"assigned_to" gorm:"type:varchar(255)"`
 	Patches           []UbuntuPatch     `json:"patches"`
-	Upstreams         []UbuntuUpstream  `json:"upstreams,omitempty"`
+	Upstreams         []UbuntuUpstream  `json:"upstreams"`
 }
 
 // UbuntuReference :
