@@ -32,8 +32,9 @@ const (
 
 // RDBDriver is Driver for RDB
 type RDBDriver struct {
-	name string
-	conn *gorm.DB
+	name      string
+	conn      *gorm.DB
+	batchSize int
 }
 
 // Name return db name

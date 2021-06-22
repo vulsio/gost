@@ -22,4 +22,7 @@ func init() {
 	fetchCmd.PersistentFlags().Int("threads", 5, "The number of threads to be used")
 	viper.BindPFlag("threads", fetchCmd.PersistentFlags().Lookup("threads"))
 	viper.SetDefault("threads", 5)
+
+	fetchCmd.PersistentFlags().Int("batch-size", 15, "The number of batch size to insert. NOTE: This Option does not work for dbtype: redis.")
+	viper.BindPFlag("batch-size", fetchCmd.PersistentFlags().Lookup("batch-size"))
 }

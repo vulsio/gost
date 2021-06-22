@@ -166,7 +166,7 @@ func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cves []models.RedhatCVE
 		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
 	}
 
-	for idx := range chunkSlice(len(cves), 500) {
+	for idx := range chunkSlice(len(cves), r.batchSize) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
 			return fmt.Errorf("Failed to insert. err: %s", err)
 		}

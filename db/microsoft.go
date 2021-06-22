@@ -149,7 +149,7 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(conn *gorm.DB, cves []models.Micros
 		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
 	}
 
-	for idx := range chunkSlice(len(cves), 250) {
+	for idx := range chunkSlice(len(cves), r.batchSize) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
 			return fmt.Errorf("Failed to insert. err: %s", err)
 		}

@@ -83,7 +83,7 @@ func (r *RDBDriver) deleteAndInsertUbuntu(conn *gorm.DB, cves []models.UbuntuCVE
 		return xerrors.Errorf("Failed to delete old. err: %s", errs.Error())
 	}
 
-	for idx := range chunkSlice(len(cves), 15) {
+	for idx := range chunkSlice(len(cves), r.batchSize) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
 			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}
