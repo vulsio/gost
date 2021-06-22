@@ -140,6 +140,11 @@ diff-server-redis:
 diff-server-rdb-redis:
 	integration/gost.new server --dbpath=integration/gost.new.sqlite3 --port 1325 > /dev/null &
 	integration/gost.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null &
-	make diff-cveid
-	make diff-package
+	@ python integration/diff_server_mode.py cveid debian --diff_rdb_redis
+	# @ python integration/diff_server_mode.py cveid ubuntu --diff_rdb_redis
+	# @ python integration/diff_server_mode.py cveid redhat --diff_rdb_redis
+	# @ python integration/diff_server_mode.py cveid microsoft --diff_rdb_redis
+	@ python integration/diff_server_mode.py package debian --diff_rdb_redis
+	# @ python integration/diff_server_mode.py package ubuntu --diff_rdb_redis
+	# @ python integration/diff_server_mode.py package redhat --diff_rdb_redis
 	pkill gost.new
