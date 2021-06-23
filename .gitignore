@@ -21,6 +21,8 @@ vendor/
 
 *.toml
 
+.vscode
+
 # binary
 gost
 

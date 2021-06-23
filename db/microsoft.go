@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -17,21 +18,88 @@ import (
 // GetMicrosoft :
 func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 	c := models.MicrosoftCVE{}
-
 	var errs util.Errors
 	errs = errs.Add(r.conn.Where(&models.MicrosoftCVE{CveID: cveID}).First(&c).Error)
+	log15.Debug("microsoft_cve_id", "ID", c.ID)
+
 	errs = errs.Add(r.conn.Model(&c).Association("MicrosoftProductStatuses").Find(&c.MicrosoftProductStatuses))
-	errs = errs.Add(r.conn.Model(&c).Association("Impact").Find(&c.Impact))
-	errs = errs.Add(r.conn.Model(&c).Association("Severity").Find(&c.Severity))
-	errs = errs.Add(r.conn.Model(&c).Association("VendorFix").Find(&c.VendorFix))
-	errs = errs.Add(r.conn.Model(&c).Association("NoneAvailable").Find(&c.NoneAvailable))
-	errs = errs.Add(r.conn.Model(&c).Association("WillNotFix").Find(&c.WillNotFix))
-	errs = errs.Add(r.conn.Model(&c).Association("References").Find(&c.References))
+	if len(c.MicrosoftProductStatuses) == 0 {
+		c.MicrosoftProductStatuses = nil
+	} else {
+		for i := range c.MicrosoftProductStatuses {
+			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("MicrosoftProductStatus:%d", i)).Find(&c.MicrosoftProductStatuses[i].Products).Error)
+		}
+	}
+
+	errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Impact'", c.ID).Find(&c.Impact).Error)
+	if len(c.Impact) == 0 {
+		c.Impact = nil
+	} else {
+		for i := range c.Impact {
+			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("Impact:%d", i)).Find(&c.Impact[i].Products).Error)
+		}
+	}
+
+	errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Severity'", c.ID).Find(&c.Severity).Error)
+	if len(c.Severity) == 0 {
+		c.Severity = nil
+	} else {
+		for i := range c.Severity {
+			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("Severity:%d", i)).Find(&c.Severity[i].Products).Error)
+		}
+	}
+
+	errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Vendor Fix'", c.ID).Find(&c.VendorFix).Error)
+	if len(c.VendorFix) == 0 {
+		c.VendorFix = nil
+	} else {
+		for i := range c.VendorFix {
+			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("VendorFix:%d", i)).Find(&c.VendorFix[i].Products).Error)
+		}
+	}
+
+	errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND attr_type = 'None Available'", c.ID).Find(&c.NoneAvailable).Error)
+	if len(c.NoneAvailable) == 0 {
+		c.NoneAvailable = nil
+	} else {
+		for i := range c.NoneAvailable {
+			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("NoneAvailable:%d", i)).Find(&c.NoneAvailable[i].Products).Error)
+		}
+	}
+
+	errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Will Not Fix'", c.ID).Find(&c.WillNotFix).Error)
+	if len(c.WillNotFix) == 0 {
+		c.WillNotFix = nil
+	} else {
+		for i := range c.WillNotFix {
+			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("WillNotFix:%d", i)).Find(&c.WillNotFix[i].Products).Error)
+		}
+	}
+
 	errs = errs.Add(r.conn.Model(&c).Association("ScoreSets").Find(&c.ScoreSets))
+	if len(c.ScoreSets) == 0 {
+		c.ScoreSets = nil
+	} else {
+		for i := range c.ScoreSets {
+			errs = errs.Add(r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("MicrosoftScoreSet:%d", i)).Find(&c.ScoreSets[i].Products).Error)
+		}
+	}
+
+	errs = errs.Add(r.conn.Model(&c).Association("References").Find(&c.References))
+	if len(c.References) == 0 {
+		c.References = nil
+	}
+
+	errs = errs.Add(r.conn.Model(&c).Association("KBIDs").Find(&c.KBIDs))
+	if len(c.KBIDs) == 0 {
+		c.KBIDs = nil
+	}
+
 	errs = util.DeleteRecordNotFound(errs)
 	if len(errs.GetErrors()) > 0 {
-		log15.Error("Failed to delete old records", "err", errs.Error())
+		log15.Error("Failed to find records", "err", errs.Error())
 	}
+
 	return &c
 }
 
@@ -81,7 +149,7 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(conn *gorm.DB, cves []models.Micros
 		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
 	}
 
-	for idx := range chunkSlice(len(cves), 250) {
+	for idx := range chunkSlice(len(cves), r.batchSize) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
 			return fmt.Errorf("Failed to insert. err: %s", err)
 		}
@@ -110,10 +178,12 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 				}
 			}
 		}
+
 		for _, vuln := range cveXML.Vulnerability {
 			if len(vuln.CVE) == 0 {
 				continue
 			}
+
 			var description, faq string
 			for _, n := range vuln.Notes {
 				switch n.AttrType {
@@ -126,15 +196,18 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 				case "Details":
 				case "Summary":
 				case "Legal Disclaimer":
+				case "CNA":
 				default:
 					log15.Info("New Notes", "Type", n.AttrType, "Title", n.AttrTitle)
 				}
 			}
+
 			var productStatuses []models.MicrosoftProductStatus
-			for _, p := range vuln.ProductStatuses {
+			for i, p := range vuln.ProductStatuses {
 				var products []models.MicrosoftProduct
 				for _, productID := range p.ProductID {
 					product := models.MicrosoftProduct{
+						Category:    fmt.Sprintf("MicrosoftProductStatus:%d", i),
 						ProductID:   productID,
 						ProductName: uniqProduct[productID],
 					}
@@ -146,6 +219,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 				}
 				productStatuses = append(productStatuses, status)
 			}
+
 			var exploitStatus string
 			uniqImpact := map[string]models.MicrosoftThreat{}
 			uniqSeverity := map[string]models.MicrosoftThreat{}
@@ -153,6 +227,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 				var products []models.MicrosoftProduct
 				for _, productID := range t.ProductID {
 					product := models.MicrosoftProduct{
+						Category:    "MicrosoftThreat",
 						ProductID:   productID,
 						ProductName: uniqProduct[productID],
 					}
@@ -161,18 +236,21 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 				threat := models.MicrosoftThreat{
 					Description: t.Description,
 					Products:    products,
+					AttrType:    t.AttrType,
 				}
+
 				switch t.AttrType {
 				case "Impact":
 					if th, ok := uniqImpact[t.Description]; ok {
 						threat.Products = append(threat.Products, th.Products...)
 					}
+
 					uniqImpact[t.Description] = threat
 				case "Severity":
 					if th, ok := uniqSeverity[t.Description]; ok {
 						threat.Products = append(threat.Products, th.Products...)
-
 					}
+
 					uniqSeverity[t.Description] = threat
 				case "Exploit Status":
 					exploitStatus = t.Description
@@ -182,11 +260,22 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 			}
 
 			var impact, severity []models.MicrosoftThreat
+			index := 0
 			for _, i := range uniqImpact {
+				for j := range i.Products {
+					i.Products[j].Category = fmt.Sprintf("Impact:%d", index)
+				}
 				impact = append(impact, i)
+				index = index + 1
 			}
+
+			index = 0
 			for _, s := range uniqSeverity {
+				for j := range s.Products {
+					s.Products[j].Category = fmt.Sprintf("Severity:%d", index)
+				}
 				severity = append(severity, s)
+				index = index + 1
 			}
 
 			uniqScoreSets := map[string]models.MicrosoftScoreSet{}
@@ -209,12 +298,18 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 				if ss, ok := uniqScoreSets[s.Vector]; ok {
 					scoreSet.Products = append(scoreSet.Products, ss.Products...)
 				}
+
 				uniqScoreSets[s.Vector] = scoreSet
 			}
 
 			var scoreSets []models.MicrosoftScoreSet
+			index = 0
 			for _, scoreSet := range uniqScoreSets {
+				for j := range scoreSet.Products {
+					scoreSet.Products[j].Category = fmt.Sprintf("MicrosoftScoreSet:%d", index)
+				}
 				scoreSets = append(scoreSets, scoreSet)
+				index = index + 1
 			}
 
 			var mitigation, workaround string
@@ -237,6 +332,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 					SubType:         r.SubType,
 					Supercedence:    r.Supercedence,
 					URL:             r.URL,
+					AttrType:        r.AttrType,
 				}
 				switch r.AttrType {
 				case "Workaround":
@@ -244,13 +340,22 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 				case "Mitigation":
 					mitigation = r.Description
 				case "Vendor Fix":
+					for j := range remediation.Products {
+						remediation.Products[j].Category = fmt.Sprintf("VendorFix:%d", len(vendorFix))
+					}
 					vendorFix = append(vendorFix, remediation)
 					if _, err := strconv.Atoi(r.Description); err == nil {
 						uniqKBIDs[r.Description] = true
 					}
 				case "None Available":
+					for j := range remediation.Products {
+						remediation.Products[j].Category = fmt.Sprintf("NoneAvailable:%d", len(noneAvailable))
+					}
 					noneAvailable = append(noneAvailable, remediation)
 				case "Will Not Fix":
+					for j := range remediation.Products {
+						remediation.Products[j].Category = fmt.Sprintf("WillNotFix:%d", len(willNotFix))
+					}
 					willNotFix = append(willNotFix, remediation)
 				default:
 					log15.Debug("New Remediation", "Type", r)
@@ -313,6 +418,10 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 		msProducts = append(msProducts, msProduct)
 	}
 
+	sort.Slice(msProducts, func(i, j int) bool {
+		return msProducts[i].ProductID < msProducts[j].ProductID
+	})
+
 	// csv
 	cveBulletinSearch := map[string][]models.MicrosoftBulletinSearch{}
 	for _, b := range cveXls {
@@ -326,6 +435,7 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 		if len(cveID) == 0 {
 			continue
 		}
+
 		uniqImpact := map[string]models.MicrosoftThreat{}
 		uniqSeverity := map[string]models.MicrosoftThreat{}
 		uniqKBIDs := map[string]bool{}
@@ -342,9 +452,11 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 				product := getProductFromName(msProducts, bs.AffectedComponent)
 				products = append(products, product)
 			}
+
 			impact := models.MicrosoftThreat{
 				Description: bs.Impact,
-				Products:    products,
+				Products:    append([]models.MicrosoftProduct(nil), products...),
+				AttrType:    "Impact",
 			}
 			if i, ok := uniqImpact[bs.Impact]; ok {
 				impact.Products = append(impact.Products, i.Products...)
@@ -353,18 +465,22 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 
 			severity := models.MicrosoftThreat{
 				Description: bs.Severity,
-				Products:    products,
+				Products:    append([]models.MicrosoftProduct(nil), products...),
+				AttrType:    "Severity",
 			}
 			if s, ok := uniqSeverity[bs.Severity]; ok {
 				severity.Products = append(severity.Products, s.Products...)
 			}
 			uniqSeverity[bs.Severity] = severity
+
 			rem := models.MicrosoftRemediation{
-				Products:        products,
+				Products:        append([]models.MicrosoftProduct(nil), products...),
 				RestartRequired: bs.Reboot,
 				Supercedence:    bs.Supersedes,
+				AttrType:        "Vendor Fix",
 			}
 			vendorFix = append(vendorFix, rem)
+
 			if len(bs.BulletinKB) != 0 {
 				uniqKBIDs[bs.BulletinKB] = true
 			}
@@ -382,12 +498,30 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 
 		var impact, severity []models.MicrosoftThreat
 		var kbIDs []models.MicrosoftKBID
+		index := 0
 		for _, i := range uniqImpact {
+			for j := range i.Products {
+				i.Products[j].Category = fmt.Sprintf("Impact:%d", index)
+			}
 			impact = append(impact, i)
+			index = index + 1
 		}
+
+		index = 0
 		for _, s := range uniqSeverity {
+			for j := range s.Products {
+				s.Products[j].Category = fmt.Sprintf("Severity:%d", index)
+			}
 			severity = append(severity, s)
+			index = index + 1
 		}
+
+		for i := range vendorFix {
+			for j := range vendorFix[i].Products {
+				vendorFix[i].Products[j].Category = fmt.Sprintf("VendorFix:%d", i)
+			}
+		}
+
 		for k := range uniqKBIDs {
 			kbID := models.MicrosoftKBID{
 				KBID: k,
@@ -396,10 +530,11 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 		}
 
 		uniqCve[cveID] = models.MicrosoftCVE{
-			Title:          title,
-			CveID:          cveID,
-			Impact:         impact,
-			Severity:       severity,
+			Title:    title,
+			CveID:    cveID,
+			Impact:   impact,
+			Severity: severity,
+			// VendorFix:      vendorFix,
 			KBIDs:          kbIDs,
 			PublishDate:    publishDate,
 			LastUpdateDate: publishDate,
