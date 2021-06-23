@@ -356,6 +356,7 @@ click
 clickhouse
 cloud-init
 cluster-agents
+cluster-glue
 clutter-1.0
 cmake
 cmark-gfm
@@ -1951,11 +1952,13 @@ linux-aws
 linux-aws-5.0
 linux-aws-5.3
 linux-aws-5.4
+linux-aws-5.8
 linux-aws-hwe
 linux-azure
 linux-azure-4.15
 linux-azure-5.3
 linux-azure-5.4
+linux-azure-5.8
 linux-azure-edge
 linux-backports-modules-2.6.24
 linux-backports-modules-2.6.28
@@ -1972,6 +1975,7 @@ linux-gcp
 linux-gcp-4.15
 linux-gcp-5.3
 linux-gcp-5.4
+linux-gcp-5.8
 linux-gcp-edge
 linux-gke
 linux-gke-4.15
@@ -2016,6 +2020,7 @@ linux-oracle
 linux-oracle-5.0
 linux-oracle-5.3
 linux-oracle-5.4
+linux-oracle-5.8
 linux-qcm-msm
 linux-raspi
 linux-raspi-5.4
@@ -2028,6 +2033,7 @@ linux-restricted-modules-2.6.20
 linux-restricted-modules-2.6.22
 linux-restricted-modules-2.6.24
 linux-riscv
+linux-riscv-5.8
 linux-snapdragon
 linux-source
 linux-source-2.6.12
@@ -2509,7 +2515,6 @@ node-shell-quote
 node-socket.io-parser
 node-sshpk
 node-ssri
-node-static-eval
 node-stringstream
 node-superagent
 node-tar
@@ -2862,6 +2867,7 @@ php7.1
 php7.2
 php7.3
 php7.4
+php8.0
 phpbb2
 phpbb3
 phpdocx
@@ -3040,7 +3046,6 @@ python-aioxmpp
 python-apt
 python-asyncssh
 python-autobahn
-python-babel
 python-bcrypt
 python-bleach
 python-bottle

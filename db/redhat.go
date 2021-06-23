@@ -180,13 +180,13 @@ func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cves []models.RedhatCVE
 // ConvertRedhat :
 func ConvertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE, err error) {
 	for _, cve := range cveJSONs {
-		var details []models.RedhatDetail
+		details := []models.RedhatDetail{}
 		for _, d := range cve.Details {
 			d = util.TrimSpaceNewline(d)
 			details = append(details, models.RedhatDetail{Detail: d})
 		}
 
-		var references []models.RedhatReference
+		references := []models.RedhatReference{}
 		for _, r := range cve.References {
 			r = util.TrimSpaceNewline(r)
 			references = append(references, models.RedhatReference{Reference: r})
