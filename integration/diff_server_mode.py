@@ -8,27 +8,9 @@ from urllib3.util import Retry
 import pprint
 from concurrent.futures import ThreadPoolExecutor
 import os
-import json
 
 
-def convert_redis_only_none(response, os):
-    if os == "redhat":
-        if response["Details"] == None:
-            response["Details"] = []
-        if response["References"] == None:
-            response["References"] = []
-    elif os == "ubuntu":
-        if response["references"] == None:
-            response["references"] = []
-        if response["notes"] == None:
-            response["notes"] = []
-        if response["bugs"] == None:
-            response["bugs"] = []
-
-    return response
-
-
-def diff_cveid(args: Tuple[str, bool, str]):
+def diff_cveid(args: Tuple[str, str]):
     session = requests.Session()
     retries = Retry(total=5,
                     backoff_factor=1,
@@ -42,11 +24,9 @@ def diff_cveid(args: Tuple[str, bool, str]):
     # /microsoft/cves/:id
     try:
         response_old = session.get(
-            f'http://127.0.0.1:1325/{args[0]}/cves/{args[2]}', timeout=(2.0, 30.0)).json()
+            f'http://127.0.0.1:1325/{args[0]}/cves/{args[1]}', timeout=2).json()
         response_new = session.get(
-            f'http://127.0.0.1:1326/{args[0]}/cves/{args[2]}', timeout=(2.0, 30.0)).json()
-        if args[1]:
-            response_new = convert_redis_only_none(response_new, args[0])
+            f'http://127.0.0.1:1326/{args[0]}/cves/{args[1]}', timeout=2).json()
     except requests.exceptions.ConnectionError as e:
         logger.error(f'Failed to Connection..., err: {e}')
         raise
@@ -64,7 +44,7 @@ def diff_cveid(args: Tuple[str, bool, str]):
             f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": "cveid", "args": args, "diff": diff}, indent=2)}')
 
 
-def diff_package(args: Tuple[str, bool, str]):
+def diff_package(args: Tuple[str, str]):
     session = requests.Session()
     retries = Retry(total=5,
                     backoff_factor=1,
@@ -97,12 +77,9 @@ def diff_package(args: Tuple[str, bool, str]):
         for fix_status in os_specific_urls[1]:
             try:
                 response_old = session.get(
-                    f'http://127.0.0.1:1325/{args[0]}/{rel}/pkgs/{args[2]}/{fix_status}', timeout=(2.0, 30.0)).json()
+                    f'http://127.0.0.1:1325/{args[0]}/{rel}/pkgs/{args[1]}/{fix_status}', timeout=(2.0, 30.0)).json()
                 response_new = session.get(
-                    f'http://127.0.0.1:1326/{args[0]}/{rel}/pkgs/{args[2]}/{fix_status}', timeout=(2.0, 30.0)).json()
-                if args[1]:
-                    response_new = convert_redis_only_none(
-                        response_new, args[0])
+                    f'http://127.0.0.1:1326/{args[0]}/{rel}/pkgs/{args[1]}/{fix_status}', timeout=(2.0, 30.0)).json()
             except requests.exceptions.ConnectionError as e:
                 logger.error(f'Failed to Connection..., err: {e}')
                 raise
@@ -120,12 +97,12 @@ def diff_package(args: Tuple[str, bool, str]):
                     f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": "package", "args": args, "diff": diff}, indent=2)}')
 
 
-def diff_response(args: Tuple[str, str, bool, str]):
+def diff_response(args: Tuple[str, str, str]):
     try:
         if args[0] == 'cveid':
-            diff_cveid((args[1], args[2], args[3]))
+            diff_cveid((args[1], args[2]))
         if args[0] == 'package':
-            diff_package((args[1], args[2], args[3]))
+            diff_package((args[1], args[2]))
     except Exception:
         exit(1)
 
@@ -137,8 +114,6 @@ parser.add_argument('ostype', choices=['debian', 'ubuntu', 'redhat', 'microsoft'
                     help='Specify the OS to be started in server mode when testing.')
 parser.add_argument('--list_path',
                     help='A file path containing a line by line list of CVE-IDs or Packages to be diffed in server mode results')
-parser.add_argument('--diff_rdb_redis', action='store_true',
-                    help='Diff the output of RDB and Redis.')
 parser.add_argument(
     '--debug', action=argparse.BooleanOptionalAction, help='print debug message')
 args = parser.parse_args()
@@ -179,10 +154,10 @@ if not os.path.isfile(list_path):
     exit(1)
 
 logger.debug(
-    f'Test Mode: {args.mode}, OStype: {args.ostype}, Use List Path: {list_path}, Diff_RDB_Redis: {args.diff_rdb_redis}')
+    f'Test Mode: {args.mode}, OStype: {args.ostype}, Use List Path: {list_path}')
 
 with open(list_path) as f:
     list = [s.strip() for s in f.readlines()]
     with ThreadPoolExecutor() as executor:
-        ins = ((args.mode, args.ostype, args.diff_rdb_redis, e) for e in list)
+        ins = ((args.mode, args.ostype, e) for e in list)
         executor.map(diff_response, ins)
