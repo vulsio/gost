@@ -283,6 +283,7 @@ type MicrosoftThreat struct {
 	MicrosoftCVEID int64              `json:"-" gorm:"index:idx_microsoft_threat_microsoft_cve_id"`
 	Description    string             `json:"description" gorm:"type:text"`
 	Products       []MicrosoftProduct `json:"products" gorm:"foreignKey:MicrosoftCVEID;references:MicrosoftCVEID"`
+	AttrType       string             `json:"-" gorm:"type:varchar(255)"`
 }
 
 // MicrosoftRemediation :
@@ -296,6 +297,7 @@ type MicrosoftRemediation struct {
 	SubType         string             `json:"sub_type" gorm:"type:varchar(255)"`
 	Supercedence    string             `json:"supercedence" gorm:"type:text"`
 	URL             string             `json:"url" gorm:"type:varchar(255)"`
+	AttrType        string             `json:"-" gorm:"type:varchar(255)"`
 }
 
 // MicrosoftScoreSet :
@@ -309,17 +311,11 @@ type MicrosoftScoreSet struct {
 	Products           []MicrosoftProduct `json:"products" gorm:"foreignKey:MicrosoftCVEID;references:MicrosoftCVEID"`
 }
 
-// MicrosoftCveID :
-type MicrosoftCveID struct {
-	ID             int64  `json:"-"`
-	MicrosoftCVEID int64  `json:"-" gorm:"index:idx_microsoft_cve_id_microsoft_cve_id"`
-	CveID          string `json:"cve_id" gorm:"type:varchar(255)"`
-}
-
 // MicrosoftProduct :
 type MicrosoftProduct struct {
 	ID             int64  `json:"-"`
 	MicrosoftCVEID int64  `json:"-" gorm:"index:idx_microsoft_product_microsoft_cve_id"`
+	Category       string `json:"-" gorm:"type:varchar(255)"`
 	ProductID      string `json:"product_id" gorm:"type:varchar(255)"`
 	ProductName    string `json:"product_name" gorm:"type:varchar(255)"`
 }

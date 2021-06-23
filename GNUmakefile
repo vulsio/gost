@@ -86,15 +86,15 @@ clean-integration:
 	-docker rm redis-old redis-new
 
 fetch-rdb:
-	integration/gost.old fetch debian --dbpath=integration/gost.old.sqlite3
-	# integration/gost.old fetch ubuntu --dbpath=integration/gost.old.sqlite3
-	# integration/gost.old fetch redhat --dbpath=integration/gost.old.sqlite3
-	# integration/gost.old fetch microsoft --dbpath=integration/gost.old.sqlite3 --apikey=<APIKEY>
+	integration/gost.old fetch debian --dbpath=integration/gost.old.sqlite3 --batch-size 500
+	# integration/gost.old fetch ubuntu --dbpath=integration/gost.old.sqlite3 --batch-size 15
+	# integration/gost.old fetch redhat --dbpath=integration/gost.old.sqlite3 --batch-size 500
+	# integration/gost.old fetch microsoft --dbpath=integration/gost.old.sqlite3 --batch-size 200 --apikey=<APIKEY>
 	
-	integration/gost.new fetch debian --dbpath=integration/gost.new.sqlite3
-	# integration/gost.new fetch ubuntu --dbpath=integration/gost.new.sqlite3
-	# integration/gost.new fetch redhat --dbpath=integration/gost.new.sqlite3
-	# integration/gost.new fetch microsoft --dbpath=integration/gost.new.sqlite3 --apikey=<APIKEY>
+	integration/gost.new fetch debian --dbpath=integration/gost.new.sqlite3 --batch-size 500
+	# integration/gost.new fetch ubuntu --dbpath=integration/gost.new.sqlite3 --batch-size 15
+	# integration/gost.new fetch redhat --dbpath=integration/gost.new.sqlite3 --batch-size 500
+	# integration/gost.new fetch microsoft --dbpath=integration/gost.new.sqlite3 --batch-size 200 --apikey=<APIKEY>
 
 fetch-redis:
 	docker run --name redis-old -d -p 127.0.0.1:6379:6379 redis

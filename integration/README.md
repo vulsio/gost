@@ -50,20 +50,20 @@ $ sqlite3 gost.sqlite3
 SQLite version 3.31.1 2020-01-27 19:55:54
 Enter ".help" for usage hints.
 # CVE ID
-sqlite> .output integration/cveid_debian.txt
+sqlite> .output integration/cveid/cveid_debian.txt
 sqlite> SELECT DISTINCT cve_id FROM debian_cves;
-sqlite> .output integration/cveid_ubuntu.txt
+sqlite> .output integration/cveid/cveid_ubuntu.txt
 sqlite> SELECT DISTINCT candidate FROM ubuntu_cves;
-sqlite> .output integration/cveid_redhat.txt
+sqlite> .output integration/cveid/cveid_redhat.txt
 sqlite> SELECT DISTINCT name FROM redhat_cves;
-sqlite> .output integration/cveid_microsoft.txt
+sqlite> .output integration/cveid/cveid_microsoft.txt
 sqlite> SELECT DISTINCT cve_id FROM microsoft_cves;
 
 # Packages
-sqlite> .output integration/package_debian.txt
+sqlite> .output integration/package/package_debian.txt
 sqlite> SELECT DISTINCT package_name FROM 'debian_packages';
-sqlite> .output integration/package_ubuntu.txt
+sqlite> .output integration/package/package_ubuntu.txt
 sqlite> SELECT DISTINCT package_name FROM ubuntu_patches;
-sqlite> .output integration/package_redhat.txt
+sqlite> .output integration/package/package_redhat.txt
 sqlite> SELECT DISTINCT package_name FROM 'redhat_package_states';
 ```

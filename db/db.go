@@ -6,6 +6,7 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/models"
+	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
 )
 
@@ -73,7 +74,7 @@ func NewDB(dbType, dbPath string, debugSQL bool) (driver DB, locked bool, err er
 func newDB(dbType string) (DB, error) {
 	switch dbType {
 	case dialectSqlite3, dialectMysql, dialectPostgreSQL:
-		return &RDBDriver{name: dbType}, nil
+		return &RDBDriver{name: dbType, batchSize: viper.GetInt("batch-size")}, nil
 	case dialectRedis:
 		return &RedisDriver{name: dbType}, nil
 	}
