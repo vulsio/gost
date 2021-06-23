@@ -29,7 +29,7 @@ func (r *RDBDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 	c.Patches = patches
 
 	errs = errs.Add(r.conn.Model(&c).Association("Upstreams").Find(&c.Upstreams))
-	var upstreams []models.UbuntuUpstream
+	upstreams := []models.UbuntuUpstream{}
 	for _, u := range c.Upstreams {
 		errs = errs.Add(r.conn.Model(&u).Association("UpstreamLinks").Find(&u.UpstreamLinks))
 		upstreams = append(upstreams, u)
@@ -101,22 +101,22 @@ func ConvertUbuntu(cveJSONs []models.UbuntuCVEJSON) (cves []models.UbuntuCVE) {
 			continue
 		}
 
-		var references []models.UbuntuReference
+		references := []models.UbuntuReference{}
 		for _, r := range cve.References {
 			references = append(references, models.UbuntuReference{Reference: r})
 		}
 
-		var notes []models.UbuntuNote
+		notes := []models.UbuntuNote{}
 		for _, n := range cve.Notes {
 			notes = append(notes, models.UbuntuNote{Note: n})
 		}
 
-		var bugs []models.UbuntuBug
+		bugs := []models.UbuntuBug{}
 		for _, b := range cve.Bugs {
 			bugs = append(bugs, models.UbuntuBug{Bug: b})
 		}
 
-		var patches []models.UbuntuPatch
+		patches := []models.UbuntuPatch{}
 		for pkgName, p := range cve.Patches {
 			var releasePatch []models.UbuntuReleasePatch
 			for release, patch := range p {
@@ -125,9 +125,9 @@ func ConvertUbuntu(cveJSONs []models.UbuntuCVEJSON) (cves []models.UbuntuCVE) {
 			patches = append(patches, models.UbuntuPatch{PackageName: pkgName, ReleasePatches: releasePatch})
 		}
 
-		var upstreams []models.UbuntuUpstream
+		upstreams := []models.UbuntuUpstream{}
 		for pkgName, u := range cve.UpstreamLinks {
-			var links []models.UbuntuUpstreamLink
+			links := []models.UbuntuUpstreamLink{}
 			for _, link := range u {
 				links = append(links, models.UbuntuUpstreamLink{Link: link})
 			}
@@ -220,7 +220,7 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []
 		errs = errs.Add(r.conn.Model(&cve).Association("Bugs").Find(&cve.Bugs))
 
 		errs = errs.Add(r.conn.Model(&cve).Association("Upstreams").Find(&cve.Upstreams))
-		var upstreams []models.UbuntuUpstream
+		upstreams := []models.UbuntuUpstream{}
 		for _, u := range cve.Upstreams {
 			errs = errs.Add(r.conn.Model(&u).Association("UpstreamLinks").Find(&u.UpstreamLinks))
 			upstreams = append(upstreams, u)

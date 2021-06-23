@@ -83,8 +83,8 @@ type RedhatCVE struct {
 	Name                 string `gorm:"type:varchar(255);index:idx_redhat_cves_name"`
 	DocumentDistribution string `gorm:"type:text"`
 
-	Details    []RedhatDetail    `json:",omitempty"`
-	References []RedhatReference `json:",omitempty"`
+	Details    []RedhatDetail
+	References []RedhatReference
 }
 
 // GetDetail returns details
