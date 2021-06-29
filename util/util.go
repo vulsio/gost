@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -56,7 +57,7 @@ func DeleteNil(errs []error) (new []error) {
 // DeleteRecordNotFound deletes gorm.ErrRecordNotFound in errs
 func DeleteRecordNotFound(errs []error) (new []error) {
 	for _, err := range errs {
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			new = append(new, err)
 		}
 	}
