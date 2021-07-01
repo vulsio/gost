@@ -188,25 +188,13 @@ func Major(osVer string) (majorVersion string) {
 	return strings.Split(osVer, ".")[0]
 }
 
-var cacheDir string
-
-// DefaultCacheDir set default cache dir
-func DefaultCacheDir() string {
+// CacheDir return cache dir path string
+func CacheDir() string {
 	tmpDir, err := os.UserCacheDir()
 	if err != nil {
 		tmpDir = os.TempDir()
 	}
-	return filepath.Join(tmpDir, "trivy")
-}
-
-// CacheDir return cache dir path string
-func CacheDir() string {
-	return cacheDir
-}
-
-// SetCacheDir set cache dir path
-func SetCacheDir(dir string) {
-	cacheDir = dir
+	return filepath.Join(tmpDir, "gost")
 }
 
 // FileWalk walks the file tree rooted at root
