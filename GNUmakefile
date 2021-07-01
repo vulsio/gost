@@ -11,7 +11,16 @@
 	test \
 	integration \
 	cov \
-	clean
+	clean \
+	build-integration \
+	clean-integration \
+	fetch-rdb \
+	fetch-redis \
+	diff-cveid \
+	diff-package \
+	diff-server-rdb \
+	diff-server-redis \
+	diff-server-rdb-redis
 
 SRCS = $(shell git ls-files '*.go')
 PKGS = $(shell go list ./...)

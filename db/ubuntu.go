@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/inconshreveable/log15"
@@ -194,7 +195,7 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []
 		Where("package_name = ?", pkgName).
 		Scan(&results).Error
 
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		if fixStatus[0] == "released" {
 			log15.Error("Failed to get fixed cves of Ubuntu", "err", err)
 		} else {
@@ -209,7 +210,7 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []
 			Preload("Patches", "package_name = ?", pkgName).
 			Where(&models.UbuntuCVE{ID: res.UbuntuCveID}).
 			First(&cve).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			log15.Error("Failed to getCvesUbuntuWithFixStatus", "err", err)
 			return m
 		}

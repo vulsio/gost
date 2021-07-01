@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -21,13 +22,13 @@ func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.Redhat
 
 	// TODO: insufficient
 	for _, a := range all {
-		if err = r.conn.Model(&a).Association("Cvss3").Find(&a.Cvss3); err != nil && err != gorm.ErrRecordNotFound {
+		if err = r.conn.Model(&a).Association("Cvss3").Find(&a.Cvss3); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
-		if err = r.conn.Model(&a).Association("Details").Find(&a.Details); err != nil && err != gorm.ErrRecordNotFound {
+		if err = r.conn.Model(&a).Association("Details").Find(&a.Details); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
-		if err = r.conn.Model(&a).Association("PackageState").Find(&a.PackageState); err != nil && err != gorm.ErrRecordNotFound {
+		if err = r.conn.Model(&a).Association("PackageState").Find(&a.PackageState); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
 		allCves = append(allCves, a)
@@ -76,7 +77,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 			Cpe:         cpe,
 			PackageName: pkgName,
 		}).Find(&pkgStats).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log15.Error("Failed to get unfixed cves of Redhat", "err", err)
 		return nil
 	}
@@ -97,7 +98,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 			Preload("Details").
 			Preload("References").
 			Where(&models.RedhatCVE{ID: id}).First(&rhcve).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			log15.Error("Failed to get unfixed cves of Redhat", "err", err)
 			return nil
 		}

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/inconshreveable/log15"
@@ -14,12 +15,12 @@ import (
 func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 	c := models.DebianCVE{}
 	err := r.conn.Where(&models.DebianCVE{CveID: cveID}).First(&c).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log15.Error("Failed to get Debian", "err", err)
 		return nil
 	}
 	err = r.conn.Model(&c).Association("Package").Find(&c.Package)
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log15.Error("Failed to get Debian", "err", err)
 		return nil
 	}
@@ -27,7 +28,7 @@ func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 	var newPkg []models.DebianPackage
 	for _, pkg := range c.Package {
 		err = r.conn.Model(&pkg).Association("Release").Find(&pkg.Release)
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			log15.Error("Failed to get Debian", "err", err)
 			return nil
 		}
@@ -158,7 +159,7 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 		Where("package_name = ?", pkgName).
 		Scan(&results).Error
 
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		if fixStatus == "open" {
 			log15.Error("Failed to get unfixed cves of Debian", "err", err)
 		} else {
@@ -174,7 +175,7 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 			Preload("Package", "package_name = ?", pkgName).
 			Where(&models.DebianCVE{ID: res.DebianCveID}).
 			First(&debcve).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			log15.Error("Failed to get DebianCVE", res.DebianCveID, err)
 			return m
 		}
