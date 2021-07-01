@@ -14,30 +14,23 @@ import (
 // GetDebian :
 func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 	c := models.DebianCVE{}
-	if err := r.conn.Where(&models.DebianCVE{CveID: cveID}).First(&c).Error; err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			log15.Error("Failed to get Debian", "err", err)
-			return nil
-		}
-		return &models.DebianCVE{}
+	err := r.conn.Where(&models.DebianCVE{CveID: cveID}).First(&c).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		log15.Error("Failed to get Debian", "err", err)
+		return nil
 	}
-
-	if err := r.conn.Model(&c).Association("Package").Find(&c.Package); err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			log15.Error("Failed to get Debian", "err", err)
-			return nil
-		}
-		return &models.DebianCVE{}
+	err = r.conn.Model(&c).Association("Package").Find(&c.Package)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		log15.Error("Failed to get Debian", "err", err)
+		return nil
 	}
 
 	var newPkg []models.DebianPackage
 	for _, pkg := range c.Package {
-		if err := r.conn.Model(&pkg).Association("Release").Find(&pkg.Release); err != nil {
-			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				log15.Error("Failed to get Debian", "err", err)
-				return nil
-			}
-			return &models.DebianCVE{}
+		err = r.conn.Model(&pkg).Association("Release").Find(&pkg.Release)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			log15.Error("Failed to get Debian", "err", err)
+			return nil
 		}
 		newPkg = append(newPkg, pkg)
 	}
@@ -148,10 +141,11 @@ func (r *RDBDriver) GetFixedCvesDebian(major, pkgName string) map[string]models.
 }
 
 func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string) map[string]models.DebianCVE {
+	m := map[string]models.DebianCVE{}
 	codeName, ok := debVerCodename[major]
 	if !ok {
 		log15.Error("Debian %s is not supported yet", "err", major)
-		return nil
+		return m
 	}
 
 	type Result struct {
@@ -159,35 +153,31 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 	}
 
 	results := []Result{}
-	if err := r.conn.
+	err := r.conn.
 		Table("debian_packages").
 		Select("debian_cve_id").
 		Where("package_name = ?", pkgName).
-		Scan(&results).Error; err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			if fixStatus == "open" {
-				log15.Error("Failed to get unfixed cves of Debian", "err", err)
-			} else {
-				log15.Error("Failed to get fixed cves of Debian", "err", err)
-			}
-			return nil
+		Scan(&results).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if fixStatus == "open" {
+			log15.Error("Failed to get unfixed cves of Debian", "err", err)
+		} else {
+			log15.Error("Failed to get fixed cves of Debian", "err", err)
 		}
-		return map[string]models.DebianCVE{}
+		return m
 	}
 
-	m := map[string]models.DebianCVE{}
 	for _, res := range results {
 		debcve := models.DebianCVE{}
-		if err := r.conn.
+		err := r.conn.
 			Preload("Package.Release", "status = ? AND product_name = ?", fixStatus, codeName).
 			Preload("Package", "package_name = ?", pkgName).
 			Where(&models.DebianCVE{ID: res.DebianCveID}).
-			First(&debcve).Error; err != nil {
-			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				log15.Error("Failed to get DebianCVE", res.DebianCveID, err)
-				return nil
-			}
-			return map[string]models.DebianCVE{}
+			First(&debcve).Error
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			log15.Error("Failed to get DebianCVE", res.DebianCveID, err)
+			return m
 		}
 
 		if len(debcve.Package) != 0 {
