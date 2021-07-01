@@ -51,6 +51,7 @@ func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	errs = util.DeleteRecordNotFound(errs)
 	if len(errs.GetErrors()) > 0 {
 		log15.Error("Failed to get RedhatCVE", "err", errs.Error())
+		return nil
 	}
 	return &c
 }
@@ -66,20 +67,21 @@ func (r *RDBDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE 
 
 // GetUnfixedCvesRedhat gets the unfixed CVEs.
 func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix bool) map[string]models.RedhatCVE {
-	m := map[string]models.RedhatCVE{}
 	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
 	pkgStats := []models.RedhatPackageState{}
 
 	// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format
-	err := r.conn.
+	if err := r.conn.
 		Not(map[string]interface{}{"fix_state": []string{"Not affected", "New"}}).
 		Where(&models.RedhatPackageState{
 			Cpe:         cpe,
 			PackageName: pkgName,
-		}).Find(&pkgStats).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		log15.Error("Failed to get unfixed cves of Redhat", "err", err)
-		return nil
+		}).Find(&pkgStats).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log15.Error("Failed to get unfixed cves of Redhat", "err", err)
+			return nil
+		}
+		return map[string]models.RedhatCVE{}
 	}
 
 	redhatCVEIDs := map[int64]bool{}
@@ -87,9 +89,10 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 		redhatCVEIDs[p.RedhatCVEID] = true
 	}
 
+	m := map[string]models.RedhatCVE{}
 	for id := range redhatCVEIDs {
 		rhcve := models.RedhatCVE{}
-		err = r.conn.
+		if err := r.conn.
 			Preload("Bugzilla").
 			Preload("Cvss").
 			Preload("Cvss3").
@@ -97,10 +100,12 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 			Preload("PackageState").
 			Preload("Details").
 			Preload("References").
-			Where(&models.RedhatCVE{ID: id}).First(&rhcve).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			log15.Error("Failed to get unfixed cves of Redhat", "err", err)
-			return nil
+			Where(&models.RedhatCVE{ID: id}).First(&rhcve).Error; err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				log15.Error("Failed to get unfixed cves of Redhat", "err", err)
+				return nil
+			}
+			return map[string]models.RedhatCVE{}
 		}
 
 		pkgStats := []models.RedhatPackageState{}

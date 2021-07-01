@@ -177,11 +177,10 @@ func (r *RDBDriver) GetFixedCvesUbuntu(ver, pkgName string) map[string]models.Ub
 }
 
 func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []string) map[string]models.UbuntuCVE {
-	m := map[string]models.UbuntuCVE{}
 	codeName, ok := ubuntuVerCodename[ver]
 	if !ok {
 		log15.Error("Ubuntu %s is not supported yet", "err", ver)
-		return m
+		return nil
 	}
 
 	type Result struct {
@@ -189,30 +188,35 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []
 	}
 
 	results := []Result{}
-	err := r.conn.
+	if err := r.conn.
 		Table("ubuntu_patches").
 		Select("ubuntu_cve_id").
 		Where("package_name = ?", pkgName).
-		Scan(&results).Error
-
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		if fixStatus[0] == "released" {
-			log15.Error("Failed to get fixed cves of Ubuntu", "err", err)
-		} else {
-			log15.Error("Failed to get unfixed cves of Ubuntu", "err", err)
+		Scan(&results).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			if fixStatus[0] == "released" {
+				log15.Error("Failed to get fixed cves of Ubuntu", "err", err)
+			} else {
+				log15.Error("Failed to get unfixed cves of Ubuntu", "err", err)
+			}
+			return nil
 		}
+		return map[string]models.UbuntuCVE{}
 	}
 
+	m := map[string]models.UbuntuCVE{}
 	for _, res := range results {
 		cve := models.UbuntuCVE{}
-		err := r.conn.
+		if err := r.conn.
 			Preload("Patches.ReleasePatches", "release_name = ? AND status IN (?)", codeName, fixStatus).
 			Preload("Patches", "package_name = ?", pkgName).
 			Where(&models.UbuntuCVE{ID: res.UbuntuCveID}).
-			First(&cve).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			log15.Error("Failed to getCvesUbuntuWithFixStatus", "err", err)
-			return m
+			First(&cve).Error; err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				log15.Error("Failed to getCvesUbuntuWithFixStatus", "err", err)
+				return nil
+			}
+			return map[string]models.UbuntuCVE{}
 		}
 
 		var errs util.Errors
@@ -231,7 +235,7 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []
 		errs = util.DeleteRecordNotFound(errs)
 		if len(errs.GetErrors()) > 0 {
 			log15.Error("Failed to get Ubuntu", "err", errs.Error())
-			return map[string]models.UbuntuCVE{}
+			return nil
 		}
 
 		if len(cve.Patches) != 0 {
