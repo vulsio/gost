@@ -214,22 +214,22 @@ $ go get github.com/knqyf263/gost
 
 ```
 $ docker run --rm -i \ 
-	 -v $PWD:/vuls \
+	 -v $PWD:/gost \
 	 -v $PWD:/var/log/gost \
 	 vuls/gost fetch debian
    $ docker run --rm -i \ 
-	 -v $PWD:/vuls \
+	 -v $PWD:/gost \
 	 -v $PWD:/var/log/gost \
 	 vuls/gost fetch ubuntu
 $ docker run --rm -i \
-	-v $PWD:/vuls \
+	-v $PWD:/gost \
 	-v $PWD:/var/log/gost \
 	vuls/gost fetch redhat 
 $ ls 
-access.log      gost.log        tracker.sqlite3
+access.log      gost.log        gost.sqlite3
 
 $ docker run --rm -i \
-        -v $PWD:/vuls \
+        -v $PWD:/gost \
         -v $PWD:/var/log/gost \
         -p 1325:1325 \
         vuls/gost server --bind=0.0.0.0
