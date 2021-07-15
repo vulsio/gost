@@ -25,28 +25,29 @@ A system administrator always monitor `Security Tracker`. It can be a burden. Fo
 # Usage
 
 ```
-$ gost
+$ gost help
 Security Tracker
 
 Usage:
   gost [command]
 
 Available Commands:
+  completion  generate the autocompletion script for the specified shell
   fetch       Fetch the data of the security tracker
   help        Help about any command
-  notify      Notifiy update abount the specified CVE
+  notify      Notifiy update about the specified CVE
   register    Register CVEs to monitor
   server      Start security tracker HTTP server
 
 Flags:
       --config string       config file (default is $HOME/.gost.yaml)
-      --dbpath string       /path/to/sqlite3 or SQL connection string
-      --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported)
-      --debug               debug mode (default: false)
+      --dbpath string       /path/to/sqlite3 or SQL connection string (default "$PWD/gost.sqlite3")
+      --dbtype string       Database type to store data in (sqlite3, mysql, postgres or redis supported) (default "sqlite3")
+      --debug               debug mode
       --debug-sql           SQL debug mode
   -h, --help                help for gost
       --http-proxy string   http://proxy-url:port (default: empty)
-      --log-dir string      /path/to/log
+      --log-dir string      /path/to/log (default "/var/log/gost")
       --log-json            output log as JSON
       --to-email            Send notification via Email
       --to-slack            Send notification via Slack

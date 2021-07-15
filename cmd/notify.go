@@ -30,11 +30,9 @@ func init() {
 
 	RootCmd.PersistentFlags().Bool("to-email", false, "Send notification via Email")
 	viper.BindPFlag("to-email", RootCmd.PersistentFlags().Lookup("to-email"))
-	viper.SetDefault("to-email", false)
 
 	RootCmd.PersistentFlags().Bool("to-slack", false, "Send notification via Slack")
 	viper.BindPFlag("to-slack", RootCmd.PersistentFlags().Lookup("to-slack"))
-	viper.SetDefault("to-slack", false)
 }
 
 func executeNotify(cmd *cobra.Command, args []string) (err error) {

@@ -28,34 +28,27 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gost.yaml)")
 
-	RootCmd.PersistentFlags().String("log-dir", "", "/path/to/log")
+	RootCmd.PersistentFlags().String("log-dir", util.GetDefaultLogDir(), "/path/to/log")
 	viper.BindPFlag("log-dir", RootCmd.PersistentFlags().Lookup("log-dir"))
-	viper.SetDefault("log-dir", util.GetDefaultLogDir())
 
 	RootCmd.PersistentFlags().Bool("log-json", false, "output log as JSON")
 	viper.BindPFlag("log-json", RootCmd.PersistentFlags().Lookup("log-json"))
-	viper.SetDefault("log-json", false)
 
-	RootCmd.PersistentFlags().Bool("debug", false, "debug mode (default: false)")
+	RootCmd.PersistentFlags().Bool("debug", false, "debug mode")
 	viper.BindPFlag("debug", RootCmd.PersistentFlags().Lookup("debug"))
-	viper.SetDefault("debug", false)
 
 	RootCmd.PersistentFlags().Bool("debug-sql", false, "SQL debug mode")
 	viper.BindPFlag("debug-sql", RootCmd.PersistentFlags().Lookup("debug-sql"))
-	viper.SetDefault("debug-sql", false)
 
-	RootCmd.PersistentFlags().String("dbpath", "", "/path/to/sqlite3 or SQL connection string")
-	viper.BindPFlag("dbpath", RootCmd.PersistentFlags().Lookup("dbpath"))
 	pwd := os.Getenv("PWD")
-	viper.SetDefault("dbpath", filepath.Join(pwd, "gost.sqlite3"))
+	RootCmd.PersistentFlags().String("dbpath", filepath.Join(pwd, "gost.sqlite3"), "/path/to/sqlite3 or SQL connection string")
+	viper.BindPFlag("dbpath", RootCmd.PersistentFlags().Lookup("dbpath"))
 
-	RootCmd.PersistentFlags().String("dbtype", "", "Database type to store data in (sqlite3, mysql, postgres or redis supported)")
+	RootCmd.PersistentFlags().String("dbtype", "sqlite3", "Database type to store data in (sqlite3, mysql, postgres or redis supported)")
 	viper.BindPFlag("dbtype", RootCmd.PersistentFlags().Lookup("dbtype"))
-	viper.SetDefault("dbtype", "sqlite3")
 
 	RootCmd.PersistentFlags().String("http-proxy", "", "http://proxy-url:port (default: empty)")
 	viper.BindPFlag("http-proxy", RootCmd.PersistentFlags().Lookup("http-proxy"))
-	viper.SetDefault("http-proxy", "")
 }
 
 // initConfig reads in config file and ENV variables if set.
