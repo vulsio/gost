@@ -5,10 +5,12 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/inconshreveable/log15"
+	"golang.org/x/xerrors"
 
 	"github.com/knqyf263/gost/config"
 	"github.com/knqyf263/gost/db"
 	"github.com/knqyf263/gost/fetcher"
+	"github.com/knqyf263/gost/models"
 	"github.com/knqyf263/gost/notifier"
 	"github.com/knqyf263/gost/util"
 	"github.com/spf13/cobra"
@@ -70,6 +72,16 @@ func notifyRedhat(conf config.Config) error {
 			log15.Error("Failed to initialize DB. Close DB connection before fetching", "err", err)
 		}
 		return err
+	}
+
+	fetchMeta, err := driver.GetFetchMeta()
+	if err != nil {
+		log15.Error("Failed to get FetchMeta from DB.", "err", err)
+		return err
+	}
+	if fetchMeta.OutDated() {
+		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
 	}
 
 	for _, cve := range cves {
