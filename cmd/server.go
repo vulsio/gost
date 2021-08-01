@@ -21,13 +21,11 @@ var serverCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(serverCmd)
 
-	serverCmd.PersistentFlags().String("bind", "", "HTTP server bind to IP address (default: loop back interface")
+	serverCmd.PersistentFlags().String("bind", "127.0.0.1", "HTTP server bind to IP address")
 	viper.BindPFlag("bind", serverCmd.PersistentFlags().Lookup("bind"))
-	viper.SetDefault("bind", "127.0.0.1")
 
-	serverCmd.PersistentFlags().String("port", "", "HTTP server port number (default: 1325")
+	serverCmd.PersistentFlags().String("port", "1325", "HTTP server port number")
 	viper.BindPFlag("port", serverCmd.PersistentFlags().Lookup("port"))
-	viper.SetDefault("port", "1325")
 }
 
 func executeServer(cmd *cobra.Command, args []string) (err error) {

@@ -14,9 +14,11 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/config"
 	"github.com/knqyf263/gost/db"
+	"github.com/knqyf263/gost/models"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
 )
 
 // registerCmd represents the register command
@@ -30,17 +32,14 @@ var registerCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(registerCmd)
 
-	registerCmd.PersistentFlags().String("select-cmd", "", "Select command (default: fzf)")
+	registerCmd.PersistentFlags().String("select-cmd", "fzf", "Select command")
 	viper.BindPFlag("select-cmd", registerCmd.PersistentFlags().Lookup("select-cmd"))
-	viper.SetDefault("select-cmd", "fzf")
 
-	registerCmd.PersistentFlags().String("select-option", "", "Select command options")
+	registerCmd.PersistentFlags().String("select-option", "--reverse", "Select command options")
 	viper.BindPFlag("select-option", registerCmd.PersistentFlags().Lookup("select-option"))
-	viper.SetDefault("select-option", "--reverse")
 
 	registerCmd.PersistentFlags().String("select-after", "", "Show CVEs after the specified date (e.g. 2017-01-01) (default: 30 days ago)")
 	viper.BindPFlag("select-after", registerCmd.PersistentFlags().Lookup("select-after"))
-	viper.SetDefault("select-after", "")
 }
 
 func executeRegister(cmd *cobra.Command, args []string) (err error) {
@@ -75,6 +74,16 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 			log15.Error("Failed to initialize DB. Close DB connection before fetching", "err", err)
 		}
 		return err
+	}
+
+	fetchMeta, err := driver.GetFetchMeta()
+	if err != nil {
+		log15.Error("Failed to get FetchMeta from DB.", "err", err)
+		return err
+	}
+	if fetchMeta.OutDated() {
+		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
 	}
 
 	log15.Info("Select all RedHat CVEs")

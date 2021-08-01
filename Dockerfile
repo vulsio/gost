@@ -11,10 +11,10 @@ COPY . $GOPATH/src/$REPOSITORY
 RUN cd $GOPATH/src/$REPOSITORY && make install
 
 
-FROM alpine:3.13
+FROM alpine:3.14
 
-ENV LOGDIR /var/log/vuls
-ENV WORKDIR /vuls
+ENV LOGDIR /var/log/gost
+ENV WORKDIR /gost
 
 RUN apk add --no-cache ca-certificates git \
     && mkdir -p $WORKDIR $LOGDIR
