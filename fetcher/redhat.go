@@ -27,7 +27,6 @@ func FetchRedHatVulnList() (entries []models.RedhatCVEJSON, err error) {
 	if err != nil {
 		return nil, xerrors.Errorf("error in vulnsrc clone or pull: %w", err)
 	}
-	log15.Debug("Failed to fetch the CVE details.", "err", err)
 
 	// Only last_updated.json
 	if len(updatedFiles) <= 1 {
