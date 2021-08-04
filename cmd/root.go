@@ -29,26 +29,26 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gost.yaml)")
 
 	RootCmd.PersistentFlags().String("log-dir", util.GetDefaultLogDir(), "/path/to/log")
-	viper.BindPFlag("log-dir", RootCmd.PersistentFlags().Lookup("log-dir"))
+	_ = viper.BindPFlag("log-dir", RootCmd.PersistentFlags().Lookup("log-dir"))
 
 	RootCmd.PersistentFlags().Bool("log-json", false, "output log as JSON")
-	viper.BindPFlag("log-json", RootCmd.PersistentFlags().Lookup("log-json"))
+	_ = viper.BindPFlag("log-json", RootCmd.PersistentFlags().Lookup("log-json"))
 
 	RootCmd.PersistentFlags().Bool("debug", false, "debug mode")
-	viper.BindPFlag("debug", RootCmd.PersistentFlags().Lookup("debug"))
+	_ = viper.BindPFlag("debug", RootCmd.PersistentFlags().Lookup("debug"))
 
 	RootCmd.PersistentFlags().Bool("debug-sql", false, "SQL debug mode")
-	viper.BindPFlag("debug-sql", RootCmd.PersistentFlags().Lookup("debug-sql"))
+	_ = viper.BindPFlag("debug-sql", RootCmd.PersistentFlags().Lookup("debug-sql"))
 
 	pwd := os.Getenv("PWD")
 	RootCmd.PersistentFlags().String("dbpath", filepath.Join(pwd, "gost.sqlite3"), "/path/to/sqlite3 or SQL connection string")
-	viper.BindPFlag("dbpath", RootCmd.PersistentFlags().Lookup("dbpath"))
+	_ = viper.BindPFlag("dbpath", RootCmd.PersistentFlags().Lookup("dbpath"))
 
 	RootCmd.PersistentFlags().String("dbtype", "sqlite3", "Database type to store data in (sqlite3, mysql, postgres or redis supported)")
-	viper.BindPFlag("dbtype", RootCmd.PersistentFlags().Lookup("dbtype"))
+	_ = viper.BindPFlag("dbtype", RootCmd.PersistentFlags().Lookup("dbtype"))
 
 	RootCmd.PersistentFlags().String("http-proxy", "", "http://proxy-url:port (default: empty)")
-	viper.BindPFlag("http-proxy", RootCmd.PersistentFlags().Lookup("http-proxy"))
+	_ = viper.BindPFlag("http-proxy", RootCmd.PersistentFlags().Lookup("http-proxy"))
 }
 
 // initConfig reads in config file and ENV variables if set.
