@@ -12,6 +12,7 @@ import (
 	"github.com/knqyf263/gost/config"
 	"github.com/knqyf263/gost/models"
 	"github.com/labstack/gommon/log"
+	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
 )
 
@@ -425,6 +426,8 @@ func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) map[string]models.Micro
 
 //InsertRedhat :
 func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
+	expire := viper.GetUint("expire")
+
 	ctx := context.Background()
 	cves, err := ConvertRedhat(cveJSONs)
 	if err != nil {
@@ -445,6 +448,11 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 		if result := pipe.HSet(ctx, hashKeyPrefix+cve.Name, "RedHat", string(j)); result.Err() != nil {
 			return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
 		}
+		if expire > 0 {
+			if err := pipe.Expire(ctx, hashKeyPrefix+cve.Name, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+			}
+		}
 
 		for _, pkg := range cve.PackageState {
 			if result := pipe.ZAdd(
@@ -453,6 +461,11 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 				&redis.Z{Score: 0, Member: cve.Name},
 			); result.Err() != nil {
 				return fmt.Errorf("Failed to ZAdd pkg name. err: %s", result.Err())
+			}
+			if expire > 0 {
+				if err := pipe.Expire(ctx, zindRedHatPrefix+pkg.PackageName, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+				}
 			}
 		}
 
@@ -467,6 +480,8 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 
 // InsertDebian :
 func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
+	expire := viper.GetUint("expire")
+
 	ctx := context.Background()
 	cves := ConvertDebian(cveJSONs)
 	bar := pb.StartNew(len(cves))
@@ -484,6 +499,11 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 		if result := pipe.HSet(ctx, hashKeyPrefix+cve.CveID, "Debian", string(j)); result.Err() != nil {
 			return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
 		}
+		if expire > 0 {
+			if err := pipe.Expire(ctx, hashKeyPrefix+cve.CveID, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+			}
+		}
 
 		for _, pkg := range cve.Package {
 			if result := pipe.ZAdd(
@@ -492,6 +512,11 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 				&redis.Z{Score: 0, Member: cve.CveID},
 			); result.Err() != nil {
 				return fmt.Errorf("Failed to ZAdd pkg name. err: %s", result.Err())
+			}
+			if expire > 0 {
+				if err := pipe.Expire(ctx, zindDebianPrefix+pkg.PackageName, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+				}
 			}
 		}
 
@@ -505,6 +530,8 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 
 // InsertUbuntu :
 func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) {
+	expire := viper.GetUint("expire")
+
 	ctx := context.Background()
 	cves := ConvertUbuntu(cveJSONs)
 	bar := pb.StartNew(len(cves))
@@ -522,6 +549,11 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 		if result := pipe.HSet(ctx, hashKeyPrefix+cve.Candidate, "Ubuntu", string(j)); result.Err() != nil {
 			return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
 		}
+		if expire > 0 {
+			if err := pipe.Expire(ctx, hashKeyPrefix+cve.Candidate, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+			}
+		}
 
 		for _, pkg := range cve.Patches {
 			if result := pipe.ZAdd(
@@ -530,6 +562,11 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 				&redis.Z{Score: 0, Member: cve.Candidate},
 			); result.Err() != nil {
 				return fmt.Errorf("Failed to ZAdd pkg name. err: %s", result.Err())
+			}
+			if expire > 0 {
+				if err := pipe.Expire(ctx, zindUbuntuPrefix+pkg.PackageName, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+				}
 			}
 		}
 
@@ -543,6 +580,8 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 
 // InsertMicrosoft :
 func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []models.MicrosoftBulletinSearch) (err error) {
+	expire := viper.GetUint("expire")
+
 	ctx := context.Background()
 	cves, products := ConvertMicrosoft(cveXMLs, xls)
 	bar := pb.StartNew(len(cves))
@@ -556,6 +595,11 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 			&redis.Z{Score: 0, Member: p.ProductName},
 		); result.Err() != nil {
 			return fmt.Errorf("Failed to ZAdd kbID. err: %s", result.Err())
+		}
+		if expire > 0 {
+			if err := pipe.Expire(ctx, zindMicrosoftProductIDPrefix+p.ProductID, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+			}
 		}
 	}
 	if _, err = pipe.Exec(ctx); err != nil {
@@ -575,6 +619,11 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 		if result := pipe.HSet(ctx, hashKeyPrefix+cve.CveID, "Microsoft", string(j)); result.Err() != nil {
 			return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
 		}
+		if expire > 0 {
+			if err := pipe.Expire(ctx, hashKeyPrefix+cve.CveID, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+			}
+		}
 
 		for _, msKBID := range cve.KBIDs {
 			if result := pipe.ZAdd(
@@ -583,6 +632,11 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 				&redis.Z{Score: 0, Member: cve.CveID},
 			); result.Err() != nil {
 				return fmt.Errorf("Failed to ZAdd kbID. err: %s", result.Err())
+			}
+			if expire > 0 {
+				if err := pipe.Expire(ctx, zindMicrosoftKBIDPrefix+msKBID.KBID, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+				}
 			}
 		}
 

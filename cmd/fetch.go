@@ -22,5 +22,6 @@ func init() {
 	viper.BindPFlag("threads", fetchCmd.PersistentFlags().Lookup("threads"))
 
 	fetchCmd.PersistentFlags().Int("batch-size", 15, "The number of batch size to insert. NOTE: This Option does not work for dbtype: redis.")
-	viper.BindPFlag("batch-size", fetchCmd.PersistentFlags().Lookup("batch-size"))
+	fetchCmd.PersistentFlags().Uint("expire", 0, "timeout to set for Redis keys")
+	_ = viper.BindPFlag("expire", fetchCmd.PersistentFlags().Lookup("expire"))
 }
