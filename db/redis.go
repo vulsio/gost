@@ -452,6 +452,10 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 			if err := pipe.Expire(ctx, hashKeyPrefix+cve.Name, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
 			}
+		} else {
+			if err := pipe.Persist(ctx, hashKeyPrefix+cve.Name).Err(); err != nil {
+				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+			}
 		}
 
 		for _, pkg := range cve.PackageState {
@@ -465,6 +469,10 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 			if expire > 0 {
 				if err := pipe.Expire(ctx, zindRedHatPrefix+pkg.PackageName, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+				}
+			} else {
+				if err := pipe.Persist(ctx, zindRedHatPrefix+pkg.PackageName).Err(); err != nil {
+					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
 				}
 			}
 		}
@@ -503,6 +511,10 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 			if err := pipe.Expire(ctx, hashKeyPrefix+cve.CveID, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
 			}
+		} else {
+			if err := pipe.Persist(ctx, hashKeyPrefix+cve.CveID).Err(); err != nil {
+				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+			}
 		}
 
 		for _, pkg := range cve.Package {
@@ -516,6 +528,10 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 			if expire > 0 {
 				if err := pipe.Expire(ctx, zindDebianPrefix+pkg.PackageName, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+				}
+			} else {
+				if err := pipe.Persist(ctx, zindDebianPrefix+pkg.PackageName).Err(); err != nil {
+					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
 				}
 			}
 		}
@@ -553,6 +569,10 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 			if err := pipe.Expire(ctx, hashKeyPrefix+cve.Candidate, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
 			}
+		} else {
+			if err := pipe.Persist(ctx, hashKeyPrefix+cve.Candidate).Err(); err != nil {
+				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+			}
 		}
 
 		for _, pkg := range cve.Patches {
@@ -566,6 +586,10 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 			if expire > 0 {
 				if err := pipe.Expire(ctx, zindUbuntuPrefix+pkg.PackageName, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+				}
+			} else {
+				if err := pipe.Persist(ctx, zindUbuntuPrefix+pkg.PackageName).Err(); err != nil {
+					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
 				}
 			}
 		}
@@ -600,6 +624,10 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 			if err := pipe.Expire(ctx, zindMicrosoftProductIDPrefix+p.ProductID, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
 			}
+		} else {
+			if err := pipe.Persist(ctx, zindMicrosoftProductIDPrefix+p.ProductID).Err(); err != nil {
+				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+			}
 		}
 	}
 	if _, err = pipe.Exec(ctx); err != nil {
@@ -623,6 +651,10 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 			if err := pipe.Expire(ctx, hashKeyPrefix+cve.CveID, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
 			}
+		} else {
+			if err := pipe.Persist(ctx, hashKeyPrefix+cve.CveID).Err(); err != nil {
+				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+			}
 		}
 
 		for _, msKBID := range cve.KBIDs {
@@ -636,6 +668,10 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 			if expire > 0 {
 				if err := pipe.Expire(ctx, zindMicrosoftKBIDPrefix+msKBID.KBID, time.Duration(expire*uint(time.Second))).Err(); err != nil {
 					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+				}
+			} else {
+				if err := pipe.Persist(ctx, zindMicrosoftKBIDPrefix+msKBID.KBID).Err(); err != nil {
+					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
 				}
 			}
 		}
