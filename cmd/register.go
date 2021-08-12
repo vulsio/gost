@@ -33,13 +33,13 @@ func init() {
 	RootCmd.AddCommand(registerCmd)
 
 	registerCmd.PersistentFlags().String("select-cmd", "fzf", "Select command")
-	viper.BindPFlag("select-cmd", registerCmd.PersistentFlags().Lookup("select-cmd"))
+	_ = viper.BindPFlag("select-cmd", registerCmd.PersistentFlags().Lookup("select-cmd"))
 
 	registerCmd.PersistentFlags().String("select-option", "--reverse", "Select command options")
-	viper.BindPFlag("select-option", registerCmd.PersistentFlags().Lookup("select-option"))
+	_ = viper.BindPFlag("select-option", registerCmd.PersistentFlags().Lookup("select-option"))
 
 	registerCmd.PersistentFlags().String("select-after", "", "Show CVEs after the specified date (e.g. 2017-01-01) (default: 30 days ago)")
-	viper.BindPFlag("select-after", registerCmd.PersistentFlags().Lookup("select-after"))
+	_ = viper.BindPFlag("select-after", registerCmd.PersistentFlags().Lookup("select-after"))
 }
 
 func executeRegister(cmd *cobra.Command, args []string) (err error) {

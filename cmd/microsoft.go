@@ -24,8 +24,7 @@ func init() {
 	fetchCmd.AddCommand(microsoftCmd)
 
 	microsoftCmd.PersistentFlags().String("apikey", "", "microsoft apikey")
-	viper.BindPFlag("apikey", microsoftCmd.PersistentFlags().Lookup("apikey"))
-	viper.SetDefault("apikey", "")
+	_ = viper.BindPFlag("apikey", microsoftCmd.PersistentFlags().Lookup("apikey"))
 }
 
 func fetchMicrosoft(cmd *cobra.Command, args []string) (err error) {

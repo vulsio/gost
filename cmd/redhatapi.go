@@ -23,17 +23,14 @@ var redHatAPICmd = &cobra.Command{
 func init() {
 	fetchCmd.AddCommand(redHatAPICmd)
 
-	redHatAPICmd.PersistentFlags().String("after", "", "Fetch CVEs after the specified date (e.g. 2017-01-01) (default: 1970-01-01)")
-	viper.BindPFlag("after", redHatAPICmd.PersistentFlags().Lookup("after"))
-	viper.SetDefault("after", "1970-01-01")
+	redHatAPICmd.PersistentFlags().String("after", "1970-01-01", "Fetch CVEs after the specified date (e.g. 2017-01-01)")
+	_ = viper.BindPFlag("after", redHatAPICmd.PersistentFlags().Lookup("after"))
 
 	redHatAPICmd.PersistentFlags().String("before", "", "Fetch CVEs before the specified date (e.g. 2017-01-01)")
-	viper.BindPFlag("before", redHatAPICmd.PersistentFlags().Lookup("before"))
-	viper.SetDefault("before", "")
+	_ = viper.BindPFlag("before", redHatAPICmd.PersistentFlags().Lookup("before"))
 
 	redHatAPICmd.PersistentFlags().Bool("list-only", false, "")
-	viper.BindPFlag("list-only", redHatAPICmd.PersistentFlags().Lookup("list-only"))
-	viper.SetDefault("list-only", false)
+	_ = viper.BindPFlag("list-only", redHatAPICmd.PersistentFlags().Lookup("list-only"))
 }
 
 func fetchRedHatAPI(cmd *cobra.Command, args []string) (err error) {
