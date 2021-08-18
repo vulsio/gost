@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -48,6 +49,16 @@ import (
   ├───┼─────────────────────────┼──────────────┼─────────────────────────────────────────────┤
   │ 5 │ GOST#M#PKG#P#$PRODUCTID │ $PRODUCTNAME │ (Microsoft) GET RELATED []PRODUCTNAME BY ID │
   └───┴─────────────────────────┴──────────────┴─────────────────────────────────────────────┘
+
+- Hash
+  ┌───┬────────────────┬───────────────┬────────┬──────────────────────────┐
+  │NO │    KEY         │   FIELD       │  VALUE │       PURPOSE            │
+  └───┴────────────────┴───────────────┴────────┴──────────────────────────┘
+  ┌────────────────────┬───────────────┬────────┬──────────────────────────┐
+  │ 1 │ GOST#FETCHMETA │   Revision    │ string │ GET Gost Binary Revision │
+  ├───┼────────────────┼───────────────┼────────┼──────────────────────────┤
+  │ 2 │ GOST#FETCHMETA │ SchemaVersion │  uint  │ GET Gost Schema Version  │
+  └───┴────────────────┴───────────────┴────────┴──────────────────────────┘
 
 **/
 
@@ -110,22 +121,80 @@ func (r *RedisDriver) MigrateDB() error {
 
 // IsGostModelV1 determines if the DB was created at the time of Gost Model v1
 func (r *RedisDriver) IsGostModelV1() (bool, error) {
+	ctx := context.Background()
+
+	exists, err := r.conn.Exists(ctx, "GOST#FETCHMETA").Result()
+	if err != nil {
+		return false, fmt.Errorf("Failed to Exists. err: %s", err)
+	}
+	if exists == 0 {
+		key, err := r.conn.RandomKey(ctx).Result()
+		if err != nil {
+			if err.Error() == "redis: nil" {
+				return false, nil
+			}
+			return false, fmt.Errorf("Failed to RandomKey. err: %s", err)
+		}
+		if key != "" {
+			return true, nil
+		}
+	}
+
 	return false, nil
 }
 
 // GetFetchMeta get FetchMeta from Database
 func (r *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
-	return &models.FetchMeta{GostRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
+	ctx := context.Background()
+
+	exists, err := r.conn.Exists(ctx, "GOST#FETCHMETA").Result()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to Exists Revision. err: %s", err)
+	}
+	if exists == 0 {
+		return &models.FetchMeta{GostRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
+	}
+
+	revision, err := r.conn.HGet(ctx, "GOST#FETCHMETA", "Revision").Result()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to HGet Revision. err: %s", err)
+	}
+
+	verstr, err := r.conn.HGet(ctx, "GOST#FETCHMETA", "SchemaVersion").Result()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to HGet Revision. err: %s", err)
+	}
+	version, err := strconv.ParseUint(verstr, 10, 8)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to ParseUint. err: %s", err)
+	}
+
+	return &models.FetchMeta{GostRevision: revision, SchemaVersion: uint(version)}, nil
 }
 
 // UpsertFetchMeta upsert FetchMeta to Database
-func (r *RedisDriver) UpsertFetchMeta(*models.FetchMeta) error {
-	return nil
+func (r *RedisDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
+	return r.conn.HSet(context.Background(), "GOST#FETCHMETA", map[string]interface{}{"Revision": fetchMeta.GostRevision, "SchemaVersion": fetchMeta.SchemaVersion}).Err()
 }
 
 // GetAfterTimeRedhat :
-func (r *RedisDriver) GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error) {
-	return nil, fmt.Errorf("Not implemented yet")
+func (r *RedisDriver) GetAfterTimeRedhat(after time.Time) ([]models.RedhatCVE, error) {
+	allCves := []models.RedhatCVE{}
+
+	ctx := context.Background()
+	keys, err := r.conn.Keys(ctx, fmt.Sprintf("%sCVE#*", redHatKeyPrefix)).Result()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to Keys. err: %s", err)
+	}
+
+	cves := r.GetRedhatMulti(keys)
+	for _, cve := range cves {
+		if !after.After(cve.PublicDate) {
+			allCves = append(allCves, cve)
+		}
+	}
+
+	return allCves, nil
 }
 
 // GetRedhat :
@@ -454,7 +523,6 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 		}
 	}
 	bar.Finish()
-
 	return nil
 }
 
