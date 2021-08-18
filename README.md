@@ -38,6 +38,7 @@ Available Commands:
   notify      Notifiy update about the specified CVE
   register    Register CVEs to monitor
   server      Start security tracker HTTP server
+  version     Show version
 
 Flags:
       --config string       config file (default is $HOME/.gost.yaml)
