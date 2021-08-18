@@ -5,6 +5,7 @@ import (
 	"github.com/knqyf263/gost/db"
 	"github.com/knqyf263/gost/fetcher"
 	"github.com/knqyf263/gost/models"
+	"github.com/knqyf263/gost/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
@@ -23,6 +24,10 @@ func init() {
 }
 
 func fetchDebian(cmd *cobra.Command, args []string) (err error) {
+	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
+
 	log15.Info("Initialize Database")
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {

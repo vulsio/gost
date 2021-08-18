@@ -131,24 +131,24 @@ diff-package:
 	# @ python integration/diff_server_mode.py package redhat
 
 diff-server-rdb:
-	integration/gost.old server --dbpath=integration/gost.old.sqlite3 --port 1325 > /dev/null & 
-	integration/gost.new server --dbpath=integration/gost.new.sqlite3 --port 1326 > /dev/null &
+	integration/gost.old server --dbpath=integration/gost.old.sqlite3 --port 1325 > /dev/null 2>&1 &
+	integration/gost.new server --dbpath=integration/gost.new.sqlite3 --port 1326 > /dev/null 2>&1 &
 	make diff-cveid
 	make diff-package
 	pkill gost.old 
 	pkill gost.new
 
 diff-server-redis:
-	integration/gost.old server --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --port 1325 > /dev/null & 
-	integration/gost.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null &
+	integration/gost.old server --dbtype redis --dbpath "redis://127.0.0.1:6379/0" --port 1325 > /dev/null 2>&1 &
+	integration/gost.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null 2>&1 &
 	make diff-cveid
 	make diff-package
 	pkill gost.old 
 	pkill gost.new
 
 diff-server-rdb-redis:
-	integration/gost.new server --dbpath=integration/gost.new.sqlite3 --port 1325 > /dev/null &
-	integration/gost.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null &
+	integration/gost.new server --dbpath=integration/gost.new.sqlite3 --port 1325 > /dev/null 2>&1 &
+	integration/gost.new server --dbtype redis --dbpath "redis://127.0.0.1:6380/0" --port 1326 > /dev/null 2>&1 &
 	make diff-cveid
 	make diff-package
 	pkill gost.new

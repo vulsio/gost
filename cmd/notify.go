@@ -36,6 +36,10 @@ func init() {
 }
 
 func executeNotify(cmd *cobra.Command, args []string) (err error) {
+	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
+
 	log15.Info("Load toml config")
 	var conf config.Config
 	if _, err = toml.DecodeFile("config.toml", &conf); err != nil {

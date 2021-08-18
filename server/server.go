@@ -12,32 +12,28 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
 )
 
 // Start starts CVE dictionary HTTP Server.
-func Start(logDir string, driver db.DB) error {
+func Start(logToFile bool, logDir string, driver db.DB) error {
 	e := echo.New()
 	e.Debug = viper.GetBool("debug")
 
 	// Middleware
-	e.Use(middleware.Logger())
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{Output: os.Stderr}))
 	e.Use(middleware.Recover())
 
 	// setup access logger
-	logPath := filepath.Join(logDir, "access.log")
-	if _, err := os.Stat(logPath); os.IsNotExist(err) {
-		if _, err := os.Create(logPath); err != nil {
-			return err
+	if logToFile {
+		logPath := filepath.Join(logDir, "access.log")
+		f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		if err != nil {
+			return xerrors.Errorf("Failed to open a log file: %s", err)
 		}
+		defer f.Close()
+		e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{Output: f}))
 	}
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY, 0600)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Output: f,
-	}))
 
 	// Routes
 	e.GET("/health", health())
@@ -54,8 +50,7 @@ func Start(logDir string, driver db.DB) error {
 	bindURL := fmt.Sprintf("%s:%s", viper.GetString("bind"), viper.GetString("port"))
 	log15.Info("Listening", "URL", bindURL)
 
-	e.Start(bindURL)
-	return nil
+	return e.Start(bindURL)
 }
 
 // Handler
