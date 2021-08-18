@@ -8,6 +8,9 @@ from urllib3.util import Retry
 import pprint
 from concurrent.futures import ThreadPoolExecutor
 import os
+import json
+import random
+import math
 
 
 def diff_cveid(args: Tuple[str, str]):
@@ -114,6 +117,8 @@ parser.add_argument('ostype', choices=['debian', 'ubuntu', 'redhat', 'microsoft'
                     help='Specify the OS to be started in server mode when testing.')
 parser.add_argument('--list_path',
                     help='A file path containing a line by line list of CVE-IDs or Packages to be diffed in server mode results')
+parser.add_argument("--sample_rate", type=float, default=0.01,
+                    help="Adjust the rate of data used for testing (len(test_data) * sample_rate)")
 parser.add_argument(
     '--debug', action=argparse.BooleanOptionalAction, help='print debug message')
 args = parser.parse_args()
@@ -158,6 +163,7 @@ logger.debug(
 
 with open(list_path) as f:
     list = [s.strip() for s in f.readlines()]
+    list = random.sample(list, math.ceil(len(list) * args.sample_rate))
     with ThreadPoolExecutor() as executor:
         ins = ((args.mode, args.ostype, e) for e in list)
         executor.map(diff_response, ins)
