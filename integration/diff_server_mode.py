@@ -8,7 +8,6 @@ from urllib3.util import Retry
 import pprint
 from concurrent.futures import ThreadPoolExecutor
 import os
-import json
 import random
 import math
 
