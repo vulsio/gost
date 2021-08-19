@@ -64,11 +64,11 @@ import (
 
 const (
 	dialectRedis       = "redis"
-	keySeparator       = "#"
 	redHatKeyPrefix    = "GOST#R#"
 	debianKeyPrefix    = "GOST#D#"
 	ubuntuKeyPrefix    = "GOST#U#"
 	microsoftKeyPrefix = "GOST#M#"
+	fetchMetaKey       = "GOST#FETCHMETA"
 )
 
 // RedisDriver is Driver for Redis
@@ -123,7 +123,7 @@ func (r *RedisDriver) MigrateDB() error {
 func (r *RedisDriver) IsGostModelV1() (bool, error) {
 	ctx := context.Background()
 
-	exists, err := r.conn.Exists(ctx, "GOST#FETCHMETA").Result()
+	exists, err := r.conn.Exists(ctx, fetchMetaKey).Result()
 	if err != nil {
 		return false, fmt.Errorf("Failed to Exists. err: %s", err)
 	}
@@ -147,22 +147,22 @@ func (r *RedisDriver) IsGostModelV1() (bool, error) {
 func (r *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
 	ctx := context.Background()
 
-	exists, err := r.conn.Exists(ctx, "GOST#FETCHMETA").Result()
+	exists, err := r.conn.Exists(ctx, fetchMetaKey).Result()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to Exists Revision. err: %s", err)
+		return nil, fmt.Errorf("Failed to Exists. err: %s", err)
 	}
 	if exists == 0 {
 		return &models.FetchMeta{GostRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
 	}
 
-	revision, err := r.conn.HGet(ctx, "GOST#FETCHMETA", "Revision").Result()
+	revision, err := r.conn.HGet(ctx, fetchMetaKey, "Revision").Result()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to HGet Revision. err: %s", err)
 	}
 
-	verstr, err := r.conn.HGet(ctx, "GOST#FETCHMETA", "SchemaVersion").Result()
+	verstr, err := r.conn.HGet(ctx, fetchMetaKey, "SchemaVersion").Result()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to HGet Revision. err: %s", err)
+		return nil, fmt.Errorf("Failed to HGet SchemaVersion. err: %s", err)
 	}
 	version, err := strconv.ParseUint(verstr, 10, 8)
 	if err != nil {
@@ -174,7 +174,7 @@ func (r *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
 
 // UpsertFetchMeta upsert FetchMeta to Database
 func (r *RedisDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
-	return r.conn.HSet(context.Background(), "GOST#FETCHMETA", map[string]interface{}{"Revision": fetchMeta.GostRevision, "SchemaVersion": fetchMeta.SchemaVersion}).Err()
+	return r.conn.HSet(context.Background(), fetchMetaKey, map[string]interface{}{"Revision": fetchMeta.GostRevision, "SchemaVersion": fetchMeta.SchemaVersion}).Err()
 }
 
 // GetAfterTimeRedhat :
