@@ -85,7 +85,12 @@ func (r *RDBDriver) deleteAndInsertUbuntu(conn *gorm.DB, cves []models.UbuntuCVE
 		return xerrors.Errorf("Failed to delete old. err: %s", errs.Error())
 	}
 
-	for idx := range chunkSlice(len(cves), viper.GetInt("batch-size")) {
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return xerrors.New("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
+	for idx := range chunkSlice(len(cves), batchSize) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
 			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}

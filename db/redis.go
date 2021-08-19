@@ -489,8 +489,13 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 		return err
 	}
 
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
 	bar := pb.StartNew(len(cves))
-	for idx := range chunkSlice(len(cves), viper.GetInt("batch-size")) {
+	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
 		for _, cve := range cves[idx.From:idx.To] {
 			j, err := json.Marshal(cve)
@@ -533,8 +538,13 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 	ctx := context.Background()
 	cves := ConvertDebian(cveJSONs)
 
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
 	bar := pb.StartNew(len(cves))
-	for idx := range chunkSlice(len(cves), viper.GetInt("batch-size")) {
+	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
 		for _, cve := range cves[idx.From:idx.To] {
 			j, err := json.Marshal(cve)
@@ -577,8 +587,13 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 	ctx := context.Background()
 	cves := ConvertUbuntu(cveJSONs)
 
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
 	bar := pb.StartNew(len(cves))
-	for idx := range chunkSlice(len(cves), viper.GetInt("batch-size")) {
+	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
 		for _, cve := range cves[idx.From:idx.To] {
 			j, err := json.Marshal(cve)
@@ -618,6 +633,9 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []models.MicrosoftBulletinSearch) (err error) {
 	expire := viper.GetUint("expire")
 	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+	}
 
 	ctx := context.Background()
 	cves, products := ConvertMicrosoft(cveXMLs, xls)
