@@ -7,6 +7,7 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/models"
 	"github.com/knqyf263/gost/util"
+	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
 	pb "gopkg.in/cheggaaa/pb.v1"
 	"gorm.io/gorm"
@@ -84,7 +85,7 @@ func (r *RDBDriver) deleteAndInsertUbuntu(conn *gorm.DB, cves []models.UbuntuCVE
 		return xerrors.Errorf("Failed to delete old. err: %s", errs.Error())
 	}
 
-	for idx := range chunkSlice(len(cves), r.batchSize) {
+	for idx := range chunkSlice(len(cves), viper.GetInt("batch-size")) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
 			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}

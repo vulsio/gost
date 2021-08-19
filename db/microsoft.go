@@ -12,6 +12,7 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/models"
 	"github.com/knqyf263/gost/util"
+	"github.com/spf13/viper"
 	"gorm.io/gorm"
 )
 
@@ -149,7 +150,7 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(conn *gorm.DB, cves []models.Micros
 		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
 	}
 
-	for idx := range chunkSlice(len(cves), r.batchSize) {
+	for idx := range chunkSlice(len(cves), viper.GetInt("batch-size")) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
 			return fmt.Errorf("Failed to insert. err: %s", err)
 		}

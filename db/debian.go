@@ -7,6 +7,7 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/knqyf263/gost/models"
 	"github.com/knqyf263/gost/util"
+	"github.com/spf13/viper"
 	pb "gopkg.in/cheggaaa/pb.v1"
 	"gorm.io/gorm"
 )
@@ -69,7 +70,7 @@ func (r *RDBDriver) deleteAndInsertDebian(conn *gorm.DB, cves []models.DebianCVE
 		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
 	}
 
-	for idx := range chunkSlice(len(cves), r.batchSize) {
+	for idx := range chunkSlice(len(cves), viper.GetInt("batch-size")) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
 			return fmt.Errorf("Failed to insert. err: %s", err)
 		}

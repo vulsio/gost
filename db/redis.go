@@ -488,39 +488,39 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 	if err != nil {
 		return err
 	}
+
 	bar := pb.StartNew(len(cves))
-
-	for _, cve := range cves {
+	for idx := range chunkSlice(len(cves), viper.GetInt("batch-size")) {
 		pipe := r.conn.Pipeline()
-		bar.Increment()
-
-		j, err := json.Marshal(cve)
-		if err != nil {
-			return fmt.Errorf("Failed to marshal json. err: %s", err)
-		}
-
-		if err := pipe.Set(ctx, fmt.Sprintf("%sCVE#%s", redHatKeyPrefix, cve.Name), string(j), time.Duration(expire*uint(time.Second))).Err(); err != nil {
-			return fmt.Errorf("Failed to Set CVE. err: %s", err)
-		}
-		for _, pkg := range cve.PackageState {
-			key := fmt.Sprintf("%sPKG#%s", redHatKeyPrefix, pkg.PackageName)
-			if err := pipe.SAdd(ctx, key, cve.Name).Err(); err != nil {
-				return fmt.Errorf("Failed to SAdd pkg name. err: %s", err)
+		for _, cve := range cves[idx.From:idx.To] {
+			j, err := json.Marshal(cve)
+			if err != nil {
+				return fmt.Errorf("Failed to marshal json. err: %s", err)
 			}
-			if expire > 0 {
-				if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+
+			if err := pipe.Set(ctx, fmt.Sprintf("%sCVE#%s", redHatKeyPrefix, cve.Name), string(j), time.Duration(expire*uint(time.Second))).Err(); err != nil {
+				return fmt.Errorf("Failed to Set CVE. err: %s", err)
+			}
+			for _, pkg := range cve.PackageState {
+				key := fmt.Sprintf("%sPKG#%s", redHatKeyPrefix, pkg.PackageName)
+				if err := pipe.SAdd(ctx, key, cve.Name).Err(); err != nil {
+					return fmt.Errorf("Failed to SAdd pkg name. err: %s", err)
 				}
-			} else {
-				if err := pipe.Persist(ctx, key).Err(); err != nil {
-					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+				if expire > 0 {
+					if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+					}
+				} else {
+					if err := pipe.Persist(ctx, key).Err(); err != nil {
+						return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+					}
 				}
 			}
 		}
-
-		if _, err = pipe.Exec(ctx); err != nil {
+		if _, err := pipe.Exec(ctx); err != nil {
 			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 		}
+		bar.Add(idx.To - idx.From)
 	}
 	bar.Finish()
 	return nil
@@ -532,39 +532,39 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 
 	ctx := context.Background()
 	cves := ConvertDebian(cveJSONs)
+
 	bar := pb.StartNew(len(cves))
-
-	for _, cve := range cves {
+	for idx := range chunkSlice(len(cves), viper.GetInt("batch-size")) {
 		pipe := r.conn.Pipeline()
-		bar.Increment()
-
-		j, err := json.Marshal(cve)
-		if err != nil {
-			return fmt.Errorf("Failed to marshal json. err: %s", err)
-		}
-
-		if result := pipe.Set(ctx, fmt.Sprintf("%sCVE#%s", debianKeyPrefix, cve.CveID), string(j), time.Duration(expire*uint(time.Second))); result.Err() != nil {
-			return fmt.Errorf("Failed to Set CVE. err: %s", result.Err())
-		}
-		for _, pkg := range cve.Package {
-			key := fmt.Sprintf("%sPKG#%s", debianKeyPrefix, pkg.PackageName)
-			if err := pipe.SAdd(ctx, key, cve.CveID).Err(); err != nil {
-				return fmt.Errorf("Failed to SAdd pkg name. err: %s", err)
+		for _, cve := range cves[idx.From:idx.To] {
+			j, err := json.Marshal(cve)
+			if err != nil {
+				return fmt.Errorf("Failed to marshal json. err: %s", err)
 			}
-			if expire > 0 {
-				if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+
+			if result := pipe.Set(ctx, fmt.Sprintf("%sCVE#%s", debianKeyPrefix, cve.CveID), string(j), time.Duration(expire*uint(time.Second))); result.Err() != nil {
+				return fmt.Errorf("Failed to Set CVE. err: %s", result.Err())
+			}
+			for _, pkg := range cve.Package {
+				key := fmt.Sprintf("%sPKG#%s", debianKeyPrefix, pkg.PackageName)
+				if err := pipe.SAdd(ctx, key, cve.CveID).Err(); err != nil {
+					return fmt.Errorf("Failed to SAdd pkg name. err: %s", err)
 				}
-			} else {
-				if err := pipe.Persist(ctx, key).Err(); err != nil {
-					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+				if expire > 0 {
+					if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+					}
+				} else {
+					if err := pipe.Persist(ctx, key).Err(); err != nil {
+						return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+					}
 				}
 			}
 		}
-
-		if _, err = pipe.Exec(ctx); err != nil {
+		if _, err := pipe.Exec(ctx); err != nil {
 			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 		}
+		bar.Add(idx.To - idx.From)
 	}
 	bar.Finish()
 	return nil
@@ -576,39 +576,39 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 
 	ctx := context.Background()
 	cves := ConvertUbuntu(cveJSONs)
+
 	bar := pb.StartNew(len(cves))
-
-	for _, cve := range cves {
+	for idx := range chunkSlice(len(cves), viper.GetInt("batch-size")) {
 		pipe := r.conn.Pipeline()
-		bar.Increment()
-
-		j, err := json.Marshal(cve)
-		if err != nil {
-			return fmt.Errorf("Failed to marshal json. err: %s", err)
-		}
-
-		if err := pipe.Set(ctx, fmt.Sprintf("%sCVE#%s", ubuntuKeyPrefix, cve.Candidate), string(j), time.Duration(expire*uint(time.Second))).Err(); err != nil {
-			return fmt.Errorf("Failed to Set CVE. err: %s", err)
-		}
-		for _, pkg := range cve.Patches {
-			key := fmt.Sprintf("%sPKG#%s", ubuntuKeyPrefix, pkg.PackageName)
-			if err := pipe.SAdd(ctx, key, cve.Candidate).Err(); err != nil {
-				return fmt.Errorf("Failed to SAdd pkg name. err: %s", err)
+		for _, cve := range cves[idx.From:idx.To] {
+			j, err := json.Marshal(cve)
+			if err != nil {
+				return fmt.Errorf("Failed to marshal json. err: %s", err)
 			}
-			if expire > 0 {
-				if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+
+			if err := pipe.Set(ctx, fmt.Sprintf("%sCVE#%s", ubuntuKeyPrefix, cve.Candidate), string(j), time.Duration(expire*uint(time.Second))).Err(); err != nil {
+				return fmt.Errorf("Failed to Set CVE. err: %s", err)
+			}
+			for _, pkg := range cve.Patches {
+				key := fmt.Sprintf("%sPKG#%s", ubuntuKeyPrefix, pkg.PackageName)
+				if err := pipe.SAdd(ctx, key, cve.Candidate).Err(); err != nil {
+					return fmt.Errorf("Failed to SAdd pkg name. err: %s", err)
 				}
-			} else {
-				if err := pipe.Persist(ctx, key).Err(); err != nil {
-					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+				if expire > 0 {
+					if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+					}
+				} else {
+					if err := pipe.Persist(ctx, key).Err(); err != nil {
+						return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+					}
 				}
 			}
 		}
-
-		if _, err = pipe.Exec(ctx); err != nil {
+		if _, err := pipe.Exec(ctx); err != nil {
 			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 		}
+		bar.Add(idx.To - idx.From)
 	}
 	bar.Finish()
 	return nil
@@ -617,49 +617,19 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 // InsertMicrosoft :
 func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []models.MicrosoftBulletinSearch) (err error) {
 	expire := viper.GetUint("expire")
+	batchSize := viper.GetInt("batch-size")
 
 	ctx := context.Background()
 	cves, products := ConvertMicrosoft(cveXMLs, xls)
-	bar := pb.StartNew(len(cves))
 
-	pipe := r.conn.Pipeline()
-	for _, p := range products {
-		key := fmt.Sprintf("%sPKG#P#%s", microsoftKeyPrefix, p.ProductID)
-		if err := pipe.SAdd(ctx, key, p.ProductName).Err(); err != nil {
-			return fmt.Errorf("Failed to SAdd ProductID. err: %s", err)
-		}
-		if expire > 0 {
-			if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
-			}
-		} else {
-			if err := pipe.Persist(ctx, key).Err(); err != nil {
-				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
-			}
-		}
-	}
-	if _, err = pipe.Exec(ctx); err != nil {
-		return fmt.Errorf("Failed to exec pipeline. err: %s", err)
-	}
-
-	for _, cve := range cves {
+	log15.Info("Inserting products", "products", len(products))
+	bar := pb.StartNew(len(products))
+	for idx := range chunkSlice(len(products), batchSize) {
 		pipe := r.conn.Pipeline()
-		bar.Increment()
-
-		j, err := json.Marshal(cve)
-		if err != nil {
-			return fmt.Errorf("Failed to marshal json. err: %s", err)
-		}
-
-		cveID := strings.ReplaceAll(strings.ReplaceAll(cve.CveID, "\n", ""), " ", "")
-		key := fmt.Sprintf("%sCVE#%s", microsoftKeyPrefix, cveID)
-		if err := pipe.Set(ctx, key, string(j), time.Duration(expire*uint(time.Second))).Err(); err != nil {
-			return fmt.Errorf("Failed to HSet CVE. err: %s", err)
-		}
-		for _, msKBID := range cve.KBIDs {
-			key := fmt.Sprintf("%sPKG#K#%s", microsoftKeyPrefix, msKBID.KBID)
-			if err := pipe.SAdd(ctx, key, cve.CveID).Err(); err != nil {
-				return fmt.Errorf("Failed to SAdd kbID. err: %s", err)
+		for _, p := range products[idx.From:idx.To] {
+			key := fmt.Sprintf("%sPKG#P#%s", microsoftKeyPrefix, p.ProductID)
+			if err := pipe.SAdd(ctx, key, p.ProductName).Err(); err != nil {
+				return fmt.Errorf("Failed to SAdd ProductID. err: %s", err)
 			}
 			if expire > 0 {
 				if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
@@ -671,10 +641,48 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 				}
 			}
 		}
-
 		if _, err = pipe.Exec(ctx); err != nil {
 			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
 		}
+		bar.Add(idx.To - idx.From)
+	}
+	bar.Finish()
+
+	log15.Info("Inserting cves", "cves", len(cves))
+	bar = pb.StartNew(len(cves))
+	for idx := range chunkSlice(len(products), batchSize) {
+		pipe := r.conn.Pipeline()
+		for _, cve := range cves[idx.From:idx.To] {
+			j, err := json.Marshal(cve)
+			if err != nil {
+				return fmt.Errorf("Failed to marshal json. err: %s", err)
+			}
+
+			cveID := strings.ReplaceAll(strings.ReplaceAll(cve.CveID, "\n", ""), " ", "")
+			key := fmt.Sprintf("%sCVE#%s", microsoftKeyPrefix, cveID)
+			if err := pipe.Set(ctx, key, string(j), time.Duration(expire*uint(time.Second))).Err(); err != nil {
+				return fmt.Errorf("Failed to HSet CVE. err: %s", err)
+			}
+			for _, msKBID := range cve.KBIDs {
+				key := fmt.Sprintf("%sPKG#K#%s", microsoftKeyPrefix, msKBID.KBID)
+				if err := pipe.SAdd(ctx, key, cve.CveID).Err(); err != nil {
+					return fmt.Errorf("Failed to SAdd kbID. err: %s", err)
+				}
+				if expire > 0 {
+					if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+						return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+					}
+				} else {
+					if err := pipe.Persist(ctx, key).Err(); err != nil {
+						return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+					}
+				}
+			}
+		}
+		if _, err = pipe.Exec(ctx); err != nil {
+			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
+		}
+		bar.Add(idx.To - idx.From)
 	}
 	bar.Finish()
 	return nil

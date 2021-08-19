@@ -32,9 +32,8 @@ const (
 
 // RDBDriver is Driver for RDB
 type RDBDriver struct {
-	name      string
-	conn      *gorm.DB
-	batchSize int
+	name string
+	conn *gorm.DB
 }
 
 // Name return db name
@@ -193,27 +192,4 @@ func (r *RDBDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
 	fetchMeta.GostRevision = config.Revision
 	fetchMeta.SchemaVersion = models.LatestSchemaVersion
 	return r.conn.Save(fetchMeta).Error
-}
-
-// IndexChunk has a starting point and an ending point for Chunk
-type IndexChunk struct {
-	From, To int
-}
-
-func chunkSlice(length int, chunkSize int) <-chan IndexChunk {
-	ch := make(chan IndexChunk)
-
-	go func() {
-		defer close(ch)
-
-		for i := 0; i < length; i += chunkSize {
-			idx := IndexChunk{i, i + chunkSize}
-			if length < idx.To {
-				idx.To = length
-			}
-			ch <- idx
-		}
-	}()
-
-	return ch
 }
