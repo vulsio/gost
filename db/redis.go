@@ -507,6 +507,7 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
+	// newDeps, oldDeps: {"CVEID": {"PKGNAME": {}}}
 	newDeps := map[string]map[string]struct{}{}
 	oldDepsStr, err := r.conn.HGet(ctx, depKey, "RedHat").Result()
 	if err != nil {
@@ -614,6 +615,7 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
+	// newDeps, oldDeps: {"CVEID": {"PKGNAME": {}}}
 	newDeps := map[string]map[string]struct{}{}
 	oldDepsStr, err := r.conn.HGet(ctx, depKey, "Debian").Result()
 	if err != nil {
@@ -721,6 +723,7 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
+	// newDeps, oldDeps: {"CVEID": {"PKGNAME": {}}}
 	newDeps := map[string]map[string]struct{}{}
 	oldDepsStr, err := r.conn.HGet(ctx, depKey, "Ubuntu").Result()
 	if err != nil {
@@ -828,6 +831,7 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
+	// newDeps, oldDeps: {"products": {"ProductID": {"ProductName": {}}}, "cves": {"CVEID": {"KBID": {}}}}
 	newDeps := map[string]map[string]map[string]struct{}{
 		"products": {},
 		"cves":     {},
