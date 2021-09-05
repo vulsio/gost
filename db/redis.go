@@ -886,7 +886,7 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 
 	log15.Info("Inserting cves", "cves", len(cves))
 	bar = pb.StartNew(len(cves))
-	for idx := range chunkSlice(len(products), batchSize) {
+	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
 		for _, cve := range cves[idx.From:idx.To] {
 			j, err := json.Marshal(cve)
