@@ -829,8 +829,8 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 	}
 
 	newDeps := map[string]map[string]map[string]struct{}{
-		"products": map[string]map[string]struct{}{},
-		"cves":     map[string]map[string]struct{}{},
+		"products": {},
+		"cves":     {},
 	}
 	oldDepsStr, err := r.conn.HGet(ctx, depKey, "Microsoft").Result()
 	if err != nil {
