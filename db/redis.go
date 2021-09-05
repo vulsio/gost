@@ -181,15 +181,27 @@ func (r *RedisDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
 
 // GetAfterTimeRedhat :
 func (r *RedisDriver) GetAfterTimeRedhat(after time.Time) ([]models.RedhatCVE, error) {
-	allCves := []models.RedhatCVE{}
-
 	ctx := context.Background()
-	keys, err := r.conn.Keys(ctx, fmt.Sprintf("%sCVE#*", redHatKeyPrefix)).Result()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to Keys. err: %s", err)
+
+	cveKeys := []string{}
+	var cursor uint64
+	for {
+		var keys []string
+		var err error
+		keys, cursor, err = r.conn.Scan(ctx, cursor, fmt.Sprintf(redHatKeyFormat, "CVE#*"), 10).Result()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to Scan. err: %s", err)
+		}
+
+		cveKeys = append(cveKeys, keys...)
+
+		if cursor == 0 {
+			break
+		}
 	}
 
-	cves := r.GetRedhatMulti(keys)
+	allCves := []models.RedhatCVE{}
+	cves := r.GetRedhatMulti(cveKeys)
 	for _, cve := range cves {
 		if !after.After(cve.PublicDate) {
 			allCves = append(allCves, cve)
@@ -202,7 +214,7 @@ func (r *RedisDriver) GetAfterTimeRedhat(after time.Time) ([]models.RedhatCVE, e
 // GetRedhat :
 func (r *RedisDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	ctx := context.Background()
-	cve, err := r.conn.Get(ctx, fmt.Sprintf("%sCVE#%s", redHatKeyPrefix, cveID)).Result()
+	cve, err := r.conn.Get(ctx, fmt.Sprintf(redHatKeyFormat, "CVE", cveID)).Result()
 	if err != nil {
 		log15.Error("Failed to get cve.", "err", err)
 		return nil
@@ -222,7 +234,7 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCV
 
 	keys := make([]string, 0, len(cveIDs))
 	for _, cveID := range cveIDs {
-		keys = append(keys, fmt.Sprintf("%sCVE#%s", redHatKeyPrefix, cveID))
+		keys = append(keys, fmt.Sprintf(redHatKeyFormat, "CVE", cveID))
 	}
 
 	ctx := context.Background()
@@ -246,7 +258,7 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCV
 // GetUnfixedCvesRedhat :
 func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix bool) map[string]models.RedhatCVE {
 	ctx := context.Background()
-	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf("%sPKG#%s", redHatKeyPrefix, pkgName)).Result()
+	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(redHatKeyFormat, "PKG", pkgName)).Result()
 	if err != nil {
 		log15.Error("Failed to get pkg.", "err", err)
 		return nil
@@ -302,7 +314,7 @@ func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus strin
 	}
 
 	ctx := context.Background()
-	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf("%sPKG#%s", debianKeyPrefix, pkgName)).Result()
+	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(debianKeyFormat, "PKG", pkgName)).Result()
 	if err != nil {
 		log15.Error("Failed to get pkg.", "err", err)
 		return nil
@@ -344,7 +356,7 @@ func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus strin
 // GetDebian :
 func (r *RedisDriver) GetDebian(cveID string) *models.DebianCVE {
 	ctx := context.Background()
-	cve, err := r.conn.Get(ctx, fmt.Sprintf("%sCVE#%s", debianKeyPrefix, cveID)).Result()
+	cve, err := r.conn.Get(ctx, fmt.Sprintf(debianKeyFormat, "CVE", cveID)).Result()
 	if err != nil {
 		log15.Error("Failed to get cve.", "err", err)
 		return nil
@@ -376,7 +388,7 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 	}
 
 	ctx := context.Background()
-	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf("%sPKG#%s", ubuntuKeyPrefix, pkgName)).Result()
+	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(ubuntuKeyFormat, "PKG", pkgName)).Result()
 	if err != nil {
 		log15.Error("Failed to get pkg.", "err", err)
 		return nil
@@ -422,7 +434,7 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 // GetUbuntu :
 func (r *RedisDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 	ctx := context.Background()
-	cve, err := r.conn.Get(ctx, fmt.Sprintf("%sCVE#%s", ubuntuKeyPrefix, cveID)).Result()
+	cve, err := r.conn.Get(ctx, fmt.Sprintf(ubuntuKeyFormat, "CVE", cveID)).Result()
 	if err != nil {
 		log15.Error("Failed to get cve.", "err", err)
 		return nil
@@ -439,7 +451,7 @@ func (r *RedisDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 // GetMicrosoft :
 func (r *RedisDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 	ctx := context.Background()
-	cve, err := r.conn.Get(ctx, fmt.Sprintf("%sCVE#%s", microsoftKeyPrefix, cveID)).Result()
+	cve, err := r.conn.Get(ctx, fmt.Sprintf(microsoftKeyFormat, "CVE", cveID)).Result()
 	if err != nil {
 		log15.Error("Failed to get cve.", "err", err)
 		return nil
@@ -459,7 +471,7 @@ func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) map[string]models.Micro
 
 	keys := make([]string, 0, len(cveIDs))
 	for _, cveID := range cveIDs {
-		keys = append(keys, fmt.Sprintf("%sCVE#%s", microsoftKeyPrefix, cveID))
+		keys = append(keys, fmt.Sprintf(microsoftKeyFormat, "CVE", cveID))
 	}
 
 	ctx := context.Background()
@@ -542,9 +554,9 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 				newDeps[cve.Name][pkg.PackageName] = struct{}{}
 				if _, ok := oldDeps[cve.Name]; ok {
 					delete(oldDeps[cve.Name], pkg.PackageName)
-				}
-				if len(oldDeps[cve.Name]) == 0 {
-					delete(oldDeps, cve.Name)
+					if len(oldDeps[cve.Name]) == 0 {
+						delete(oldDeps, cve.Name)
+					}
 				}
 			}
 		}
@@ -649,9 +661,9 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 				newDeps[cve.CveID][pkg.PackageName] = struct{}{}
 				if _, ok := oldDeps[cve.CveID]; ok {
 					delete(oldDeps[cve.CveID], pkg.PackageName)
-				}
-				if len(oldDeps[cve.CveID]) == 0 {
-					delete(oldDeps, cve.CveID)
+					if len(oldDeps[cve.CveID]) == 0 {
+						delete(oldDeps, cve.CveID)
+					}
 				}
 			}
 		}
@@ -756,9 +768,9 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 				newDeps[cve.Candidate][pkg.PackageName] = struct{}{}
 				if _, ok := oldDeps[cve.Candidate]; ok {
 					delete(oldDeps[cve.Candidate], pkg.PackageName)
-				}
-				if len(oldDeps[cve.Candidate]) == 0 {
-					delete(oldDeps, cve.Candidate)
+					if len(oldDeps[cve.Candidate]) == 0 {
+						delete(oldDeps, cve.Candidate)
+					}
 				}
 			}
 		}
@@ -860,6 +872,9 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 			newDeps["products"][p.ProductID][p.ProductName] = struct{}{}
 			if _, ok := oldDeps["products"][p.ProductID]; ok {
 				delete(oldDeps["products"][p.ProductID], p.ProductName)
+				if len(oldDeps["products"][p.ProductID]) == 0 {
+					delete(oldDeps["products"], p.ProductID)
+				}
 			}
 		}
 		if _, err = pipe.Exec(ctx); err != nil {
@@ -905,9 +920,9 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 				newDeps["cves"][cveID][msKBID.KBID] = struct{}{}
 				if _, ok := oldDeps["cves"][cveID]; ok {
 					delete(oldDeps["cves"][cveID], msKBID.KBID)
-				}
-				if len(oldDeps["cves"][cveID]) == 0 {
-					delete(oldDeps["cves"], cveID)
+					if len(oldDeps["cves"][cveID]) == 0 {
+						delete(oldDeps["cves"], cveID)
+					}
 				}
 			}
 		}
