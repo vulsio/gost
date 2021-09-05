@@ -188,7 +188,7 @@ func (r *RedisDriver) GetAfterTimeRedhat(after time.Time) ([]models.RedhatCVE, e
 	for {
 		var keys []string
 		var err error
-		keys, cursor, err = r.conn.Scan(ctx, cursor, fmt.Sprintf(redHatKeyFormat, "CVE#*"), 10).Result()
+		keys, cursor, err = r.conn.Scan(ctx, cursor, fmt.Sprintf(redHatKeyFormat, "CVE", "*"), 10).Result()
 		if err != nil {
 			return nil, fmt.Errorf("Failed to Scan. err: %s", err)
 		}
