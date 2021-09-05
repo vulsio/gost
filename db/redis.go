@@ -838,8 +838,8 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 			return fmt.Errorf("Failed to Get key: %s. err: %s", depKey, err)
 		}
 		oldDepsStr = `{
-			"products": {},
-			"cves": {},
+			"products":{},
+			"cves": {}
 		}`
 	}
 	var oldDeps map[string]map[string]map[string]struct{}
