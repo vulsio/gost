@@ -425,14 +425,58 @@ func ConvertMicrosoft(cveXMLs []models.MicrosoftXML, cveXls []models.MicrosoftBu
 	// csv
 	cveBulletinSearch := map[string][]models.MicrosoftBulletinSearch{}
 	for _, b := range cveXls {
-		cs := strings.Split(b.CVEs, ",")
+		if b.CVEs == "" {
+			continue
+		}
+		cs := strings.Split(strings.ToUpper(strings.ReplaceAll(strings.TrimSuffix(b.CVEs, "\n"), " ", "")), ",")
 		for _, c := range cs {
-			cveBulletinSearch[c] = append(cveBulletinSearch[c], b)
+			// c: CVE-2021-31936, CAN-2001-0002, CVE-2015-2442CVE-2015-2446, CVE-CVE-2007-0515, CVE, CVE2007-0029, CVE20163325, 2008-1438
+			log15.Debug("parse string containing CVE-ID", "c", c)
+			if strings.HasPrefix(c, "CVE-") {
+				// c: CVE-2021-31936, CVE-2015-2442CVE-2015-2446, CVE-CVE-2007-0515
+				ss := strings.Split(c, "CVE-")
+				for _, cveNumber := range ss {
+					if cveNumber == "" {
+						continue
+					}
+					cveID := fmt.Sprintf("CVE-%s", cveNumber)
+					cveBulletinSearch[cveID] = append(cveBulletinSearch[cveID], b)
+				}
+			} else {
+				// c: CAN-2001-0002, CVE20163325, 2008-1438
+				if strings.HasPrefix(c, "CAN-") {
+					cveBulletinSearch[c] = append(cveBulletinSearch[c], b)
+				} else {
+					// c: CVE, CVE2007-0029, CVE20163325, 2008-1438
+					var cveID string
+					if strings.HasPrefix(c, "CVE") {
+						// c: CVE, CVE2007-0029, CVE20163325
+						cveNumber := strings.TrimPrefix(c, "CVE")
+						if cveNumber == "" {
+							continue
+						}
+						if strings.Contains(cveNumber, "-") {
+							// cveNumber: 2007-0029
+							cveID = fmt.Sprintf("CVE-%s", cveNumber)
+						} else {
+							// cveNumber: 20163325
+							if len(cveNumber) < 8 {
+								continue
+							}
+							cveID = fmt.Sprintf("CVE-%s-%s", c[3:7], c[7:])
+						}
+					} else {
+						// c: 2008-1438
+						cveID = fmt.Sprintf("CVE-%s", c)
+					}
+					cveBulletinSearch[cveID] = append(cveBulletinSearch[cveID], b)
+				}
+			}
 		}
 	}
 
 	for cveID, bss := range cveBulletinSearch {
-		if len(cveID) == 0 {
+		if _, ok := uniqCve[cveID]; ok {
 			continue
 		}
 
