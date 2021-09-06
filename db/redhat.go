@@ -133,18 +133,18 @@ func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
 		return err
 	}
 
-	if err := r.deleteAndInsertRedhat(r.conn, cves); err != nil {
+	if err := r.deleteAndInsertRedhat(cves); err != nil {
 		return fmt.Errorf("Failed to insert RedHat CVE data. err: %s", err)
 	}
 
 	return nil
 }
 
-func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cves []models.RedhatCVE) (err error) {
+func (r *RDBDriver) deleteAndInsertRedhat(cves []models.RedhatCVE) (err error) {
 	log15.Info(fmt.Sprintf("Insert %d CVEs", len(cves)))
 
 	bar := pb.StartNew(len(cves))
-	tx := conn.Begin()
+	tx := r.conn.Begin()
 	defer func() {
 		if err != nil {
 			tx.Rollback()

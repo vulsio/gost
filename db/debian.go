@@ -42,14 +42,14 @@ func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 // InsertDebian :
 func (r *RDBDriver) InsertDebian(cveJSON models.DebianJSON) (err error) {
 	cves := ConvertDebian(cveJSON)
-	if err = r.deleteAndInsertDebian(r.conn, cves); err != nil {
+	if err = r.deleteAndInsertDebian(cves); err != nil {
 		return fmt.Errorf("Failed to insert Debian CVE data. err: %s", err)
 	}
 	return nil
 }
-func (r *RDBDriver) deleteAndInsertDebian(conn *gorm.DB, cves []models.DebianCVE) (err error) {
+func (r *RDBDriver) deleteAndInsertDebian(cves []models.DebianCVE) (err error) {
 	bar := pb.StartNew(len(cves))
-	tx := conn.Begin()
+	tx := r.conn.Begin()
 
 	defer func() {
 		if err != nil {

@@ -50,16 +50,16 @@ func (r *RDBDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 // InsertUbuntu :
 func (r *RDBDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) {
 	cves := ConvertUbuntu(cveJSONs)
-	if err = r.deleteAndInsertUbuntu(r.conn, cves); err != nil {
+	if err = r.deleteAndInsertUbuntu(cves); err != nil {
 		return xerrors.Errorf("Failed to insert Ubuntu CVE data. err: %s", err)
 	}
 
 	return nil
 }
 
-func (r *RDBDriver) deleteAndInsertUbuntu(conn *gorm.DB, cves []models.UbuntuCVE) (err error) {
+func (r *RDBDriver) deleteAndInsertUbuntu(cves []models.UbuntuCVE) (err error) {
 	bar := pb.StartNew(len(cves))
-	tx := conn.Begin()
+	tx := r.conn.Begin()
 
 	defer func() {
 		if err != nil {

@@ -116,15 +116,15 @@ func (r *RDBDriver) GetMicrosoftMulti(cveIDs []string) map[string]models.Microso
 // InsertMicrosoft :
 func (r *RDBDriver) InsertMicrosoft(cveJSON []models.MicrosoftXML, cveXls []models.MicrosoftBulletinSearch) (err error) {
 	cves, _ := ConvertMicrosoft(cveJSON, cveXls)
-	if err = r.deleteAndInsertMicrosoft(r.conn, cves); err != nil {
+	if err = r.deleteAndInsertMicrosoft(cves); err != nil {
 		return fmt.Errorf("Failed to insert Microsoft CVE data. err: %s", err)
 	}
 	return nil
 }
 
-func (r *RDBDriver) deleteAndInsertMicrosoft(conn *gorm.DB, cves []models.MicrosoftCVE) (err error) {
+func (r *RDBDriver) deleteAndInsertMicrosoft(cves []models.MicrosoftCVE) (err error) {
 	bar := pb.StartNew(len(cves))
-	tx := conn.Begin()
+	tx := r.conn.Begin()
 
 	defer func() {
 		if err != nil {
