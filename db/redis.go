@@ -555,9 +555,11 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 				newDeps[cve.Name][pkg.PackageName] = struct{}{}
 				if _, ok := oldDeps[cve.Name]; ok {
 					delete(oldDeps[cve.Name], pkg.PackageName)
-					if len(oldDeps[cve.Name]) == 0 {
-						delete(oldDeps, cve.Name)
-					}
+				}
+			}
+			if _, ok := oldDeps[cve.Name]; ok {
+				if len(oldDeps[cve.Name]) == 0 {
+					delete(oldDeps, cve.Name)
 				}
 			}
 		}
@@ -663,9 +665,11 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 				newDeps[cve.CveID][pkg.PackageName] = struct{}{}
 				if _, ok := oldDeps[cve.CveID]; ok {
 					delete(oldDeps[cve.CveID], pkg.PackageName)
-					if len(oldDeps[cve.CveID]) == 0 {
-						delete(oldDeps, cve.CveID)
-					}
+				}
+			}
+			if _, ok := oldDeps[cve.CveID]; ok {
+				if len(oldDeps[cve.CveID]) == 0 {
+					delete(oldDeps, cve.CveID)
 				}
 			}
 		}
@@ -771,9 +775,11 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 				newDeps[cve.Candidate][pkg.PackageName] = struct{}{}
 				if _, ok := oldDeps[cve.Candidate]; ok {
 					delete(oldDeps[cve.Candidate], pkg.PackageName)
-					if len(oldDeps[cve.Candidate]) == 0 {
-						delete(oldDeps, cve.Candidate)
-					}
+				}
+			}
+			if _, ok := oldDeps[cve.Candidate]; ok {
+				if len(oldDeps[cve.Candidate]) == 0 {
+					delete(oldDeps, cve.Candidate)
 				}
 			}
 		}
@@ -924,9 +930,11 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 				newDeps["cves"][cveID][msKBID.KBID] = struct{}{}
 				if _, ok := oldDeps["cves"][cveID]; ok {
 					delete(oldDeps["cves"][cveID], msKBID.KBID)
-					if len(oldDeps["cves"][cveID]) == 0 {
-						delete(oldDeps["cves"], cveID)
-					}
+				}
+			}
+			if _, ok := oldDeps["cves"][cveID]; ok {
+				if len(oldDeps["cves"][cveID]) == 0 {
+					delete(oldDeps["cves"], cveID)
 				}
 			}
 		}
