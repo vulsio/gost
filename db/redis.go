@@ -500,24 +500,15 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 	bar := pb.StartNew(len(cves))
 	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
+		cvekey := fmt.Sprintf(cveKeyFormat, redhatName)
 		for _, cve := range cves[idx.From:idx.To] {
 			j, err := json.Marshal(cve)
 			if err != nil {
 				return fmt.Errorf("Failed to marshal json. err: %s", err)
 			}
 
-			key := fmt.Sprintf(cveKeyFormat, redhatName)
-			if err := pipe.HSet(ctx, key, cve.Name, string(j)).Err(); err != nil {
+			if err := pipe.HSet(ctx, cvekey, cve.Name, string(j)).Err(); err != nil {
 				return fmt.Errorf("Failed to HSet CVE. err: %s", err)
-			}
-			if expire > 0 {
-				if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
-				}
-			} else {
-				if err := pipe.Persist(ctx, key).Err(); err != nil {
-					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
-				}
 			}
 			if _, ok := newDeps[cve.Name]; !ok {
 				newDeps[cve.Name] = map[string]struct{}{}
@@ -547,6 +538,15 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 				if len(oldDeps[cve.Name]) == 0 {
 					delete(oldDeps, cve.Name)
 				}
+			}
+		}
+		if expire > 0 {
+			if err := pipe.Expire(ctx, cvekey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+			}
+		} else {
+			if err := pipe.Persist(ctx, cvekey).Err(); err != nil {
+				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
 			}
 		}
 		if _, err := pipe.Exec(ctx); err != nil {
@@ -620,24 +620,15 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 	bar := pb.StartNew(len(cves))
 	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
+		cvekey := fmt.Sprintf(cveKeyFormat, debianName)
 		for _, cve := range cves[idx.From:idx.To] {
 			j, err := json.Marshal(cve)
 			if err != nil {
 				return fmt.Errorf("Failed to marshal json. err: %s", err)
 			}
 
-			key := fmt.Sprintf(cveKeyFormat, debianName)
-			if result := pipe.HSet(ctx, key, cve.CveID, string(j)); result.Err() != nil {
+			if result := pipe.HSet(ctx, cvekey, cve.CveID, string(j)); result.Err() != nil {
 				return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
-			}
-			if expire > 0 {
-				if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
-				}
-			} else {
-				if err := pipe.Persist(ctx, key).Err(); err != nil {
-					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
-				}
 			}
 			if _, ok := newDeps[cve.CveID]; !ok {
 				newDeps[cve.CveID] = map[string]struct{}{}
@@ -667,6 +658,15 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 				if len(oldDeps[cve.CveID]) == 0 {
 					delete(oldDeps, cve.CveID)
 				}
+			}
+		}
+		if expire > 0 {
+			if err := pipe.Expire(ctx, cvekey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+			}
+		} else {
+			if err := pipe.Persist(ctx, cvekey).Err(); err != nil {
+				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
 			}
 		}
 		if _, err := pipe.Exec(ctx); err != nil {
@@ -740,24 +740,15 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 	bar := pb.StartNew(len(cves))
 	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
+		cvekey := fmt.Sprintf(cveKeyFormat, ubuntuName)
 		for _, cve := range cves[idx.From:idx.To] {
 			j, err := json.Marshal(cve)
 			if err != nil {
 				return fmt.Errorf("Failed to marshal json. err: %s", err)
 			}
 
-			key := fmt.Sprintf(cveKeyFormat, ubuntuName)
-			if err := pipe.HSet(ctx, key, cve.Candidate, string(j)).Err(); err != nil {
+			if err := pipe.HSet(ctx, cvekey, cve.Candidate, string(j)).Err(); err != nil {
 				return fmt.Errorf("Failed to HSet CVE. err: %s", err)
-			}
-			if expire > 0 {
-				if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
-				}
-			} else {
-				if err := pipe.Persist(ctx, key).Err(); err != nil {
-					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
-				}
 			}
 			if _, ok := newDeps[cve.Candidate]; !ok {
 				newDeps[cve.Candidate] = map[string]struct{}{}
@@ -787,6 +778,15 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 				if len(oldDeps[cve.Candidate]) == 0 {
 					delete(oldDeps, cve.Candidate)
 				}
+			}
+		}
+		if expire > 0 {
+			if err := pipe.Expire(ctx, cvekey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+			}
+		} else {
+			if err := pipe.Persist(ctx, cvekey).Err(); err != nil {
+				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
 			}
 		}
 		if _, err := pipe.Exec(ctx); err != nil {
@@ -904,24 +904,15 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 	bar = pb.StartNew(len(cves))
 	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
+		cvekey := fmt.Sprintf(cveKeyFormat, microsoftName)
 		for _, cve := range cves[idx.From:idx.To] {
 			j, err := json.Marshal(cve)
 			if err != nil {
 				return fmt.Errorf("Failed to marshal json. err: %s", err)
 			}
 
-			key := fmt.Sprintf(cveKeyFormat, microsoftName)
-			if err := pipe.HSet(ctx, key, cve.CveID, string(j)).Err(); err != nil {
+			if err := pipe.HSet(ctx, cvekey, cve.CveID, string(j)).Err(); err != nil {
 				return fmt.Errorf("Failed to HSet CVE. err: %s", err)
-			}
-			if expire > 0 {
-				if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
-				}
-			} else {
-				if err := pipe.Persist(ctx, key).Err(); err != nil {
-					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
-				}
 			}
 			if _, ok := newDeps["cves"][cve.CveID]; !ok {
 				newDeps["cves"][cve.CveID] = map[string]struct{}{}
@@ -951,6 +942,15 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 				if len(oldDeps["cves"][cve.CveID]) == 0 {
 					delete(oldDeps["cves"], cve.CveID)
 				}
+			}
+		}
+		if expire > 0 {
+			if err := pipe.Expire(ctx, cvekey, time.Duration(expire*uint(time.Second))).Err(); err != nil {
+				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+			}
+		} else {
+			if err := pipe.Persist(ctx, cvekey).Err(); err != nil {
+				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
 			}
 		}
 		if _, err = pipe.Exec(ctx); err != nil {
