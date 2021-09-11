@@ -16,14 +16,20 @@ import (
 // GetUbuntu :
 func (r *RDBDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 	c := models.UbuntuCVE{}
+	if err := r.conn.Where(&models.UbuntuCVE{Candidate: cveID}).First(&c).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log15.Error("Failed to get Ubuntu", "err", err)
+		}
+		return nil
+	}
+
 	var errs util.Errors
-	errs = errs.Add(r.conn.Where(&models.UbuntuCVE{Candidate: cveID}).First(&c).Error)
 	errs = errs.Add(r.conn.Model(&c).Association("References").Find(&c.References))
 	errs = errs.Add(r.conn.Model(&c).Association("Notes").Find(&c.Notes))
 	errs = errs.Add(r.conn.Model(&c).Association("Bugs").Find(&c.Bugs))
 	errs = errs.Add(r.conn.Model(&c).Association("Patches").Find(&c.Patches))
 
-	var patches []models.UbuntuPatch
+	patches := []models.UbuntuPatch{}
 	for _, p := range c.Patches {
 		errs = errs.Add(r.conn.Model(&p).Association("ReleasePatches").Find(&p.ReleasePatches))
 		patches = append(patches, p)

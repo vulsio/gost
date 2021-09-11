@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -19,10 +20,14 @@ import (
 // GetMicrosoft :
 func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 	c := models.MicrosoftCVE{}
-	var errs util.Errors
-	errs = errs.Add(r.conn.Where(&models.MicrosoftCVE{CveID: cveID}).First(&c).Error)
-	log15.Debug("microsoft_cve_id", "ID", c.ID)
+	if err := r.conn.Where(&models.MicrosoftCVE{CveID: cveID}).First(&c).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log15.Error("Failed to get Microsoft", "err", err)
+		}
+		return nil
+	}
 
+	var errs util.Errors
 	errs = errs.Add(r.conn.Model(&c).Association("MicrosoftProductStatuses").Find(&c.MicrosoftProductStatuses))
 	if len(c.MicrosoftProductStatuses) == 0 {
 		c.MicrosoftProductStatuses = nil

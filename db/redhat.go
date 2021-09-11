@@ -40,8 +40,14 @@ func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.Redhat
 // GetRedhat :
 func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	c := models.RedhatCVE{}
+	if err := r.conn.Where(&models.RedhatCVE{Name: cveID}).First(&c).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log15.Error("Failed to get Redhat", "err", err)
+		}
+		return nil
+	}
+
 	var errs util.Errors
-	errs = errs.Add(r.conn.Where(&models.RedhatCVE{Name: cveID}).First(&c).Error)
 	errs = errs.Add(r.conn.Model(&c).Association("Details").Find(&c.Details))
 	errs = errs.Add(r.conn.Model(&c).Association("References").Find(&c.References))
 	errs = errs.Add(r.conn.Model(&c).Association("Bugzilla").Find(&c.Bugzilla))

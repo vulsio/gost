@@ -15,21 +15,21 @@ import (
 // GetDebian :
 func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 	c := models.DebianCVE{}
-	err := r.conn.Where(&models.DebianCVE{CveID: cveID}).First(&c).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		log15.Error("Failed to get Debian", "err", err)
+	if err := r.conn.Where(&models.DebianCVE{CveID: cveID}).First(&c).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log15.Error("Failed to get Debian", "err", err)
+		}
 		return nil
 	}
-	err = r.conn.Model(&c).Association("Package").Find(&c.Package)
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+
+	if err := r.conn.Model(&c).Association("Package").Find(&c.Package); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log15.Error("Failed to get Debian", "err", err)
 		return nil
 	}
 
 	var newPkg []models.DebianPackage
 	for _, pkg := range c.Package {
-		err = r.conn.Model(&pkg).Association("Release").Find(&pkg.Release)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := r.conn.Model(&pkg).Association("Release").Find(&pkg.Release); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			log15.Error("Failed to get Debian", "err", err)
 			return nil
 		}
