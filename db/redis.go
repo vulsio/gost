@@ -180,14 +180,14 @@ func (r *RedisDriver) GetAfterTimeRedhat(after time.Time) ([]models.RedhatCVE, e
 
 	cves, err := r.conn.HGetAll(ctx, fmt.Sprintf(cveKeyFormat, redhatName)).Result()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to HGetAll. err: %s, err")
+		return nil, fmt.Errorf("Failed to HGetAll. err: %s", err)
 	}
 
 	allCves := []models.RedhatCVE{}
 	for _, cvestr := range cves {
 		var cve models.RedhatCVE
 		if err := json.Unmarshal([]byte(cvestr), &cve); err != nil {
-			return nil, fmt.Errorf("Failed to Unmarshal json. err: %s, err")
+			return nil, fmt.Errorf("Failed to Unmarshal json. err: %s", err)
 		}
 
 		if !after.After(cve.PublicDate) {
@@ -203,7 +203,9 @@ func (r *RedisDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	ctx := context.Background()
 	cve, err := r.conn.HGet(ctx, fmt.Sprintf(cveKeyFormat, redhatName), cveID).Result()
 	if err != nil {
-		log15.Error("Failed to get cve.", "err", err)
+		if !errors.Is(err, redis.Nil) {
+			log15.Error("Failed to HGet.", "err", err)
+		}
 		return nil
 	}
 
@@ -221,7 +223,9 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCV
 	results := map[string]models.RedhatCVE{}
 	cves, err := r.conn.HMGet(ctx, fmt.Sprintf(cveKeyFormat, redhatName), cveIDs...).Result()
 	if err != nil {
-		log15.Error("Failed to HMGet.", "err", err)
+		if !errors.Is(err, redis.Nil) {
+			log15.Error("Failed to HMGet.", "err", err)
+		}
 		return nil
 	}
 
@@ -242,7 +246,9 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotF
 	ctx := context.Background()
 	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, redhatName, pkgName)).Result()
 	if err != nil {
-		log15.Error("Failed to get pkg.", "err", err)
+		if !errors.Is(err, redis.Nil) {
+			log15.Error("Failed to SMembers.", "err", err)
+		}
 		return nil
 	}
 
@@ -298,7 +304,9 @@ func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus strin
 	ctx := context.Background()
 	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, debianName, pkgName)).Result()
 	if err != nil {
-		log15.Error("Failed to get pkg.", "err", err)
+		if !errors.Is(err, redis.Nil) {
+			log15.Error("Failed to SMembers.", "err", err)
+		}
 		return nil
 	}
 
@@ -340,7 +348,9 @@ func (r *RedisDriver) GetDebian(cveID string) *models.DebianCVE {
 	ctx := context.Background()
 	cve, err := r.conn.HGet(ctx, fmt.Sprintf(cveKeyFormat, debianName), cveID).Result()
 	if err != nil {
-		log15.Error("Failed to get cve.", "err", err)
+		if !errors.Is(err, redis.Nil) {
+			log15.Error("Failed to HGet.", "err", err)
+		}
 		return nil
 	}
 
@@ -372,7 +382,9 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 	ctx := context.Background()
 	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, ubuntuName, pkgName)).Result()
 	if err != nil {
-		log15.Error("Failed to get pkg.", "err", err)
+		if !errors.Is(err, redis.Nil) {
+			log15.Error("Failed to SMembers.", "err", err)
+		}
 		return nil
 	}
 
@@ -418,7 +430,9 @@ func (r *RedisDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 	ctx := context.Background()
 	cve, err := r.conn.HGet(ctx, fmt.Sprintf(cveKeyFormat, ubuntuName), cveID).Result()
 	if err != nil {
-		log15.Error("Failed to get cve.", "err", err)
+		if !errors.Is(err, redis.Nil) {
+			log15.Error("Failed to HGet.", "err", err)
+		}
 		return nil
 	}
 
@@ -435,7 +449,9 @@ func (r *RedisDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 	ctx := context.Background()
 	cve, err := r.conn.HGet(ctx, fmt.Sprintf(cveKeyFormat, microsoftName), cveID).Result()
 	if err != nil {
-		log15.Error("Failed to get cve.", "err", err)
+		if !errors.Is(err, redis.Nil) {
+			log15.Error("Failed to HGet.", "err", err)
+		}
 		return nil
 	}
 
@@ -453,7 +469,9 @@ func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) map[string]models.Micro
 	results := map[string]models.MicrosoftCVE{}
 	cves, err := r.conn.HMGet(ctx, fmt.Sprintf(cveKeyFormat, microsoftName), cveIDs...).Result()
 	if err != nil {
-		log15.Error("Failed to HMGet.", "err", err)
+		if !errors.Is(err, redis.Nil) {
+			log15.Error("Failed to HMGet.", "err", err)
+		}
 		return nil
 	}
 
