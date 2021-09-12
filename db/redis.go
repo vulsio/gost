@@ -223,15 +223,16 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCV
 	ctx := context.Background()
 	cves, err := r.conn.HMGet(ctx, fmt.Sprintf(cveKeyFormat, redhatName), cveIDs...).Result()
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			return map[string]models.RedhatCVE{}
-		}
 		log15.Error("Failed to HMGet.", "err", err)
 		return nil
 	}
 
 	results := map[string]models.RedhatCVE{}
 	for _, cve := range cves {
+		if cve == nil {
+			continue
+		}
+
 		var redhat models.RedhatCVE
 		if err := json.Unmarshal([]byte(cve.(string)), &redhat); err != nil {
 			log15.Error("Failed to Unmarshal json.", "err", err)
@@ -249,9 +250,6 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotF
 	if err != nil {
 		log15.Error("Failed to SMembers.", "err", err)
 		return nil
-	}
-	if len(cveIDs) == 0 {
-		return map[string]models.RedhatCVE{}
 	}
 
 	m := map[string]models.RedhatCVE{}
@@ -308,9 +306,6 @@ func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus strin
 	if err != nil {
 		log15.Error("Failed to SMembers.", "err", err)
 		return nil
-	}
-	if len(cveIDs) == 0 {
-		return map[string]models.DebianCVE{}
 	}
 
 	m := map[string]models.DebianCVE{}
@@ -385,9 +380,6 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 	if err != nil {
 		log15.Error("Failed to SMembers.", "err", err)
 		return nil
-	}
-	if len(cveIDs) == 0 {
-		return map[string]models.UbuntuCVE{}
 	}
 
 	m := map[string]models.UbuntuCVE{}
@@ -466,15 +458,16 @@ func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) map[string]models.Micro
 	ctx := context.Background()
 	cves, err := r.conn.HMGet(ctx, fmt.Sprintf(cveKeyFormat, microsoftName), cveIDs...).Result()
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			return map[string]models.MicrosoftCVE{}
-		}
 		log15.Error("Failed to HMGet.", "err", err)
 		return nil
 	}
 
 	results := map[string]models.MicrosoftCVE{}
 	for _, cve := range cves {
+		if cve == nil {
+			continue
+		}
+
 		var ms models.MicrosoftCVE
 		if err := json.Unmarshal([]byte(cve.(string)), &ms); err != nil {
 			log15.Error("Failed to Unmarshal json.", "err", err)
