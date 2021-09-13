@@ -26,5 +26,4 @@ vendor/
 # binary
 gost
 
-# Sources for Ubuntu and RedHat
-vuln-list
+integration/diff

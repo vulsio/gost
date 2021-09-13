@@ -91,6 +91,7 @@ clean-integration:
 	-pkill gost.old
 	-pkill gost.new
 	-rm integration/gost.old integration/gost.new integration/gost.old.sqlite3 integration/gost.new.sqlite3
+	-rm -rf integration/diff
 	-docker kill redis-old redis-new
 	-docker rm redis-old redis-new
 
