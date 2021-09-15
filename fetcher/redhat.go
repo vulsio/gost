@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/git"
-	"github.com/knqyf263/gost/models"
-	"github.com/knqyf263/gost/util"
+	"github.com/vulsio/gost/git"
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 )
 

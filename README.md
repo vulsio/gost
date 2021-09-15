@@ -1,5 +1,5 @@
 # gost (go-security-tracker)
-[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](https://github.com/knqyf263/gost/blob/master/LICENSE)
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](https://github.com/vulsio/gost/blob/master/LICENSE)
 
 `gost` builds a local copy of Security Tracker(Redhat/Debian/Ubuntu/Microsoft).   
 After you register CVEs to watch list, `gost` notify via E-mail/Slack if there is an update.
@@ -206,7 +206,7 @@ $ curl http://127.0.0.1:1325/redhat/cves/CVE-2017-1000117 | jq .                
 You need to install selector command (fzf or peco).
 
 ```
-$ go get github.com/knqyf263/gost
+$ go get github.com/vulsio/gost
 ```
 
 # Docker Setup, Fetch, Run as Serer and Curl
@@ -273,8 +273,8 @@ $ curl http://127.0.0.1:1325/debian/9/pkgs/expat/unfixed-cves | jq "."          
 
 # Contribute
 
-1. fork a repository: github.com/knqyf263/gost to github.com/you/repo
-2. get original code: `go get github.com/knqyf263/gost`
+1. fork a repository: github.com/vulsio/gost to github.com/you/repo
+2. get original code: `go get github.com/vulsio/gost`
 3. work on original code
 4. add remote to your repo: git remote add myfork https://github.com/you/repo.git
 5. push your changes: git push myfork
