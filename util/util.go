@@ -199,7 +199,7 @@ func CacheDir() string {
 func FileWalk(root string, targetFiles map[string]struct{}, walkFn func(r io.Reader, path string) error) error {
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return xerrors.Errorf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			return xerrors.Errorf("prevent panic by handling failure accessing a path %q: %w\n", path, err)
 		}
 
 		if info.IsDir() {
