@@ -368,7 +368,7 @@ func (r *RedisDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 	}
 
 	if err := json.Unmarshal([]byte(j), &c); err != nil {
-		xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
+		log15.Error("Failed to Unmarshal json.", "err", err)
 		return nil
 	}
 

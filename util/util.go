@@ -108,20 +108,18 @@ func FetchConcurrently(urls []string, concurrency, wait int) (responses [][]byte
 	tasks := GenWorkers(concurrency, wait)
 	for range urls {
 		tasks <- func() {
-			select {
-			case url := <-reqChan:
-				var err error
-				for i := 1; i <= 3; i++ {
-					var res []byte
-					res, err = FetchURL(url, "")
-					if err == nil {
-						resChan <- res
-						return
-					}
-					time.Sleep(time.Duration(i*2) * time.Second)
+			url := <-reqChan
+			var err error
+			for i := 1; i <= 3; i++ {
+				var res []byte
+				res, err = FetchURL(url, "")
+				if err == nil {
+					resChan <- res
+					return
 				}
-				errChan <- err
+				time.Sleep(time.Duration(i*2) * time.Second)
 			}
+			errChan <- err
 		}
 		bar.Increment()
 	}
@@ -200,6 +198,10 @@ func CacheDir() string {
 // FileWalk walks the file tree rooted at root
 func FileWalk(root string, targetFiles map[string]struct{}, walkFn func(r io.Reader, path string) error) error {
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return xerrors.Errorf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+		}
+
 		if info.IsDir() {
 			return nil
 		}
@@ -219,10 +221,10 @@ func FileWalk(root string, targetFiles map[string]struct{}, walkFn func(r io.Rea
 		}
 
 		f, err := os.Open(path)
-		defer f.Close()
 		if err != nil {
 			return xerrors.Errorf("failed to open file: %w", err)
 		}
+		defer f.Close()
 
 		if err = walkFn(f, path); err != nil {
 			return err

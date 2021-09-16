@@ -41,7 +41,7 @@ func DiffRedhat(old, new *models.RedhatCVE, config config.RedhatWatchCve) (body 
 	}
 
 	if config.Bugzilla {
-		if reflect.DeepEqual(old.Bugzilla, new.Bugzilla) == false {
+		if !reflect.DeepEqual(old.Bugzilla, new.Bugzilla) {
 			body += fmt.Sprintf(`
 Bugzilla
 ------------------
@@ -61,7 +61,7 @@ URL: %s
 	}
 
 	if config.Cvss {
-		if reflect.DeepEqual(old.Cvss, new.Cvss) == false {
+		if !reflect.DeepEqual(old.Cvss, new.Cvss) {
 			body += fmt.Sprintf(`
 CVSS
 ------------------
@@ -81,7 +81,7 @@ Status: %s
 	}
 
 	if config.Cvss3 {
-		if reflect.DeepEqual(old.Cvss3, new.Cvss3) == false {
+		if !reflect.DeepEqual(old.Cvss3, new.Cvss3) {
 			body += fmt.Sprintf(`
 CVSSv3
 ------------------
@@ -116,7 +116,7 @@ Status: %s
 
 			old, ok := oldAffectedRelease[key]
 			if ok {
-				if reflect.DeepEqual(old, new) == false {
+				if !reflect.DeepEqual(old, new) {
 					isNew = true
 				}
 			} else {
@@ -165,7 +165,7 @@ Release Date: %s
 
 			old, ok := oldPackageState[key]
 			if ok {
-				if reflect.DeepEqual(old, new) == false {
+				if !reflect.DeepEqual(old, new) {
 					isNew = true
 				}
 			} else {
@@ -196,7 +196,7 @@ Package Name: %s
 	}
 
 	if config.Reference && (len(old.References) > 0 || len(new.References) > 0) {
-		if reflect.DeepEqual(old.References, new.References) == false {
+		if !reflect.DeepEqual(old.References, new.References) {
 			o := []string{}
 			for _, old := range old.References {
 				o = append(o, old.Reference)
@@ -221,7 +221,7 @@ Reference
 	}
 
 	if config.Details && (len(old.Details) > 0 || len(new.Details) > 0) {
-		if reflect.DeepEqual(old.Details, new.Details) == false {
+		if !reflect.DeepEqual(old.Details, new.Details) {
 			o := []string{}
 			for _, old := range old.Details {
 				o = append(o, old.Detail)

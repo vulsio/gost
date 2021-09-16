@@ -101,6 +101,10 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 			redhat.Cvss3.Cvss3BaseScore, runewidth.Truncate(redhat.GetPackages(","), 20, "..."), runewidth.Truncate(redhat.GetDetail(""), 120, "...")))
 	}
 	selectedLine, err := filter(allRedhatText)
+	if err != nil {
+		return err
+	}
+
 	var cves []string
 	for _, line := range selectedLine {
 		split := strings.Split(line, "|")
@@ -154,9 +158,9 @@ func filter(cves []string) (results []string, err error) {
 func save(conf config.Config) error {
 	confFile := "config.toml"
 	f, err := os.Create(confFile)
-	defer f.Close()
 	if err != nil {
 		return fmt.Errorf("Failed to save config file. err: %s", err)
 	}
+	defer f.Close()
 	return toml.NewEncoder(f).Encode(conf)
 }
