@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/util"
+	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"

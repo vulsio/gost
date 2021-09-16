@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/knqyf263/gost/config"
-	"github.com/knqyf263/gost/models"
+	"github.com/vulsio/gost/config"
+	"github.com/vulsio/gost/models"
 )
 
 // DiffRedhat returns the difference between the old and new CVE information

@@ -12,12 +12,12 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/config"
-	"github.com/knqyf263/gost/db"
-	"github.com/knqyf263/gost/models"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/vulsio/gost/config"
+	"github.com/vulsio/gost/db"
+	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
 )
 

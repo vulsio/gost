@@ -9,10 +9,10 @@ import (
 	"github.com/cheggaaa/pb/v3"
 	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/config"
-	"github.com/knqyf263/gost/models"
 	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
+	"github.com/vulsio/gost/config"
+	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
 )
 

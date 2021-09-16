@@ -9,8 +9,8 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 
-	"github.com/knqyf263/gost/config"
 	"github.com/parnurzeal/gorequest"
+	"github.com/vulsio/gost/config"
 )
 
 type message struct {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/knqyf263/gost/config"
+	"github.com/vulsio/gost/config"
 )
 
 // EMailSender is interface of sending e-mail

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/knqyf263/gost/cmd"
-	"github.com/knqyf263/gost/config"
+	"github.com/vulsio/gost/cmd"
+	"github.com/vulsio/gost/config"
 )
 
 func main() {
