@@ -60,7 +60,7 @@ func fetchRedHatAPI(cmd *cobra.Command, args []string) (err error) {
 		log15.Error("Failed to fetch the list of CVEs.", "err", err)
 		return err
 	}
-	var resourceURLs []string
+	resourceURLs := []string{}
 	for _, entry := range entries {
 		resourceURLs = append(resourceURLs, entry.ResourceURL)
 	}

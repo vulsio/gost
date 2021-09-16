@@ -105,7 +105,7 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	var cves []string
+	cves := []string{}
 	for _, line := range selectedLine {
 		split := strings.Split(line, "|")
 		if len(split) < 2 {

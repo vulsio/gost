@@ -25,7 +25,7 @@ func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 		return nil
 	}
 
-	var newPkg []models.DebianPackage
+	newPkg := []models.DebianPackage{}
 	for _, pkg := range c.Package {
 		err = r.conn.Model(&pkg).Association("Release").Find(&pkg.Release)
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
