@@ -4,12 +4,12 @@ import (
 	"fmt"
 
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/db"
-	"github.com/knqyf263/gost/fetcher"
-	"github.com/knqyf263/gost/models"
-	"github.com/knqyf263/gost/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/vulsio/gost/db"
+	"github.com/vulsio/gost/fetcher"
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 )
 

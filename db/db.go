@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/models"
+	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
 )
 

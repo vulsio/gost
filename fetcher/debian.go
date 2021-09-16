@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/knqyf263/gost/models"
-	"github.com/knqyf263/gost/util"
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 )
 
 // RetrieveDebianCveDetails returns CVE details from https://security-tracker.debian.org/tracker/data/json
@@ -23,7 +23,9 @@ func RetrieveDebianCveDetails() (cves models.DebianJSON, err error) {
 	// 	return cves, err
 	// }
 
-	json.Unmarshal(cveJSON, &cves)
+	if err := json.Unmarshal(cveJSON, &cves); err != nil {
+		return nil, fmt.Errorf("failed to decode Debian JSON: %w", err)
+	}
 
 	return cves, nil
 }

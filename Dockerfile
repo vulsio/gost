@@ -6,7 +6,7 @@ RUN apk add --no-cache \
         gcc \
         musl-dev
 
-ENV REPOSITORY github.com/knqyf263/gost
+ENV REPOSITORY github.com/vulsio/gost
 COPY . $GOPATH/src/$REPOSITORY
 RUN cd $GOPATH/src/$REPOSITORY && make install
 

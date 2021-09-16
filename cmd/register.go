@@ -12,13 +12,13 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/config"
-	"github.com/knqyf263/gost/db"
-	"github.com/knqyf263/gost/models"
-	"github.com/knqyf263/gost/util"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/vulsio/gost/config"
+	"github.com/vulsio/gost/db"
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 )
 
@@ -106,6 +106,10 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 			redhat.Cvss3.Cvss3BaseScore, runewidth.Truncate(redhat.GetPackages(","), 20, "..."), runewidth.Truncate(redhat.GetDetail(""), 120, "...")))
 	}
 	selectedLine, err := filter(allRedhatText)
+	if err != nil {
+		return err
+	}
+
 	var cves []string
 	for _, line := range selectedLine {
 		split := strings.Split(line, "|")
@@ -159,9 +163,9 @@ func filter(cves []string) (results []string, err error) {
 func save(conf config.Config) error {
 	confFile := "config.toml"
 	f, err := os.Create(confFile)
-	defer f.Close()
 	if err != nil {
 		return fmt.Errorf("Failed to save config file. err: %s", err)
 	}
+	defer f.Close()
 	return toml.NewEncoder(f).Encode(conf)
 }

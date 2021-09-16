@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/knqyf263/gost/config"
 	"github.com/spf13/cobra"
+	"github.com/vulsio/gost/config"
 )
 
 func init() {

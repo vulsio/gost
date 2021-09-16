@@ -7,14 +7,14 @@ import (
 	"github.com/inconshreveable/log15"
 	"golang.org/x/xerrors"
 
-	"github.com/knqyf263/gost/config"
-	"github.com/knqyf263/gost/db"
-	"github.com/knqyf263/gost/fetcher"
-	"github.com/knqyf263/gost/models"
-	"github.com/knqyf263/gost/notifier"
-	"github.com/knqyf263/gost/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/vulsio/gost/config"
+	"github.com/vulsio/gost/db"
+	"github.com/vulsio/gost/fetcher"
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/notifier"
+	"github.com/vulsio/gost/util"
 )
 
 // notifyCmd represents the notify command
@@ -45,8 +45,7 @@ func executeNotify(cmd *cobra.Command, args []string) (err error) {
 	if _, err = toml.DecodeFile("config.toml", &conf); err != nil {
 		return err
 	}
-	notifyRedhat(conf)
-	return err
+	return notifyRedhat(conf)
 }
 
 func notifyRedhat(conf config.Config) error {
@@ -98,7 +97,9 @@ func notifyRedhat(conf config.Config) error {
 			subject := fmt.Sprintf("%s Update %s", conf.EMail.SubjectPrefix, cve.Name)
 			body = fmt.Sprintf("%s\nhttps://access.redhat.com/security/cve/%s\n========================================================\n",
 				cve.Name, cve.Name) + body
-			notify(subject, body, conf)
+			if err := notify(subject, body, conf); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
