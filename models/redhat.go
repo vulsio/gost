@@ -89,7 +89,7 @@ type RedhatCVE struct {
 
 // GetDetail returns details
 func (r RedhatCVE) GetDetail(sep string) string {
-	var details []string
+	details := []string{}
 	for _, d := range r.Details {
 		details = append(details, d.Detail)
 	}
@@ -103,7 +103,7 @@ func (r RedhatCVE) GetPackages(sep string) (result string) {
 		pkgs[d.PackageName] = struct{}{}
 	}
 
-	var pkgNames []string
+	pkgNames := []string{}
 	for p := range pkgs {
 		pkgNames = append(pkgNames, p)
 	}

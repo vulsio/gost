@@ -45,7 +45,7 @@ func executeNotify(cmd *cobra.Command, args []string) (err error) {
 }
 
 func notifyRedhat(conf config.Config) error {
-	var watchCveURL []string
+	watchCveURL := []string{}
 	for cveID := range conf.Redhat {
 		watchCveURL = append(watchCveURL, fetcher.GetRedhatCveDetailURL(cveID))
 	}

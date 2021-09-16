@@ -22,7 +22,7 @@ func (r *RDBDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 	errs = errs.Add(r.conn.Model(&c).Association("Bugs").Find(&c.Bugs))
 	errs = errs.Add(r.conn.Model(&c).Association("Patches").Find(&c.Patches))
 
-	var patches []models.UbuntuPatch
+	patches := []models.UbuntuPatch{}
 	for _, p := range c.Patches {
 		errs = errs.Add(r.conn.Model(&p).Association("ReleasePatches").Find(&p.ReleasePatches))
 		patches = append(patches, p)
