@@ -23,7 +23,9 @@ func RetrieveDebianCveDetails() (cves models.DebianJSON, err error) {
 	// 	return cves, err
 	// }
 
-	json.Unmarshal(cveJSON, &cves)
+	if err := json.Unmarshal(cveJSON, &cves); err != nil {
+		return nil, fmt.Errorf("failed to decode Debian JSON: %w", err)
+	}
 
 	return cves, nil
 }

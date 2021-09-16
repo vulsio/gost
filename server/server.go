@@ -54,8 +54,7 @@ func Start(logDir string, driver db.DB) error {
 	bindURL := fmt.Sprintf("%s:%s", viper.GetString("bind"), viper.GetString("port"))
 	log15.Info("Listening", "URL", bindURL)
 
-	e.Start(bindURL)
-	return nil
+	return e.Start(bindURL)
 }
 
 // Handler

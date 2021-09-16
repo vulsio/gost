@@ -67,6 +67,10 @@ func CloneOrPull(url, repoPath, osDir string) (map[string]struct{}, error) {
 
 	// Need to refresh all vulnerabilities
 	err = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return xerrors.Errorf("prevent panic by handling failure accessing a path %q: %w\n", path, err)
+		}
+
 		if info.IsDir() {
 			return nil
 		}
