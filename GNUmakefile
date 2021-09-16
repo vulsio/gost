@@ -26,8 +26,8 @@ SRCS = $(shell git ls-files '*.go')
 PKGS = $(shell go list ./...)
 VERSION := $(shell git describe --tags --abbrev=0)
 REVISION := $(shell git rev-parse --short HEAD)
-LDFLAGS := -X 'github.com/knqyf263/gost/config.Version=$(VERSION)' \
-	-X 'github.com/knqyf263/gost/config.Revision=$(REVISION)'
+LDFLAGS := -X 'github.com/vulsio/gost/config.Version=$(VERSION)' \
+	-X 'github.com/vulsio/gost/config.Revision=$(REVISION)'
 GO := GO111MODULE=on go
 GO_OFF := GO111MODULE=off go
 

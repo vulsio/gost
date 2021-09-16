@@ -10,8 +10,8 @@ import (
 	"github.com/cheggaaa/pb/v3"
 	strip "github.com/grokify/html-strip-tags-go"
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/models"
-	"github.com/knqyf263/gost/util"
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 	"gorm.io/gorm"
 )
 

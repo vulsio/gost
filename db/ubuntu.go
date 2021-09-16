@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/models"
-	"github.com/knqyf263/gost/util"
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 	pb "gopkg.in/cheggaaa/pb.v1"
 	"gorm.io/gorm"

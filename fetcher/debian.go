@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/knqyf263/gost/models"
-	"github.com/knqyf263/gost/util"
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 )
 
 // RetrieveDebianCveDetails returns CVE details from https://security-tracker.debian.org/tracker/data/json

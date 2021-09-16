@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/knqyf263/gost/config"
-	"github.com/knqyf263/gost/models"
 	sqlite3 "github.com/mattn/go-sqlite3"
+	"github.com/vulsio/gost/config"
+	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
