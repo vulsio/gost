@@ -32,9 +32,8 @@ const (
 
 // RDBDriver is Driver for RDB
 type RDBDriver struct {
-	name      string
-	conn      *gorm.DB
-	batchSize int
+	name string
+	conn *gorm.DB
 }
 
 // Name return db name
@@ -46,12 +45,17 @@ func (r *RDBDriver) Name() string {
 func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
 	gormConfig := gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
-		Logger:                                   logger.Default.LogMode(logger.Silent),
+		Logger: logger.New(
+			log.New(os.Stderr, "\r\n", log.LstdFlags),
+			logger.Config{
+				LogLevel: logger.Silent,
+			},
+		),
 	}
 
 	if debugSQL {
 		gormConfig.Logger = logger.New(
-			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			log.New(os.Stderr, "\r\n", log.LstdFlags),
 			logger.Config{
 				SlowThreshold: time.Second,
 				LogLevel:      logger.Info,
@@ -188,27 +192,4 @@ func (r *RDBDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
 	fetchMeta.GostRevision = config.Revision
 	fetchMeta.SchemaVersion = models.LatestSchemaVersion
 	return r.conn.Save(fetchMeta).Error
-}
-
-// IndexChunk has a starting point and an ending point for Chunk
-type IndexChunk struct {
-	From, To int
-}
-
-func chunkSlice(length int, chunkSize int) <-chan IndexChunk {
-	ch := make(chan IndexChunk)
-
-	go func() {
-		defer close(ch)
-
-		for i := 0; i < length; i += chunkSize {
-			idx := IndexChunk{i, i + chunkSize}
-			if length < idx.To {
-				idx.To = length
-			}
-			ch <- idx
-		}
-	}()
-
-	return ch
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/vulsio/gost/db"
 	"github.com/vulsio/gost/fetcher"
 	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 )
 
@@ -23,6 +24,10 @@ func init() {
 }
 
 func fetchUbuntu(cmd *cobra.Command, args []string) (err error) {
+	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
+
 	cves, err := fetcher.FetchUbuntuVulnList()
 	if err != nil {
 		return xerrors.Errorf("error in vulnerability DB initialize: %w", err)

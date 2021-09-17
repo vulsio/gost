@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"github.com/cheggaaa/pb/v3"
 	strip "github.com/grokify/html-strip-tags-go"
 	"github.com/inconshreveable/log15"
+	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
 	"gorm.io/gorm"
@@ -18,10 +20,14 @@ import (
 // GetMicrosoft :
 func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 	c := models.MicrosoftCVE{}
-	var errs util.Errors
-	errs = errs.Add(r.conn.Where(&models.MicrosoftCVE{CveID: cveID}).First(&c).Error)
-	log15.Debug("microsoft_cve_id", "ID", c.ID)
+	if err := r.conn.Where(&models.MicrosoftCVE{CveID: cveID}).First(&c).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log15.Error("Failed to get Microsoft", "err", err)
+		}
+		return nil
+	}
 
+	var errs util.Errors
 	errs = errs.Add(r.conn.Model(&c).Association("MicrosoftProductStatuses").Find(&c.MicrosoftProductStatuses))
 	if len(c.MicrosoftProductStatuses) == 0 {
 		c.MicrosoftProductStatuses = nil
@@ -115,15 +121,15 @@ func (r *RDBDriver) GetMicrosoftMulti(cveIDs []string) map[string]models.Microso
 // InsertMicrosoft :
 func (r *RDBDriver) InsertMicrosoft(cveJSON []models.MicrosoftXML, cveXls []models.MicrosoftBulletinSearch) (err error) {
 	cves, _ := ConvertMicrosoft(cveJSON, cveXls)
-	if err = r.deleteAndInsertMicrosoft(r.conn, cves); err != nil {
+	if err = r.deleteAndInsertMicrosoft(cves); err != nil {
 		return fmt.Errorf("Failed to insert Microsoft CVE data. err: %s", err)
 	}
 	return nil
 }
 
-func (r *RDBDriver) deleteAndInsertMicrosoft(conn *gorm.DB, cves []models.MicrosoftCVE) (err error) {
+func (r *RDBDriver) deleteAndInsertMicrosoft(cves []models.MicrosoftCVE) (err error) {
 	bar := pb.StartNew(len(cves))
-	tx := conn.Begin()
+	tx := r.conn.Begin()
 
 	defer func() {
 		if err != nil {
@@ -149,7 +155,12 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(conn *gorm.DB, cves []models.Micros
 		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
 	}
 
-	for idx := range chunkSlice(len(cves), r.batchSize) {
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
+	for idx := range chunkSlice(len(cves), batchSize) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
 			return fmt.Errorf("Failed to insert. err: %s", err)
 		}

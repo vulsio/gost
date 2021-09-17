@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/inconshreveable/log15"
+	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
 	pb "gopkg.in/cheggaaa/pb.v1"
@@ -14,21 +15,21 @@ import (
 // GetDebian :
 func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 	c := models.DebianCVE{}
-	err := r.conn.Where(&models.DebianCVE{CveID: cveID}).First(&c).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		log15.Error("Failed to get Debian", "err", err)
+	if err := r.conn.Where(&models.DebianCVE{CveID: cveID}).First(&c).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log15.Error("Failed to get Debian", "err", err)
+		}
 		return nil
 	}
-	err = r.conn.Model(&c).Association("Package").Find(&c.Package)
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+
+	if err := r.conn.Model(&c).Association("Package").Find(&c.Package); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log15.Error("Failed to get Debian", "err", err)
 		return nil
 	}
 
 	newPkg := []models.DebianPackage{}
 	for _, pkg := range c.Package {
-		err = r.conn.Model(&pkg).Association("Release").Find(&pkg.Release)
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := r.conn.Model(&pkg).Association("Release").Find(&pkg.Release); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			log15.Error("Failed to get Debian", "err", err)
 			return nil
 		}
@@ -41,14 +42,14 @@ func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 // InsertDebian :
 func (r *RDBDriver) InsertDebian(cveJSON models.DebianJSON) (err error) {
 	cves := ConvertDebian(cveJSON)
-	if err = r.deleteAndInsertDebian(r.conn, cves); err != nil {
+	if err = r.deleteAndInsertDebian(cves); err != nil {
 		return fmt.Errorf("Failed to insert Debian CVE data. err: %s", err)
 	}
 	return nil
 }
-func (r *RDBDriver) deleteAndInsertDebian(conn *gorm.DB, cves []models.DebianCVE) (err error) {
+func (r *RDBDriver) deleteAndInsertDebian(cves []models.DebianCVE) (err error) {
 	bar := pb.StartNew(len(cves))
-	tx := conn.Begin()
+	tx := r.conn.Begin()
 
 	defer func() {
 		if err != nil {
@@ -69,7 +70,12 @@ func (r *RDBDriver) deleteAndInsertDebian(conn *gorm.DB, cves []models.DebianCVE
 		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
 	}
 
-	for idx := range chunkSlice(len(cves), r.batchSize) {
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
+	for idx := range chunkSlice(len(cves), batchSize) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
 			return fmt.Errorf("Failed to insert. err: %s", err)
 		}

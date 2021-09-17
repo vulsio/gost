@@ -18,6 +18,7 @@ import (
 	"github.com/vulsio/gost/config"
 	"github.com/vulsio/gost/db"
 	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 )
 
@@ -43,6 +44,10 @@ func init() {
 }
 
 func executeRegister(cmd *cobra.Command, args []string) (err error) {
+	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
+
 	log15.Info("Validate command-line options")
 	afterOption := viper.GetString("select-after")
 	var after time.Time

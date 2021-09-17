@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
+	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
 	pb "gopkg.in/cheggaaa/pb.v1"
@@ -39,8 +40,14 @@ func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.Redhat
 // GetRedhat :
 func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 	c := models.RedhatCVE{}
+	if err := r.conn.Where(&models.RedhatCVE{Name: cveID}).First(&c).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log15.Error("Failed to get Redhat", "err", err)
+		}
+		return nil
+	}
+
 	var errs util.Errors
-	errs = errs.Add(r.conn.Where(&models.RedhatCVE{Name: cveID}).First(&c).Error)
 	errs = errs.Add(r.conn.Model(&c).Association("Details").Find(&c.Details))
 	errs = errs.Add(r.conn.Model(&c).Association("References").Find(&c.References))
 	errs = errs.Add(r.conn.Model(&c).Association("Bugzilla").Find(&c.Bugzilla))
@@ -132,18 +139,18 @@ func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
 		return err
 	}
 
-	if err := r.deleteAndInsertRedhat(r.conn, cves); err != nil {
+	if err := r.deleteAndInsertRedhat(cves); err != nil {
 		return fmt.Errorf("Failed to insert RedHat CVE data. err: %s", err)
 	}
 
 	return nil
 }
 
-func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cves []models.RedhatCVE) (err error) {
+func (r *RDBDriver) deleteAndInsertRedhat(cves []models.RedhatCVE) (err error) {
 	log15.Info(fmt.Sprintf("Insert %d CVEs", len(cves)))
 
 	bar := pb.StartNew(len(cves))
-	tx := conn.Begin()
+	tx := r.conn.Begin()
 	defer func() {
 		if err != nil {
 			tx.Rollback()
@@ -167,7 +174,12 @@ func (r *RDBDriver) deleteAndInsertRedhat(conn *gorm.DB, cves []models.RedhatCVE
 		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
 	}
 
-	for idx := range chunkSlice(len(cves), r.batchSize) {
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
+	for idx := range chunkSlice(len(cves), batchSize) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
 			return fmt.Errorf("Failed to insert. err: %s", err)
 		}

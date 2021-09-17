@@ -145,40 +145,44 @@ func FetchConcurrently(urls []string, concurrency, wait int) (responses [][]byte
 }
 
 // SetLogger set logger
-func SetLogger(logDir string, debug, logJSON bool) {
-	stderrHundler := log15.StderrHandler
+func SetLogger(logToFile bool, logDir string, debug, logJSON bool) error {
+	stderrHandler := log15.StderrHandler
 	logFormat := log15.LogfmtFormat()
 	if logJSON {
 		logFormat = log15.JsonFormatEx(false, true)
-		stderrHundler = log15.StreamHandler(os.Stderr, logFormat)
+		stderrHandler = log15.StreamHandler(os.Stderr, logFormat)
 	}
 
-	lvlHundler := log15.LvlFilterHandler(log15.LvlInfo, stderrHundler)
+	lvlHandler := log15.LvlFilterHandler(log15.LvlInfo, stderrHandler)
 	if debug {
-		lvlHundler = log15.LvlFilterHandler(log15.LvlDebug, stderrHundler)
+		lvlHandler = log15.LvlFilterHandler(log15.LvlDebug, stderrHandler)
 	}
 
-	if _, err := os.Stat(logDir); os.IsNotExist(err) {
-		if err := os.Mkdir(logDir, 0700); err != nil {
-			log15.Error("Failed to create log directory", "err", err)
+	var handler log15.Handler
+	if logToFile {
+		if _, err := os.Stat(logDir); err != nil {
+			if os.IsNotExist(err) {
+				if err := os.Mkdir(logDir, 0700); err != nil {
+					return xerrors.Errorf("Failed to create log directory. err: %w", err)
+				}
+			} else {
+				return xerrors.Errorf("Failed to check log directory. err: %w", err)
+			}
 		}
-	}
-	var hundler log15.Handler
-	if _, err := os.Stat(logDir); err == nil {
+
 		logPath := filepath.Join(logDir, "gost.log")
 		if _, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); err != nil {
-			log15.Error("Failed to create a log file", "err", err)
-			hundler = lvlHundler
-		} else {
-			hundler = log15.MultiHandler(
-				log15.Must.FileHandler(logPath, logFormat),
-				lvlHundler,
-			)
+			return xerrors.Errorf("Failed to open a log file. err: %w", err)
 		}
+		handler = log15.MultiHandler(
+			log15.Must.FileHandler(logPath, logFormat),
+			lvlHandler,
+		)
 	} else {
-		hundler = lvlHundler
+		handler = lvlHandler
 	}
-	log15.Root().SetHandler(hundler)
+	log15.Root().SetHandler(handler)
+	return nil
 }
 
 // Major returns major version

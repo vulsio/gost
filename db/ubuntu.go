@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/inconshreveable/log15"
+	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
@@ -15,8 +16,14 @@ import (
 // GetUbuntu :
 func (r *RDBDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 	c := models.UbuntuCVE{}
+	if err := r.conn.Where(&models.UbuntuCVE{Candidate: cveID}).First(&c).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log15.Error("Failed to get Ubuntu", "err", err)
+		}
+		return nil
+	}
+
 	var errs util.Errors
-	errs = errs.Add(r.conn.Where(&models.UbuntuCVE{Candidate: cveID}).First(&c).Error)
 	errs = errs.Add(r.conn.Model(&c).Association("References").Find(&c.References))
 	errs = errs.Add(r.conn.Model(&c).Association("Notes").Find(&c.Notes))
 	errs = errs.Add(r.conn.Model(&c).Association("Bugs").Find(&c.Bugs))
@@ -49,16 +56,16 @@ func (r *RDBDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 // InsertUbuntu :
 func (r *RDBDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) {
 	cves := ConvertUbuntu(cveJSONs)
-	if err = r.deleteAndInsertUbuntu(r.conn, cves); err != nil {
+	if err = r.deleteAndInsertUbuntu(cves); err != nil {
 		return xerrors.Errorf("Failed to insert Ubuntu CVE data. err: %s", err)
 	}
 
 	return nil
 }
 
-func (r *RDBDriver) deleteAndInsertUbuntu(conn *gorm.DB, cves []models.UbuntuCVE) (err error) {
+func (r *RDBDriver) deleteAndInsertUbuntu(cves []models.UbuntuCVE) (err error) {
 	bar := pb.StartNew(len(cves))
-	tx := conn.Begin()
+	tx := r.conn.Begin()
 
 	defer func() {
 		if err != nil {
@@ -84,7 +91,12 @@ func (r *RDBDriver) deleteAndInsertUbuntu(conn *gorm.DB, cves []models.UbuntuCVE
 		return xerrors.Errorf("Failed to delete old. err: %s", errs.Error())
 	}
 
-	for idx := range chunkSlice(len(cves), r.batchSize) {
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return xerrors.New("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
+	for idx := range chunkSlice(len(cves), batchSize) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
 			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}

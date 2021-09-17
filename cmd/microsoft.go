@@ -9,6 +9,7 @@ import (
 	"github.com/vulsio/gost/db"
 	"github.com/vulsio/gost/fetcher"
 	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 )
 
@@ -28,6 +29,10 @@ func init() {
 }
 
 func fetchMicrosoft(cmd *cobra.Command, args []string) (err error) {
+	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
+
 	log15.Info("Initialize Database")
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {

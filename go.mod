@@ -18,7 +18,6 @@ require (
 	github.com/jackc/pgx/v4 v4.11.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/echo v3.3.10+incompatible
-	github.com/labstack/gommon v0.3.0
 	github.com/mattn/go-runewidth v0.0.10
 	github.com/mattn/go-sqlite3 v1.14.7
 	github.com/mitchellh/go-homedir v1.1.0
@@ -65,6 +64,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.2 // indirect
 	github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd // indirect
+	github.com/labstack/gommon v0.3.0 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect

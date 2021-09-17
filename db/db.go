@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
-	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
 )
@@ -74,9 +73,32 @@ func NewDB(dbType, dbPath string, debugSQL bool) (driver DB, locked bool, err er
 func newDB(dbType string) (DB, error) {
 	switch dbType {
 	case dialectSqlite3, dialectMysql, dialectPostgreSQL:
-		return &RDBDriver{name: dbType, batchSize: viper.GetInt("batch-size")}, nil
+		return &RDBDriver{name: dbType}, nil
 	case dialectRedis:
 		return &RedisDriver{name: dbType}, nil
 	}
 	return nil, fmt.Errorf("Invalid database dialect. err: %s", dbType)
+}
+
+// IndexChunk has a starting point and an ending point for Chunk
+type IndexChunk struct {
+	From, To int
+}
+
+func chunkSlice(length int, chunkSize int) <-chan IndexChunk {
+	ch := make(chan IndexChunk)
+
+	go func() {
+		defer close(ch)
+
+		for i := 0; i < length; i += chunkSize {
+			idx := IndexChunk{i, i + chunkSize}
+			if length < idx.To {
+				idx.To = length
+			}
+			ch <- idx
+		}
+	}()
+
+	return ch
 }

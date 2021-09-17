@@ -8,6 +8,11 @@ from urllib3.util import Retry
 import pprint
 from concurrent.futures import ThreadPoolExecutor
 import os
+import random
+import math
+import json
+import shutil
+import time
 
 
 def diff_cveid(args: Tuple[str, str]):
@@ -22,26 +27,35 @@ def diff_cveid(args: Tuple[str, str]):
     # /debian/cves/:id
     # /ubuntu/cves/:id
     # /microsoft/cves/:id
+    path = f'{args[0]}/cves/{args[1]}'
     try:
         response_old = session.get(
-            f'http://127.0.0.1:1325/{args[0]}/cves/{args[1]}', timeout=2).json()
+            f'http://127.0.0.1:1325/{path}', timeout=2).json()
         response_new = session.get(
-            f'http://127.0.0.1:1326/{args[0]}/cves/{args[1]}', timeout=2).json()
+            f'http://127.0.0.1:1326/{path}', timeout=2).json()
     except requests.exceptions.ConnectionError as e:
-        logger.error(f'Failed to Connection..., err: {e}')
+        logger.error(
+            f'Failed to Connection..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
         raise
     except requests.exceptions.ReadTimeout as e:
-        logger.error(
-            f'Failed to Read Response..., err: {e}, args: {args}')
+        logger.warning(
+            f'Failed to Read Response..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
         raise
     except Exception as e:
-        logger.error(f'Failed to GET request..., err: {e}')
+        logger.error(
+            f'Failed to GET request..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
         raise
 
     diff = DeepDiff(response_old, response_new, ignore_order=True)
     if diff != {}:
         logger.warning(
-            f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": "cveid", "args": args, "diff": diff}, indent=2)}')
+            f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": "cveid", "args": args, "path": path}, indent=2)}')
+
+        diff_path = f'integration/diff/{args[0]}/cveid/{args[1]}'
+        with open(f'{diff_path}.old', 'w') as w:
+            w.write(json.dumps(response_old, indent=4))
+        with open(f'{diff_path}.new', 'w') as w:
+            w.write(json.dumps(response_new, indent=4))
 
 
 def diff_package(args: Tuple[str, str]):
@@ -75,26 +89,36 @@ def diff_package(args: Tuple[str, str]):
 
     for rel in os_specific_urls[0]:
         for fix_status in os_specific_urls[1]:
+            path = f'{args[0]}/{rel}/pkgs/{args[1]}/{fix_status}'
+            os.makedirs(f'integration/diff/{args[0]}/package/{rel}({fix_status})', exist_ok=True)
             try:
                 response_old = session.get(
-                    f'http://127.0.0.1:1325/{args[0]}/{rel}/pkgs/{args[1]}/{fix_status}', timeout=(2.0, 30.0)).json()
+                    f'http://127.0.0.1:1325/{path}', timeout=(2.0, 30.0)).json()
                 response_new = session.get(
-                    f'http://127.0.0.1:1326/{args[0]}/{rel}/pkgs/{args[1]}/{fix_status}', timeout=(2.0, 30.0)).json()
+                    f'http://127.0.0.1:1326/{path}', timeout=(2.0, 30.0)).json()
             except requests.exceptions.ConnectionError as e:
-                logger.error(f'Failed to Connection..., err: {e}')
+                logger.error(
+                    f'Failed to Connection..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
                 raise
             except requests.exceptions.ReadTimeout as e:
-                logger.error(
-                    f'Failed to Read Response..., err: {e}, args: {args}')
+                logger.warning(
+                    f'Failed to Read Response..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
                 raise
             except Exception as e:
-                logger.error(f'Failed to GET request..., err: {e}')
+                logger.error(
+                    f'Failed to GET request..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
                 raise
 
             diff = DeepDiff(response_old, response_new, ignore_order=True)
             if diff != {}:
                 logger.warning(
-                    f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": "package", "args": args, "diff": diff}, indent=2)}')
+                    f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": "package", "args": args, "path": path}, indent=2)}')
+
+                diff_path = f'integration/diff/{args[0]}/package/{rel}({fix_status})/{args[1]}'
+                with open(f'{diff_path}.old', 'w') as w:
+                    w.write(json.dumps(response_old, indent=4))
+                with open(f'{diff_path}.new', 'w') as w:
+                    w.write(json.dumps(response_new, indent=4))
 
 
 def diff_response(args: Tuple[str, str, str]):
@@ -114,6 +138,8 @@ parser.add_argument('ostype', choices=['debian', 'ubuntu', 'redhat', 'microsoft'
                     help='Specify the OS to be started in server mode when testing.')
 parser.add_argument('--list_path',
                     help='A file path containing a line by line list of CVE-IDs or Packages to be diffed in server mode results')
+parser.add_argument("--sample_rate", type=float, default=0.01,
+                    help="Adjust the rate of data used for testing (len(test_data) * sample_rate)")
 parser.add_argument(
     '--debug', action=argparse.BooleanOptionalAction, help='print debug message')
 args = parser.parse_args()
@@ -134,6 +160,19 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
 logger.info(f'start {args.ostype} server mode test(mode: {args.mode})')
+
+logger.info('check the communication with the server')
+for i in range(5):
+    try:
+        if requests.get('http://127.0.0.1:1325/health').status_code == requests.codes.ok and requests.get('http://127.0.0.1:1326/health').status_code == requests.codes.ok:
+            logger.info('communication with the server has been confirmed')
+            break
+    except Exception:
+        pass
+    time.sleep(1)
+else:
+    logger.error('Failed to communicate with server')
+    exit(1)
 
 list_path = None
 if args.list_path != None:
@@ -156,8 +195,14 @@ if not os.path.isfile(list_path):
 logger.debug(
     f'Test Mode: {args.mode}, OStype: {args.ostype}, Use List Path: {list_path}')
 
+diff_path = f'integration/diff/{args.ostype}/{args.mode}'
+if os.path.exists(diff_path):
+    shutil.rmtree(diff_path)
+os.makedirs(diff_path, exist_ok=True)
+
 with open(list_path) as f:
     list = [s.strip() for s in f.readlines()]
+    list = random.sample(list, math.ceil(len(list) * args.sample_rate))
     with ThreadPoolExecutor() as executor:
         ins = ((args.mode, args.ostype, e) for e in list)
         executor.map(diff_response, ins)
