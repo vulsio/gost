@@ -112,6 +112,9 @@ func (r *RDBDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 // GetMicrosoftMulti :
 func (r *RDBDriver) GetMicrosoftMulti(cveIDs []string) map[string]models.MicrosoftCVE {
 	m := map[string]models.MicrosoftCVE{}
+	if len(cveIDs) == 0 {
+		return m
+	}
 	for _, cveID := range cveIDs {
 		m[cveID] = *r.GetMicrosoft(cveID)
 	}

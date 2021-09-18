@@ -220,6 +220,11 @@ func (r *RedisDriver) GetRedhat(cveID string) *models.RedhatCVE {
 
 // GetRedhatMulti :
 func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE {
+	results := map[string]models.RedhatCVE{}
+	if len(cveIDs) == 0 {
+		return results
+	}
+
 	ctx := context.Background()
 	cves, err := r.conn.HMGet(ctx, fmt.Sprintf(cveKeyFormat, redhatName), cveIDs...).Result()
 	if err != nil {
@@ -227,7 +232,6 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCV
 		return nil
 	}
 
-	results := map[string]models.RedhatCVE{}
 	for _, cve := range cves {
 		if cve == nil {
 			continue
@@ -455,6 +459,11 @@ func (r *RedisDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
 
 // GetMicrosoftMulti :
 func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) map[string]models.MicrosoftCVE {
+	results := map[string]models.MicrosoftCVE{}
+	if len(cveIDs) == 0 {
+		return results
+	}
+
 	ctx := context.Background()
 	cves, err := r.conn.HMGet(ctx, fmt.Sprintf(cveKeyFormat, microsoftName), cveIDs...).Result()
 	if err != nil {
@@ -462,7 +471,6 @@ func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) map[string]models.Micro
 		return nil
 	}
 
-	results := map[string]models.MicrosoftCVE{}
 	for _, cve := range cves {
 		if cve == nil {
 			continue
