@@ -39,6 +39,18 @@ func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
 	return &c
 }
 
+// GetDebianMulti :
+func (r *RDBDriver) GetDebianMulti(cveIDs []string) map[string]models.DebianCVE {
+	m := map[string]models.DebianCVE{}
+	for _, cveID := range cveIDs {
+		cve := r.GetDebian(cveID)
+		if cve != nil {
+			m[cveID] = *cve
+		}
+	}
+	return m
+}
+
 // InsertDebian :
 func (r *RDBDriver) InsertDebian(cveJSON models.DebianJSON) (err error) {
 	cves := ConvertDebian(cveJSON)

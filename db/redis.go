@@ -362,6 +362,35 @@ func (r *RedisDriver) GetDebian(cveID string) *models.DebianCVE {
 	return &deb
 }
 
+// GetDebianMulti :
+func (r *RedisDriver) GetDebianMulti(cveIDs []string) map[string]models.DebianCVE {
+	results := map[string]models.DebianCVE{}
+	if len(cveIDs) == 0 {
+		return results
+	}
+
+	ctx := context.Background()
+	cves, err := r.conn.HMGet(ctx, fmt.Sprintf(cveKeyFormat, debianName), cveIDs...).Result()
+	if err != nil {
+		log15.Error("Failed to HMGet.", "err", err)
+		return nil
+	}
+
+	for _, cve := range cves {
+		if cve == nil {
+			continue
+		}
+
+		var debian models.DebianCVE
+		if err := json.Unmarshal([]byte(cve.(string)), &debian); err != nil {
+			log15.Error("Failed to Unmarshal json.", "err", err)
+			return nil
+		}
+		results[debian.CveID] = debian
+	}
+	return results
+}
+
 // GetUnfixedCvesUbuntu :
 func (r *RedisDriver) GetUnfixedCvesUbuntu(major, pkgName string) map[string]models.UbuntuCVE {
 	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"needed", "pending"})
@@ -438,6 +467,35 @@ func (r *RedisDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 		return nil
 	}
 	return &c
+}
+
+// GetUbuntuMulti :
+func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) map[string]models.UbuntuCVE {
+	results := map[string]models.UbuntuCVE{}
+	if len(cveIDs) == 0 {
+		return results
+	}
+
+	ctx := context.Background()
+	cves, err := r.conn.HMGet(ctx, fmt.Sprintf(cveKeyFormat, ubuntuName), cveIDs...).Result()
+	if err != nil {
+		log15.Error("Failed to HMGet.", "err", err)
+		return nil
+	}
+
+	for _, cve := range cves {
+		if cve == nil {
+			continue
+		}
+
+		var ubuntu models.UbuntuCVE
+		if err := json.Unmarshal([]byte(cve.(string)), &ubuntu); err != nil {
+			log15.Error("Failed to Unmarshal json.", "err", err)
+			return nil
+		}
+		results[ubuntu.Candidate] = ubuntu
+	}
+	return results
 }
 
 // GetMicrosoft :
