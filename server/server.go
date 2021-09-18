@@ -41,6 +41,8 @@ func Start(logToFile bool, logDir string, driver db.DB) error {
 	e.GET("/debian/cves/:id", getDebianCve(driver))
 	e.GET("/ubuntu/cves/:id", getUbuntuCve(driver))
 	e.GET("/microsoft/cves/:id", getMicrosoftCve(driver))
+	e.POST("/redhat/multi-cves", getRedhatMultiCve(driver))
+	e.POST("/microsoft/multi-cves", getMicrosoftMultiCve(driver))
 	e.GET("/redhat/:release/pkgs/:name/unfixed-cves", getUnfixedCvesRedhat(driver))
 	e.GET("/debian/:release/pkgs/:name/unfixed-cves", getUnfixedCvesDebian(driver))
 	e.GET("/debian/:release/pkgs/:name/fixed-cves", getFixedCvesDebian(driver))
@@ -97,6 +99,34 @@ func getMicrosoftCve(driver db.DB) echo.HandlerFunc {
 		//TODO error
 		cveDetail := driver.GetMicrosoft(cveid)
 		return c.JSON(http.StatusOK, &cveDetail)
+	}
+}
+
+type cveIDs struct {
+	CveIDs []string `json:"cveIDs"`
+}
+
+// Handler
+func getRedhatMultiCve(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		cveIDs := cveIDs{}
+		if err := c.Bind(&cveIDs); err != nil {
+			return err
+		}
+		cveDetails := driver.GetRedhatMulti(cveIDs.CveIDs)
+		return c.JSON(http.StatusOK, &cveDetails)
+	}
+}
+
+// Handler
+func getMicrosoftMultiCve(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		cveIDs := cveIDs{}
+		if err := c.Bind(&cveIDs); err != nil {
+			return err
+		}
+		cveDetails := driver.GetMicrosoftMulti(cveIDs.CveIDs)
+		return c.JSON(http.StatusOK, &cveDetails)
 	}
 }
 
