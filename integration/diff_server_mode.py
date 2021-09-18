@@ -58,6 +58,50 @@ def diff_cveid(args: Tuple[str, str]):
             w.write(json.dumps(response_new, indent=4))
 
 
+def diff_cveids(args: Tuple[str, slice]):
+    session = requests.Session()
+    retries = Retry(total=5,
+                    backoff_factor=1,
+                    status_forcelist=[503, 504])
+    session.mount("http://", HTTPAdapter(max_retries=retries))
+
+    # Endpoint
+    # POST /redhat/multi-cves
+    # POST /microsoft/multi-cves
+    path = f'{args[0]}/multi-cves'
+    k = math.ceil(len(args[1]/5))
+    for _ in range(5):
+        payload = {"cveIDs": random.sample(args[1], k)}
+        try:
+            response_old = session.post(
+                f'http://127.0.0.1:1325/{path}', data=json.dumps(payload), headers={'content-type': 'application/json'}, timeout=2).json()
+            response_new = session.post(
+                f'http://127.0.0.1:1326/{path}', data=json.dumps(payload), headers={'content-type': 'application/json'}, timeout=2).json()
+        except requests.exceptions.ConnectionError as e:
+            logger.error(
+                f'Failed to Connection..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
+            raise
+        except requests.exceptions.ReadTimeout as e:
+            logger.warning(
+                f'Failed to Read Response..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
+            raise
+        except Exception as e:
+            logger.error(
+                f'Failed to GET request..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
+            raise
+
+        diff = DeepDiff(response_old, response_new, ignore_order=True)
+        if diff != {}:
+            logger.warning(
+                f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": "cveid", "args": args, "path": path}, indent=2)}')
+
+            diff_path = f'integration/diff/{args[0]}/cveid/{args[1]}'
+            with open(f'{diff_path}.old', 'w') as w:
+                w.write(json.dumps(response_old, indent=4))
+            with open(f'{diff_path}.new', 'w') as w:
+                w.write(json.dumps(response_new, indent=4))
+
+
 def diff_package(args: Tuple[str, str]):
     session = requests.Session()
     retries = Retry(total=5,
@@ -90,7 +134,8 @@ def diff_package(args: Tuple[str, str]):
     for rel in os_specific_urls[0]:
         for fix_status in os_specific_urls[1]:
             path = f'{args[0]}/{rel}/pkgs/{args[1]}/{fix_status}'
-            os.makedirs(f'integration/diff/{args[0]}/package/{rel}({fix_status})', exist_ok=True)
+            os.makedirs(
+                f'integration/diff/{args[0]}/package/{rel}({fix_status})', exist_ok=True)
             try:
                 response_old = session.get(
                     f'http://127.0.0.1:1325/{path}', timeout=(2.0, 30.0)).json()
@@ -121,18 +166,20 @@ def diff_package(args: Tuple[str, str]):
                     w.write(json.dumps(response_new, indent=4))
 
 
-def diff_response(args: Tuple[str, str, str]):
+def diff_response(args: Tuple[str, str, slice]):
     try:
         if args[0] == 'cveid':
-            diff_cveid((args[1], args[2]))
+            diff_cveid((args[1], args[2][0]))
+        if args[0] == 'cveids':
+            diff_cveids((args[1], args[2]))
         if args[0] == 'package':
-            diff_package((args[1], args[2]))
+            diff_package((args[1], args[2][0]))
     except Exception:
         exit(1)
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('mode', choices=['cveid', 'package'],
+parser.add_argument('mode', choices=['cveid', 'cveids', 'package'],
                     help='Specify the mode to test.')
 parser.add_argument('ostype', choices=['debian', 'ubuntu', 'redhat', 'microsoft'],
                     help='Specify the OS to be started in server mode when testing.')
@@ -178,7 +225,7 @@ list_path = None
 if args.list_path != None:
     list_path = args.list_path
 else:
-    if args.mode == 'cveid':
+    if args.mode in ['cveid', 'cveids']:
         list_path = 'integration/cveid/cveid_' + args.ostype + '.txt'
     if args.mode == 'package':
         list_path = 'integration/package/package_' + args.ostype + '.txt'
@@ -203,6 +250,9 @@ os.makedirs(diff_path, exist_ok=True)
 with open(list_path) as f:
     list = [s.strip() for s in f.readlines()]
     list = random.sample(list, math.ceil(len(list) * args.sample_rate))
-    with ThreadPoolExecutor() as executor:
-        ins = ((args.mode, args.ostype, e) for e in list)
-        executor.map(diff_response, ins)
+    if args.mode == 'cveids':
+        diff_response(args.mode, args.ostype, list)
+    else:
+        with ThreadPoolExecutor() as executor:
+            ins = ((args.mode, args.ostype, [e]) for e in list)
+            executor.map(diff_response, ins)
