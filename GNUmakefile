@@ -127,8 +127,8 @@ diff-cveid:
 	# @ python integration/diff_server_mode.py cveid --sample_rate 0.01 microsoft
 
 diff-cveids:
-	# @ python integration/diff_server_mode.py cveids --sample_rate 0.01 debian
-	# @ python integration/diff_server_mode.py cveids --sample_rate 0.01 ubuntu
+	@ python integration/diff_server_mode.py cveids --sample_rate 0.01 debian
+	@ python integration/diff_server_mode.py cveids --sample_rate 0.01 ubuntu
 	@ python integration/diff_server_mode.py cveids --sample_rate 0.01 redhat
 	# @ python integration/diff_server_mode.py cveids --sample_rate 0.01 microsoft
 
