@@ -21,6 +21,7 @@ vendor/
 *.sqlite3-journal
 
 *.toml
+!.revive.toml
 
 .vscode
 
