@@ -53,6 +53,18 @@ func (r *RDBDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
 	return &c
 }
 
+// GetUbuntuMulti :
+func (r *RDBDriver) GetUbuntuMulti(cveIDs []string) map[string]models.UbuntuCVE {
+	m := map[string]models.UbuntuCVE{}
+	for _, cveID := range cveIDs {
+		cve := r.GetUbuntu(cveID)
+		if cve != nil {
+			m[cveID] = *cve
+		}
+	}
+	return m
+}
+
 // InsertUbuntu :
 func (r *RDBDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) {
 	cves := ConvertUbuntu(cveJSONs)

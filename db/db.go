@@ -24,7 +24,9 @@ type DB interface {
 	GetRedhat(string) *models.RedhatCVE
 	GetRedhatMulti([]string) map[string]models.RedhatCVE
 	GetDebian(string) *models.DebianCVE
+	GetDebianMulti([]string) map[string]models.DebianCVE
 	GetUbuntu(string) *models.UbuntuCVE
+	GetUbuntuMulti([]string) map[string]models.UbuntuCVE
 	GetMicrosoft(string) *models.MicrosoftCVE
 	GetMicrosoftMulti([]string) map[string]models.MicrosoftCVE
 	GetUnfixedCvesRedhat(string, string, bool) map[string]models.RedhatCVE

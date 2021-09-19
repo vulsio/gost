@@ -65,13 +65,10 @@ func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
 // GetRedhatMulti :
 func (r *RDBDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE {
 	m := map[string]models.RedhatCVE{}
-	if len(cveIDs) == 0 {
-		return m
-	}
 	for _, cveID := range cveIDs {
-		rhcve := r.GetRedhat(cveID)
-		if rhcve != nil {
-			m[cveID] = *rhcve
+		cve := r.GetRedhat(cveID)
+		if cve != nil {
+			m[cveID] = *cve
 		}
 	}
 	return m
