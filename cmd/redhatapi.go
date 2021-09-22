@@ -58,6 +58,11 @@ func fetchRedHatAPI(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
 	}
 
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		log15.Error("Failed to upsert FetchMeta to DB.", "dbpath", viper.GetString("dbpath"), "err", err)
+		return err
+	}
+
 	log15.Info("Fetch the list of CVEs")
 	entries, err := fetcher.ListAllRedhatCves(
 		viper.GetString("before"), viper.GetString("after"), viper.GetInt("threads"))
@@ -87,11 +92,6 @@ func fetchRedHatAPI(cmd *cobra.Command, args []string) (err error) {
 	log15.Info("Insert RedHat into DB", "db", driver.Name())
 	if err := driver.InsertRedhat(cves); err != nil {
 		log15.Error("Failed to insert.", "dbpath", viper.GetString("dbpath"), "err", err)
-		return err
-	}
-
-	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
-		log15.Error("Failed to upsert FetchMeta to DB.", "dbpath", viper.GetString("dbpath"), "err", err)
 		return err
 	}
 

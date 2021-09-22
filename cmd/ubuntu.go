@@ -52,15 +52,15 @@ func fetchUbuntu(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
 	}
 
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		log15.Error("Failed to upsert FetchMeta to DB.", "dbpath", viper.GetString("dbpath"), "err", err)
+		return err
+	}
+
 	log15.Info("Fetched", "CVEs", len(cves))
 	log15.Info("Insert Ubuntu into DB", "db", driver.Name())
 	if err := driver.InsertUbuntu(cves); err != nil {
 		log15.Error("Failed to insert.", "dbpath", viper.GetString("dbpath"), "err", err)
-		return err
-	}
-
-	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
-		log15.Error("Failed to upsert FetchMeta to DB.", "dbpath", viper.GetString("dbpath"), "err", err)
 		return err
 	}
 
