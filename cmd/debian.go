@@ -47,6 +47,11 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
 	}
 
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
+		return err
+	}
+
 	log15.Info("Fetched all CVEs from Debian")
 	cves, err := fetcher.RetrieveDebianCveDetails()
 	if err != nil {
@@ -59,11 +64,6 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 	if err := driver.InsertDebian(cves); err != nil {
 		log15.Error("Failed to insert.", "dbpath",
 			viper.GetString("dbpath"), "err", err)
-		return err
-	}
-
-	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
-		log15.Error("Failed to upsert FetchMeta to DB.", "err", err)
 		return err
 	}
 
