@@ -205,6 +205,9 @@ func (r *RedisDriver) GetAfterTimeRedhat(after time.Time) ([]models.RedhatCVE, e
 func (r *RedisDriver) GetRedhat(cveID string) (models.RedhatCVE, error) {
 	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, redhatName), cveID).Result()
 	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return models.RedhatCVE{}, nil
+		}
 		log15.Error("Failed to HGet.", "err", err)
 		return models.RedhatCVE{}, err
 	}
@@ -353,6 +356,9 @@ func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus strin
 func (r *RedisDriver) GetDebian(cveID string) (models.DebianCVE, error) {
 	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, debianName), cveID).Result()
 	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return models.DebianCVE{}, nil
+		}
 		log15.Error("Failed to HGet.", "err", err)
 		return models.DebianCVE{}, err
 	}
@@ -461,6 +467,9 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 func (r *RedisDriver) GetUbuntu(cveID string) (models.UbuntuCVE, error) {
 	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, ubuntuName), cveID).Result()
 	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return models.UbuntuCVE{}, nil
+		}
 		log15.Error("Failed to HGet.", "err", err)
 		return models.UbuntuCVE{}, err
 	}
@@ -505,6 +514,9 @@ func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuC
 func (r *RedisDriver) GetMicrosoft(cveID string) (models.MicrosoftCVE, error) {
 	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, microsoftName), cveID).Result()
 	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return models.MicrosoftCVE{}, nil
+		}
 		log15.Error("Failed to HGet.", "err", err)
 		return models.MicrosoftCVE{}, err
 	}
