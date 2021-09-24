@@ -87,12 +87,15 @@ func notifyRedhat(conf config.Config) error {
 
 	for _, cve := range cves {
 		// Select CVE information from DB
-		c := driver.GetRedhat(cve.Name)
-		db.ClearIDRedhat(c)
+		c, err := driver.GetRedhat(cve.Name)
+		if err != nil {
+			return err
+		}
+		db.ClearIDRedhat(&c)
 
 		cve.Cvss3.Cvss3BaseScore = "10 (This is dummy)"
 		cve.ThreatSeverity = "High (This is dummy)"
-		body := util.DiffRedhat(c, &cve, conf.Redhat[cve.Name])
+		body := util.DiffRedhat(&c, &cve, conf.Redhat[cve.Name])
 		if body != "" {
 			subject := fmt.Sprintf("%s Update %s", conf.EMail.SubjectPrefix, cve.Name)
 			body = fmt.Sprintf("%s\nhttps://access.redhat.com/security/cve/%s\n========================================================\n",

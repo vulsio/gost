@@ -68,6 +68,8 @@ def diff_cveids(ostype: str, cveids: list[str]):
 
     # Endpoint
     # POST /redhat/multi-cves
+    # POST /debian/multi-cves
+    # POST /ubuntu/multi-cves
     # POST /microsoft/multi-cves
     path = f'{ostype}/multi-cves'
     k = math.ceil(len(cveids)/5)

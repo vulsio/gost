@@ -7,48 +7,52 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
-	"github.com/vulsio/gost/util"
+	"golang.org/x/xerrors"
 	pb "gopkg.in/cheggaaa/pb.v1"
 	"gorm.io/gorm"
 )
 
 // GetDebian :
-func (r *RDBDriver) GetDebian(cveID string) *models.DebianCVE {
+func (r *RDBDriver) GetDebian(cveID string) (models.DebianCVE, error) {
 	c := models.DebianCVE{}
 	if err := r.conn.Where(&models.DebianCVE{CveID: cveID}).First(&c).Error; err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			log15.Error("Failed to get Debian", "err", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return models.DebianCVE{}, nil
 		}
-		return nil
+		log15.Error("Failed to get Debian", "err", err)
+		return models.DebianCVE{}, err
 	}
 
 	if err := r.conn.Model(&c).Association("Package").Find(&c.Package); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		log15.Error("Failed to get Debian", "err", err)
-		return nil
+		log15.Error("Failed to get Debian.Package", "err", err)
+		return models.DebianCVE{}, err
 	}
 
 	newPkg := []models.DebianPackage{}
 	for _, pkg := range c.Package {
 		if err := r.conn.Model(&pkg).Association("Release").Find(&pkg.Release); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			log15.Error("Failed to get Debian", "err", err)
-			return nil
+			log15.Error("Failed to get Debian.Package.Release", "err", err)
+			return models.DebianCVE{}, err
 		}
 		newPkg = append(newPkg, pkg)
 	}
 	c.Package = newPkg
-	return &c
+	return c, nil
 }
 
 // GetDebianMulti :
-func (r *RDBDriver) GetDebianMulti(cveIDs []string) map[string]models.DebianCVE {
+func (r *RDBDriver) GetDebianMulti(cveIDs []string) (map[string]models.DebianCVE, error) {
 	m := map[string]models.DebianCVE{}
 	for _, cveID := range cveIDs {
-		cve := r.GetDebian(cveID)
-		if cve != nil {
-			m[cveID] = *cve
+		cve, err := r.GetDebian(cveID)
+		if err != nil {
+			return nil, err
+		}
+		if cve.CveID != "" {
+			m[cve.CveID] = cve
 		}
 	}
-	return m
+	return m, nil
 }
 
 // InsertDebian :
@@ -72,14 +76,14 @@ func (r *RDBDriver) deleteAndInsertDebian(cves []models.DebianCVE) (err error) {
 	}()
 
 	// Delete all old records
-	var errs util.Errors
-	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianRelease{}).Error)
-	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianPackage{}).Error)
-	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianCVE{}).Error)
-	errs = util.DeleteNil(errs)
-
-	if len(errs.GetErrors()) > 0 {
-		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianRelease{}).Error; err != nil {
+		return fmt.Errorf("Failed to delete DebianRelease. err: %s", err)
+	}
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianPackage{}).Error; err != nil {
+		return fmt.Errorf("Failed to delete DebianPackage. err: %s", err)
+	}
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianCVE{}).Error; err != nil {
+		return fmt.Errorf("Failed to delete DebianCVE. err: %s", err)
 	}
 
 	batchSize := viper.GetInt("batch-size")
@@ -149,21 +153,20 @@ var debVerCodename = map[string]string{
 }
 
 // GetUnfixedCvesDebian gets the CVEs related to debian_release.status = 'open', major, pkgName.
-func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]models.DebianCVE {
+func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) (map[string]models.DebianCVE, error) {
 	return r.getCvesDebianWithFixStatus(major, pkgName, "open")
 }
 
 // GetFixedCvesDebian gets the CVEs related to debian_release.status = 'resolved', major, pkgName.
-func (r *RDBDriver) GetFixedCvesDebian(major, pkgName string) map[string]models.DebianCVE {
+func (r *RDBDriver) GetFixedCvesDebian(major, pkgName string) (map[string]models.DebianCVE, error) {
 	return r.getCvesDebianWithFixStatus(major, pkgName, "resolved")
 }
 
-func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string) map[string]models.DebianCVE {
-	m := map[string]models.DebianCVE{}
+func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string) (map[string]models.DebianCVE, error) {
 	codeName, ok := debVerCodename[major]
 	if !ok {
 		log15.Error("Debian %s is not supported yet", "err", major)
-		return m
+		return nil, xerrors.Errorf("Failed to convert from major version to codename. err: Debian %s is not supported yet", major)
 	}
 
 	type Result struct {
@@ -183,9 +186,10 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 		} else {
 			log15.Error("Failed to get fixed cves of Debian", "err", err)
 		}
-		return m
+		return nil, err
 	}
 
+	m := map[string]models.DebianCVE{}
 	for _, res := range results {
 		debcve := models.DebianCVE{}
 		err := r.conn.
@@ -195,7 +199,7 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 			First(&debcve).Error
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			log15.Error("Failed to get DebianCVE", res.DebianCveID, err)
-			return m
+			return nil, err
 		}
 
 		if len(debcve.Package) != 0 {
@@ -208,5 +212,5 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 		}
 	}
 
-	return m
+	return m, nil
 }
