@@ -41,7 +41,7 @@ func (r *RDBDriver) GetUbuntu(cveID string) (models.UbuntuCVE, error) {
 	}
 	patches := []models.UbuntuPatch{}
 	for _, p := range c.Patches {
-		if err := r.conn.Model(&c.Patches).Association("ReleasePatches").Find(&p.ReleasePatches); err != nil {
+		if err := r.conn.Model(&p).Association("ReleasePatches").Find(&p.ReleasePatches); err != nil {
 			log15.Error("Failed to get Ubuntu.ReleasePatches", "err", err)
 			return models.UbuntuCVE{}, err
 		}
