@@ -2,7 +2,6 @@ package util
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -18,7 +17,6 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
 	pb "gopkg.in/cheggaaa/pb.v1"
-	"gorm.io/gorm"
 )
 
 // GenWorkers generate workers
@@ -42,26 +40,6 @@ func GetDefaultLogDir() string {
 		defaultLogDir = filepath.Join(os.Getenv("APPDATA"), "gost")
 	}
 	return defaultLogDir
-}
-
-// DeleteNil deletes nil in errs
-func DeleteNil(errs []error) (new []error) {
-	for _, err := range errs {
-		if err != nil {
-			new = append(new, err)
-		}
-	}
-	return new
-}
-
-// DeleteRecordNotFound deletes gorm.ErrRecordNotFound in errs
-func DeleteRecordNotFound(errs []error) (new []error) {
-	for _, err := range errs {
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			new = append(new, err)
-		}
-	}
-	return new
 }
 
 // TrimSpaceNewline deletes space character and newline character(CR/LF)

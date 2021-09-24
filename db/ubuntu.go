@@ -23,38 +23,38 @@ func (r *RDBDriver) GetUbuntu(cveID string) (models.UbuntuCVE, error) {
 		return models.UbuntuCVE{}, err
 	}
 
-	if err := r.conn.Model(&c).Association("References").Find(&c.References); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("References").Find(&c.References); err != nil {
 		log15.Error("Failed to get Ubuntu.References", "err", err)
 		return models.UbuntuCVE{}, err
 	}
-	if err := r.conn.Model(&c).Association("Notes").Find(&c.Notes); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("Notes").Find(&c.Notes); err != nil {
 		log15.Error("Failed to get Ubuntu.Notes", "err", err)
 		return models.UbuntuCVE{}, err
 	}
-	if err := r.conn.Model(&c).Association("Bugs").Find(&c.Bugs); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("Bugs").Find(&c.Bugs); err != nil {
 		log15.Error("Failed to get Ubuntu.Bugs", "err", err)
 		return models.UbuntuCVE{}, err
 	}
-	if err := r.conn.Model(&c).Association("Patches").Find(&c.Patches); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("Patches").Find(&c.Patches); err != nil {
 		log15.Error("Failed to get Ubuntu.Patches", "err", err)
 		return models.UbuntuCVE{}, err
 	}
 	patches := []models.UbuntuPatch{}
 	for _, p := range c.Patches {
-		if err := r.conn.Model(&c.Patches).Association("ReleasePatches").Find(&p.ReleasePatches); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := r.conn.Model(&c.Patches).Association("ReleasePatches").Find(&p.ReleasePatches); err != nil {
 			log15.Error("Failed to get Ubuntu.ReleasePatches", "err", err)
 			return models.UbuntuCVE{}, err
 		}
 		patches = append(patches, p)
 	}
 	c.Patches = patches
-	if err := r.conn.Model(&c).Association("Upstreams").Find(&c.Upstreams); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("Upstreams").Find(&c.Upstreams); err != nil {
 		log15.Error("Failed to get Ubuntu.Upstreams", "err", err)
 		return models.UbuntuCVE{}, err
 	}
 	upstreams := []models.UbuntuUpstream{}
 	for _, u := range c.Upstreams {
-		if err := r.conn.Model(&u).Association("UpstreamLinks").Find(&u.UpstreamLinks); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := r.conn.Model(&u).Association("UpstreamLinks").Find(&u.UpstreamLinks); err != nil {
 			log15.Error("Failed to get Ubuntu.UpstreamLinks", "err", err)
 			return models.UbuntuCVE{}, err
 		}
@@ -243,7 +243,7 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []
 		Where("package_name = ?", pkgName).
 		Scan(&results).Error
 
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil {
 		if fixStatus[0] == "released" {
 			log15.Error("Failed to get fixed cves of Ubuntu", "err", err)
 		} else {
@@ -255,31 +255,30 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []
 	m := map[string]models.UbuntuCVE{}
 	for _, res := range results {
 		cve := models.UbuntuCVE{}
-		err := r.conn.
+		if err := r.conn.
 			Preload("Patches.ReleasePatches", "release_name = ? AND status IN (?)", codeName, fixStatus).
 			Preload("Patches", "package_name = ?", pkgName).
 			Where(&models.UbuntuCVE{ID: res.UbuntuCveID}).
-			First(&cve).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			First(&cve).Error; err != nil {
 			log15.Error("Failed to getCvesUbuntuWithFixStatus", "err", err)
 			return nil, err
 		}
 
-		if err := r.conn.Model(&cve).Association("References").Find(&cve.References); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := r.conn.Model(&cve).Association("References").Find(&cve.References); err != nil {
 			return nil, err
 		}
-		if err := r.conn.Model(&cve).Association("Notes").Find(&cve.Notes); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := r.conn.Model(&cve).Association("Notes").Find(&cve.Notes); err != nil {
 			return nil, err
 		}
-		if err := r.conn.Model(&cve).Association("Bugs").Find(&cve.Bugs); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := r.conn.Model(&cve).Association("Bugs").Find(&cve.Bugs); err != nil {
 			return nil, err
 		}
-		if err := r.conn.Model(&cve).Association("Upstreams").Find(&cve.Upstreams); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := r.conn.Model(&cve).Association("Upstreams").Find(&cve.Upstreams); err != nil {
 			return nil, err
 		}
 		upstreams := []models.UbuntuUpstream{}
 		for _, u := range cve.Upstreams {
-			if err := r.conn.Model(&u).Association("UpstreamLinks").Find(&u.UpstreamLinks); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := r.conn.Model(&u).Association("UpstreamLinks").Find(&u.UpstreamLinks); err != nil {
 				return nil, err
 			}
 			upstreams = append(upstreams, u)

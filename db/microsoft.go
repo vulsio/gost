@@ -27,105 +27,105 @@ func (r *RDBDriver) GetMicrosoft(cveID string) (models.MicrosoftCVE, error) {
 		return models.MicrosoftCVE{}, err
 	}
 
-	if err := r.conn.Model(&c).Association("MicrosoftProductStatuses").Find(&c.MicrosoftProductStatuses); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("MicrosoftProductStatuses").Find(&c.MicrosoftProductStatuses); err != nil {
 		return models.MicrosoftCVE{}, err
 	}
 	if len(c.MicrosoftProductStatuses) == 0 {
 		c.MicrosoftProductStatuses = nil
 	} else {
 		for i := range c.MicrosoftProductStatuses {
-			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("MicrosoftProductStatus:%d", i)).Find(&c.MicrosoftProductStatuses[i].Products).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("MicrosoftProductStatus:%d", i)).Find(&c.MicrosoftProductStatuses[i].Products).Error; err != nil {
 				return models.MicrosoftCVE{}, err
 			}
 		}
 	}
 
-	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Impact'", c.ID).Find(&c.Impact).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Impact'", c.ID).Find(&c.Impact).Error; err != nil {
 		return models.MicrosoftCVE{}, err
 	}
 	if len(c.Impact) == 0 {
 		c.Impact = nil
 	} else {
 		for i := range c.Impact {
-			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("Impact:%d", i)).Find(&c.Impact[i].Products).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("Impact:%d", i)).Find(&c.Impact[i].Products).Error; err != nil {
 				return models.MicrosoftCVE{}, err
 			}
 		}
 	}
 
-	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Severity'", c.ID).Find(&c.Severity).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Severity'", c.ID).Find(&c.Severity).Error; err != nil {
 		return models.MicrosoftCVE{}, err
 	}
 	if len(c.Severity) == 0 {
 		c.Severity = nil
 	} else {
 		for i := range c.Severity {
-			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("Severity:%d", i)).Find(&c.Severity[i].Products).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("Severity:%d", i)).Find(&c.Severity[i].Products).Error; err != nil {
 				return models.MicrosoftCVE{}, err
 			}
 		}
 	}
 
-	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Vendor Fix'", c.ID).Find(&c.VendorFix).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Vendor Fix'", c.ID).Find(&c.VendorFix).Error; err != nil {
 		return models.MicrosoftCVE{}, err
 	}
 	if len(c.VendorFix) == 0 {
 		c.VendorFix = nil
 	} else {
 		for i := range c.VendorFix {
-			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("VendorFix:%d", i)).Find(&c.VendorFix[i].Products).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("VendorFix:%d", i)).Find(&c.VendorFix[i].Products).Error; err != nil {
 				return models.MicrosoftCVE{}, err
 			}
 		}
 	}
 
-	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'None Available'", c.ID).Find(&c.NoneAvailable).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'None Available'", c.ID).Find(&c.NoneAvailable).Error; err != nil {
 		return models.MicrosoftCVE{}, err
 	}
 	if len(c.NoneAvailable) == 0 {
 		c.NoneAvailable = nil
 	} else {
 		for i := range c.NoneAvailable {
-			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("NoneAvailable:%d", i)).Find(&c.NoneAvailable[i].Products).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("NoneAvailable:%d", i)).Find(&c.NoneAvailable[i].Products).Error; err != nil {
 				return models.MicrosoftCVE{}, err
 			}
 		}
 	}
 
-	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Will Not Fix'", c.ID).Find(&c.WillNotFix).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Will Not Fix'", c.ID).Find(&c.WillNotFix).Error; err != nil {
 		return models.MicrosoftCVE{}, err
 	}
 	if len(c.WillNotFix) == 0 {
 		c.WillNotFix = nil
 	} else {
 		for i := range c.WillNotFix {
-			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("WillNotFix:%d", i)).Find(&c.WillNotFix[i].Products).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("WillNotFix:%d", i)).Find(&c.WillNotFix[i].Products).Error; err != nil {
 				return models.MicrosoftCVE{}, err
 			}
 		}
 	}
 
-	if err := r.conn.Model(&c).Association("ScoreSets").Find(&c.ScoreSets); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("ScoreSets").Find(&c.ScoreSets); err != nil {
 		return models.MicrosoftCVE{}, err
 	}
 	if len(c.ScoreSets) == 0 {
 		c.ScoreSets = nil
 	} else {
 		for i := range c.ScoreSets {
-			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("MicrosoftScoreSet:%d", i)).Find(&c.ScoreSets[i].Products).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("MicrosoftScoreSet:%d", i)).Find(&c.ScoreSets[i].Products).Error; err != nil {
 				return models.MicrosoftCVE{}, err
 			}
 		}
 	}
 
-	if err := r.conn.Model(&c).Association("References").Find(&c.References); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("References").Find(&c.References); err != nil {
 		return models.MicrosoftCVE{}, err
 	}
 	if len(c.References) == 0 {
 		c.References = nil
 	}
 
-	if err := r.conn.Model(&c).Association("KBIDs").Find(&c.KBIDs); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("KBIDs").Find(&c.KBIDs); err != nil {
 		return models.MicrosoftCVE{}, err
 	}
 	if len(c.KBIDs) == 0 {

@@ -23,13 +23,13 @@ func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.Redhat
 
 	// TODO: insufficient
 	for _, a := range all {
-		if err = r.conn.Model(&a).Association("Cvss3").Find(&a.Cvss3); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err = r.conn.Model(&a).Association("Cvss3").Find(&a.Cvss3); err != nil {
 			return nil, err
 		}
-		if err = r.conn.Model(&a).Association("Details").Find(&a.Details); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err = r.conn.Model(&a).Association("Details").Find(&a.Details); err != nil {
 			return nil, err
 		}
-		if err = r.conn.Model(&a).Association("PackageState").Find(&a.PackageState); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err = r.conn.Model(&a).Association("PackageState").Find(&a.PackageState); err != nil {
 			return nil, err
 		}
 		allCves = append(allCves, a)
@@ -48,31 +48,31 @@ func (r *RDBDriver) GetRedhat(cveID string) (models.RedhatCVE, error) {
 		return models.RedhatCVE{}, err
 	}
 
-	if err := r.conn.Model(&c).Association("Details").Find(&c.Details); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("Details").Find(&c.Details); err != nil {
 		log15.Error("Failed to get Redhat.Details", "err", err)
 		return models.RedhatCVE{}, err
 	}
-	if err := r.conn.Model(&c).Association("References").Find(&c.References); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("References").Find(&c.References); err != nil {
 		log15.Error("Failed to get Redhat.References", "err", err)
 		return models.RedhatCVE{}, err
 	}
-	if err := r.conn.Model(&c).Association("Bugzilla").Find(&c.Bugzilla); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("Bugzilla").Find(&c.Bugzilla); err != nil {
 		log15.Error("Failed to get Redhat.Bugzilla", "err", err)
 		return models.RedhatCVE{}, err
 	}
-	if err := r.conn.Model(&c).Association("Cvss").Find(&c.Cvss); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("Cvss").Find(&c.Cvss); err != nil {
 		log15.Error("Failed to get Redhat.Cvss", "err", err)
 		return models.RedhatCVE{}, err
 	}
-	if err := r.conn.Model(&c).Association("Cvss3").Find(&c.Cvss3); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("Cvss3").Find(&c.Cvss3); err != nil {
 		log15.Error("Failed to get Redhat.Cvss3", "err", err)
 		return models.RedhatCVE{}, err
 	}
-	if err := r.conn.Model(&c).Association("AffectedRelease").Find(&c.AffectedRelease); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("AffectedRelease").Find(&c.AffectedRelease); err != nil {
 		log15.Error("Failed to get Redhat.AffectedRelease", "err", err)
 		return models.RedhatCVE{}, err
 	}
-	if err := r.conn.Model(&c).Association("PackageState").Find(&c.PackageState); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("PackageState").Find(&c.PackageState); err != nil {
 		log15.Error("Failed to get Redhat.PackageState", "err", err)
 		return models.RedhatCVE{}, err
 	}
@@ -107,7 +107,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 			Cpe:         cpe,
 			PackageName: pkgName,
 		}).Find(&pkgStats).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil {
 		log15.Error("Failed to get unfixed cves of Redhat", "err", err)
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 
 	for id := range redhatCVEIDs {
 		rhcve := models.RedhatCVE{}
-		err = r.conn.
+		if err = r.conn.
 			Preload("Bugzilla").
 			Preload("Cvss").
 			Preload("Cvss3").
@@ -127,8 +127,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 			Preload("PackageState").
 			Preload("Details").
 			Preload("References").
-			Where(&models.RedhatCVE{ID: id}).First(&rhcve).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			Where(&models.RedhatCVE{ID: id}).First(&rhcve).Error; err != nil {
 			log15.Error("Failed to get unfixed cves of Redhat", "err", err)
 			return nil, err
 		}

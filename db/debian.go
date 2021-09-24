@@ -23,14 +23,14 @@ func (r *RDBDriver) GetDebian(cveID string) (models.DebianCVE, error) {
 		return models.DebianCVE{}, err
 	}
 
-	if err := r.conn.Model(&c).Association("Package").Find(&c.Package); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := r.conn.Model(&c).Association("Package").Find(&c.Package); err != nil {
 		log15.Error("Failed to get Debian.Package", "err", err)
 		return models.DebianCVE{}, err
 	}
 
 	newPkg := []models.DebianPackage{}
 	for _, pkg := range c.Package {
-		if err := r.conn.Model(&pkg).Association("Release").Find(&pkg.Release); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err := r.conn.Model(&pkg).Association("Release").Find(&pkg.Release); err != nil {
 			log15.Error("Failed to get Debian.Package.Release", "err", err)
 			return models.DebianCVE{}, err
 		}
@@ -180,7 +180,7 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 		Where("package_name = ?", pkgName).
 		Scan(&results).Error
 
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil {
 		if fixStatus == "open" {
 			log15.Error("Failed to get unfixed cves of Debian", "err", err)
 		} else {
@@ -192,12 +192,11 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 	m := map[string]models.DebianCVE{}
 	for _, res := range results {
 		debcve := models.DebianCVE{}
-		err := r.conn.
+		if err := r.conn.
 			Preload("Package.Release", "status = ? AND product_name = ?", fixStatus, codeName).
 			Preload("Package", "package_name = ?", pkgName).
 			Where(&models.DebianCVE{ID: res.DebianCveID}).
-			First(&debcve).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			First(&debcve).Error; err != nil {
 			log15.Error("Failed to get DebianCVE", res.DebianCveID, err)
 			return nil, err
 		}
