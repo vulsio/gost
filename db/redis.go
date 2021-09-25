@@ -282,8 +282,13 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotF
 		if len(pkgStats) == 0 {
 			continue
 		}
-		cve.PackageState = pkgStats
-		m[cveID] = cve
+		if len(pkgStats) > 0 {
+			cve.PackageState = pkgStats
+			m[cveID] = cve
+		} else {
+			delete(m, cveID)
+		}
+
 	}
 	return m, nil
 }
@@ -336,9 +341,11 @@ func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus strin
 			pkg.Release = rels
 			pkgs = append(pkgs, pkg)
 		}
-		if len(pkgs) != 0 {
+		if len(pkgs) > 0 {
 			cve.Package = pkgs
 			m[cveID] = cve
+		} else {
+			delete(m, cveID)
 		}
 	}
 	return m, nil
@@ -443,9 +450,11 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 			p.ReleasePatches = relPatches
 			patches = append(patches, p)
 		}
-		if len(patches) != 0 {
+		if len(patches) > 0 {
 			cve.Patches = patches
 			m[cveID] = cve
+		} else {
+			delete(m, cveID)
 		}
 	}
 	return m, nil
