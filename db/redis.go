@@ -257,21 +257,17 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotF
 		return nil, err
 	}
 
-	m := map[string]models.RedhatCVE{}
-	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
-	for _, cveID := range cveIDs {
-		red, err := r.GetRedhat(cveID)
-		if err != nil {
-			return nil, err
-		}
-		if red.Name == "" {
-			log15.Error("CVE is not found", "CVE-ID", cveID)
-			return nil, xerrors.New("Failed to get CVE registered in relation to the package.")
-		}
+	m, err := r.GetRedhatMulti(cveIDs)
+	if err != nil {
+		log15.Debug("Failed to GetRedhatMulti", "err", err)
+		return nil, err
+	}
 
+	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
+	for cveID, cve := range m {
 		// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format
 		pkgStats := []models.RedhatPackageState{}
-		for _, pkgstat := range red.PackageState {
+		for _, pkgstat := range cve.PackageState {
 			if pkgstat.Cpe != cpe ||
 				pkgstat.PackageName != pkgName ||
 				pkgstat.FixState == "Not affected" ||
@@ -286,8 +282,8 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotF
 		if len(pkgStats) == 0 {
 			continue
 		}
-		red.PackageState = pkgStats
-		m[cveID] = red
+		cve.PackageState = pkgStats
+		m[cveID] = cve
 	}
 	return m, nil
 }
@@ -316,19 +312,15 @@ func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus strin
 		return nil, err
 	}
 
-	m := map[string]models.DebianCVE{}
-	for _, cveID := range cveIDs {
-		deb, err := r.GetDebian(cveID)
-		if err != nil {
-			return nil, err
-		}
-		if deb.CveID == "" {
-			log15.Error("CVE is not found", "CVE-ID", cveID)
-			return nil, xerrors.New("Failed to get CVE registered in relation to the package.")
-		}
+	m, err := r.GetDebianMulti(cveIDs)
+	if err != nil {
+		log15.Debug("Failed to GetDebianMulti", "err", err)
+		return nil, err
+	}
 
+	for cveID, cve := range m {
 		pkgs := []models.DebianPackage{}
-		for _, pkg := range deb.Package {
+		for _, pkg := range cve.Package {
 			if pkg.PackageName != pkgName {
 				continue
 			}
@@ -345,8 +337,8 @@ func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus strin
 			pkgs = append(pkgs, pkg)
 		}
 		if len(pkgs) != 0 {
-			deb.Package = pkgs
-			m[cveID] = deb
+			cve.Package = pkgs
+			m[cveID] = cve
 		}
 	}
 	return m, nil
@@ -423,17 +415,13 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 		return nil, err
 	}
 
-	m := map[string]models.UbuntuCVE{}
-	for _, cveID := range cveIDs {
-		cve, err := r.GetUbuntu(cveID)
-		if err != nil {
-			return nil, err
-		}
-		if cve.Candidate == "" {
-			log15.Error("CVE is not found", "CVE-ID", cveID)
-			return nil, xerrors.New("Failed to get CVE registered in relation to the package.")
-		}
+	m, err := r.GetUbuntuMulti(cveIDs)
+	if err != nil {
+		log15.Debug("Failed to GetUbuntuMulti", "err", err)
+		return nil, err
+	}
 
+	for cveID, cve := range m {
 		patches := []models.UbuntuPatch{}
 		for _, p := range cve.Patches {
 			if p.PackageName != pkgName {
