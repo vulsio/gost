@@ -21,13 +21,13 @@ type DB interface {
 	UpsertFetchMeta(*models.FetchMeta) error
 
 	GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error)
-	GetRedhat(string) (models.RedhatCVE, error)
+	GetRedhat(string) (*models.RedhatCVE, error)
 	GetRedhatMulti([]string) (map[string]models.RedhatCVE, error)
-	GetDebian(string) (models.DebianCVE, error)
+	GetDebian(string) (*models.DebianCVE, error)
 	GetDebianMulti([]string) (map[string]models.DebianCVE, error)
-	GetUbuntu(string) (models.UbuntuCVE, error)
+	GetUbuntu(string) (*models.UbuntuCVE, error)
 	GetUbuntuMulti([]string) (map[string]models.UbuntuCVE, error)
-	GetMicrosoft(string) (models.MicrosoftCVE, error)
+	GetMicrosoft(string) (*models.MicrosoftCVE, error)
 	GetMicrosoftMulti([]string) (map[string]models.MicrosoftCVE, error)
 	GetUnfixedCvesRedhat(string, string, bool) (map[string]models.RedhatCVE, error)
 	GetUnfixedCvesDebian(string, string) (map[string]models.DebianCVE, error)

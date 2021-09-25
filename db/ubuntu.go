@@ -13,56 +13,56 @@ import (
 )
 
 // GetUbuntu :
-func (r *RDBDriver) GetUbuntu(cveID string) (models.UbuntuCVE, error) {
+func (r *RDBDriver) GetUbuntu(cveID string) (*models.UbuntuCVE, error) {
 	c := models.UbuntuCVE{}
 	if err := r.conn.Where(&models.UbuntuCVE{Candidate: cveID}).First(&c).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return models.UbuntuCVE{}, nil
+			return nil, nil
 		}
 		log15.Error("Failed to get Ubuntu", "err", err)
-		return models.UbuntuCVE{}, err
+		return nil, err
 	}
 
 	if err := r.conn.Model(&c).Association("References").Find(&c.References); err != nil {
 		log15.Error("Failed to get Ubuntu.References", "err", err)
-		return models.UbuntuCVE{}, err
+		return nil, err
 	}
 	if err := r.conn.Model(&c).Association("Notes").Find(&c.Notes); err != nil {
 		log15.Error("Failed to get Ubuntu.Notes", "err", err)
-		return models.UbuntuCVE{}, err
+		return nil, err
 	}
 	if err := r.conn.Model(&c).Association("Bugs").Find(&c.Bugs); err != nil {
 		log15.Error("Failed to get Ubuntu.Bugs", "err", err)
-		return models.UbuntuCVE{}, err
+		return nil, err
 	}
 	if err := r.conn.Model(&c).Association("Patches").Find(&c.Patches); err != nil {
 		log15.Error("Failed to get Ubuntu.Patches", "err", err)
-		return models.UbuntuCVE{}, err
+		return nil, err
 	}
 	patches := []models.UbuntuPatch{}
 	for _, p := range c.Patches {
 		if err := r.conn.Model(&p).Association("ReleasePatches").Find(&p.ReleasePatches); err != nil {
 			log15.Error("Failed to get Ubuntu.ReleasePatches", "err", err)
-			return models.UbuntuCVE{}, err
+			return nil, err
 		}
 		patches = append(patches, p)
 	}
 	c.Patches = patches
 	if err := r.conn.Model(&c).Association("Upstreams").Find(&c.Upstreams); err != nil {
 		log15.Error("Failed to get Ubuntu.Upstreams", "err", err)
-		return models.UbuntuCVE{}, err
+		return nil, err
 	}
 	upstreams := []models.UbuntuUpstream{}
 	for _, u := range c.Upstreams {
 		if err := r.conn.Model(&u).Association("UpstreamLinks").Find(&u.UpstreamLinks); err != nil {
 			log15.Error("Failed to get Ubuntu.UpstreamLinks", "err", err)
-			return models.UbuntuCVE{}, err
+			return nil, err
 		}
 		upstreams = append(upstreams, u)
 	}
 	c.Upstreams = upstreams
 
-	return c, nil
+	return &c, nil
 }
 
 // GetUbuntuMulti :
@@ -73,8 +73,8 @@ func (r *RDBDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuCVE
 		if err != nil {
 			return nil, err
 		}
-		if cve.Candidate != "" {
-			m[cveID] = cve
+		if cve != nil {
+			m[cveID] = *cve
 		}
 	}
 	return m, nil

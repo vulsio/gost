@@ -202,22 +202,22 @@ func (r *RedisDriver) GetAfterTimeRedhat(after time.Time) ([]models.RedhatCVE, e
 }
 
 // GetRedhat :
-func (r *RedisDriver) GetRedhat(cveID string) (models.RedhatCVE, error) {
+func (r *RedisDriver) GetRedhat(cveID string) (*models.RedhatCVE, error) {
 	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, redhatName), cveID).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return models.RedhatCVE{}, nil
+			return nil, nil
 		}
 		log15.Error("Failed to HGet.", "err", err)
-		return models.RedhatCVE{}, err
+		return nil, err
 	}
 
 	var redhat models.RedhatCVE
 	if err := json.Unmarshal([]byte(cve), &redhat); err != nil {
 		log15.Error("Failed to Unmarshal json.", "err", err)
-		return models.RedhatCVE{}, err
+		return nil, err
 	}
-	return redhat, nil
+	return &redhat, nil
 }
 
 // GetRedhatMulti :
@@ -348,22 +348,22 @@ func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus strin
 }
 
 // GetDebian :
-func (r *RedisDriver) GetDebian(cveID string) (models.DebianCVE, error) {
+func (r *RedisDriver) GetDebian(cveID string) (*models.DebianCVE, error) {
 	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, debianName), cveID).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return models.DebianCVE{}, nil
+			return nil, nil
 		}
 		log15.Error("Failed to HGet.", "err", err)
-		return models.DebianCVE{}, err
+		return nil, err
 	}
 
 	var deb models.DebianCVE
 	if err := json.Unmarshal([]byte(cve), &deb); err != nil {
 		log15.Error("Failed to Unmarshal json.", "err", err)
-		return models.DebianCVE{}, err
+		return nil, err
 	}
-	return deb, nil
+	return &deb, nil
 }
 
 // GetDebianMulti :
@@ -457,22 +457,22 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 }
 
 // GetUbuntu :
-func (r *RedisDriver) GetUbuntu(cveID string) (models.UbuntuCVE, error) {
+func (r *RedisDriver) GetUbuntu(cveID string) (*models.UbuntuCVE, error) {
 	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, ubuntuName), cveID).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return models.UbuntuCVE{}, nil
+			return nil, nil
 		}
 		log15.Error("Failed to HGet.", "err", err)
-		return models.UbuntuCVE{}, err
+		return nil, err
 	}
 
 	var c models.UbuntuCVE
 	if err := json.Unmarshal([]byte(cve), &c); err != nil {
 		log15.Error("Failed to Unmarshal json.", "err", err)
-		return models.UbuntuCVE{}, err
+		return nil, err
 	}
-	return c, nil
+	return &c, nil
 }
 
 // GetUbuntuMulti :
@@ -504,22 +504,22 @@ func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuC
 }
 
 // GetMicrosoft :
-func (r *RedisDriver) GetMicrosoft(cveID string) (models.MicrosoftCVE, error) {
+func (r *RedisDriver) GetMicrosoft(cveID string) (*models.MicrosoftCVE, error) {
 	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, microsoftName), cveID).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return models.MicrosoftCVE{}, nil
+			return nil, nil
 		}
 		log15.Error("Failed to HGet.", "err", err)
-		return models.MicrosoftCVE{}, err
+		return nil, err
 	}
 
 	var ms models.MicrosoftCVE
 	if err := json.Unmarshal([]byte(cve), &ms); err != nil {
 		log15.Error("Failed to Unmarshal json.", "err", err)
-		return models.MicrosoftCVE{}, err
+		return nil, err
 	}
-	return ms, nil
+	return &ms, nil
 }
 
 // GetMicrosoftMulti :

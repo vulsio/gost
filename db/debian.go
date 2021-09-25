@@ -13,31 +13,31 @@ import (
 )
 
 // GetDebian :
-func (r *RDBDriver) GetDebian(cveID string) (models.DebianCVE, error) {
+func (r *RDBDriver) GetDebian(cveID string) (*models.DebianCVE, error) {
 	c := models.DebianCVE{}
 	if err := r.conn.Where(&models.DebianCVE{CveID: cveID}).First(&c).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return models.DebianCVE{}, nil
+			return nil, nil
 		}
 		log15.Error("Failed to get Debian", "err", err)
-		return models.DebianCVE{}, err
+		return nil, err
 	}
 
 	if err := r.conn.Model(&c).Association("Package").Find(&c.Package); err != nil {
 		log15.Error("Failed to get Debian.Package", "err", err)
-		return models.DebianCVE{}, err
+		return nil, err
 	}
 
 	newPkg := []models.DebianPackage{}
 	for _, pkg := range c.Package {
 		if err := r.conn.Model(&pkg).Association("Release").Find(&pkg.Release); err != nil {
 			log15.Error("Failed to get Debian.Package.Release", "err", err)
-			return models.DebianCVE{}, err
+			return nil, err
 		}
 		newPkg = append(newPkg, pkg)
 	}
 	c.Package = newPkg
-	return c, nil
+	return &c, nil
 }
 
 // GetDebianMulti :
@@ -48,8 +48,8 @@ func (r *RDBDriver) GetDebianMulti(cveIDs []string) (map[string]models.DebianCVE
 		if err != nil {
 			return nil, err
 		}
-		if cve.CveID != "" {
-			m[cve.CveID] = cve
+		if cve != nil {
+			m[cve.CveID] = *cve
 		}
 	}
 	return m, nil
