@@ -279,16 +279,12 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotF
 			}
 			pkgStats = append(pkgStats, pkgstat)
 		}
-		if len(pkgStats) == 0 {
-			continue
-		}
 		if len(pkgStats) > 0 {
 			cve.PackageState = pkgStats
 			m[cveID] = cve
 		} else {
 			delete(m, cveID)
 		}
-
 	}
 	return m, nil
 }
