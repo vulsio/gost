@@ -260,7 +260,10 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []
 			Preload("Patches", "package_name = ?", pkgName).
 			Where(&models.UbuntuCVE{ID: res.UbuntuCveID}).
 			First(&cve).Error; err != nil {
-			log15.Error("Failed to getCvesUbuntuWithFixStatus", "err", err)
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, xerrors.Errorf("Failed to get UbuntuCVE. DB relationship may be broken, use `$ gost fetch ubuntu` to recreate DB. err: %w", err)
+			}
+			log15.Error("Failed to get UbuntuCVE", "err", err)
 			return nil, err
 		}
 

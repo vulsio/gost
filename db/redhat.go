@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
+	"golang.org/x/xerrors"
 	pb "gopkg.in/cheggaaa/pb.v1"
 	"gorm.io/gorm"
 )
@@ -128,6 +129,9 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 			Preload("Details").
 			Preload("References").
 			Where(&models.RedhatCVE{ID: id}).First(&rhcve).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, xerrors.Errorf("Failed to get RedhatCVE. DB relationship may be broken, use `$ gost fetch redhat` to recreate DB. err: %w", err)
+			}
 			log15.Error("Failed to get unfixed cves of Redhat", "err", err)
 			return nil, err
 		}

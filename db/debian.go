@@ -197,6 +197,9 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 			Preload("Package", "package_name = ?", pkgName).
 			Where(&models.DebianCVE{ID: res.DebianCveID}).
 			First(&debcve).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, xerrors.Errorf("Failed to get DebianCVE. DB relationship may be broken, use `$ gost fetch debian` to recreate DB. err: %w", err)
+			}
 			log15.Error("Failed to get DebianCVE", res.DebianCveID, err)
 			return nil, err
 		}
