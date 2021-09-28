@@ -82,35 +82,25 @@ func (r *RedisDriver) Name() string {
 }
 
 // OpenDB opens Database
-func (r *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
-	if err = r.connectRedis(dbPath); err != nil {
-		err = fmt.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
-	}
-	return
+func (r *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (bool, error) {
+	return false, r.connectRedis(dbPath)
 }
 
 func (r *RedisDriver) connectRedis(dbPath string) error {
-	ctx := context.Background()
-	var err error
-	var option *redis.Options
-	if option, err = redis.ParseURL(dbPath); err != nil {
-		log15.Error("Failed to parse url.", "err", err)
-		return err
+	option, err := redis.ParseURL(dbPath)
+	if err != nil {
+		return xerrors.Errorf("Failed to parse url. err: %w", err)
 	}
 	r.conn = redis.NewClient(option)
-	err = r.conn.Ping(ctx).Err()
-	return err
+	return r.conn.Ping(context.Background()).Err()
 }
 
 // CloseDB close Database
-func (r *RedisDriver) CloseDB() (err error) {
+func (r *RedisDriver) CloseDB() error {
 	if r.conn == nil {
-		return
+		return nil
 	}
-	if err = r.conn.Close(); err != nil {
-		return xerrors.Errorf("Failed to close DB. Type: %s. err: %w", r.name, err)
-	}
-	return
+	return r.conn.Close()
 }
 
 // MigrateDB migrates Database

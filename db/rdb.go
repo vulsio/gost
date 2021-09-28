@@ -1,7 +1,6 @@
 package db
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -97,15 +96,11 @@ func (r *RDBDriver) CloseDB() (err error) {
 	if r.conn == nil {
 		return
 	}
-
-	var sqlDB *sql.DB
-	if sqlDB, err = r.conn.DB(); err != nil {
+	sqlDB, err := r.conn.DB()
+	if err != nil {
 		return xerrors.Errorf("Failed to get DB Object. err : %w", err)
 	}
-	if err = sqlDB.Close(); err != nil {
-		return xerrors.Errorf("Failed to close DB. Type: %s. err: %w", r.name, err)
-	}
-	return
+	return sqlDB.Close()
 }
 
 // MigrateDB migrates Database
