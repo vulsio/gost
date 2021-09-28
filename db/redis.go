@@ -202,36 +202,37 @@ func (r *RedisDriver) GetAfterTimeRedhat(after time.Time) ([]models.RedhatCVE, e
 }
 
 // GetRedhat :
-func (r *RedisDriver) GetRedhat(cveID string) *models.RedhatCVE {
-	ctx := context.Background()
-	cve, err := r.conn.HGet(ctx, fmt.Sprintf(cveKeyFormat, redhatName), cveID).Result()
+func (r *RedisDriver) GetRedhat(cveID string) (*models.RedhatCVE, error) {
+	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, redhatName), cveID).Result()
 	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, nil
+		}
 		log15.Error("Failed to HGet.", "err", err)
-		return nil
+		return nil, err
 	}
 
 	var redhat models.RedhatCVE
 	if err := json.Unmarshal([]byte(cve), &redhat); err != nil {
 		log15.Error("Failed to Unmarshal json.", "err", err)
-		return nil
+		return nil, err
 	}
-	return &redhat
+	return &redhat, nil
 }
 
 // GetRedhatMulti :
-func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE {
-	results := map[string]models.RedhatCVE{}
+func (r *RedisDriver) GetRedhatMulti(cveIDs []string) (map[string]models.RedhatCVE, error) {
 	if len(cveIDs) == 0 {
-		return results
+		return map[string]models.RedhatCVE{}, nil
 	}
 
-	ctx := context.Background()
-	cves, err := r.conn.HMGet(ctx, fmt.Sprintf(cveKeyFormat, redhatName), cveIDs...).Result()
+	cves, err := r.conn.HMGet(context.Background(), fmt.Sprintf(cveKeyFormat, redhatName), cveIDs...).Result()
 	if err != nil {
 		log15.Error("Failed to HMGet.", "err", err)
-		return nil
+		return nil, err
 	}
 
+	results := map[string]models.RedhatCVE{}
 	for _, cve := range cves {
 		if cve == nil {
 			continue
@@ -240,34 +241,33 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCV
 		var redhat models.RedhatCVE
 		if err := json.Unmarshal([]byte(cve.(string)), &redhat); err != nil {
 			log15.Error("Failed to Unmarshal json.", "err", err)
-			return nil
+			return nil, err
 		}
 		results[redhat.Name] = redhat
 	}
-	return results
+	return results, nil
 }
 
 // GetUnfixedCvesRedhat :
-func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix bool) map[string]models.RedhatCVE {
+func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix bool) (map[string]models.RedhatCVE, error) {
 	ctx := context.Background()
 	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, redhatName, pkgName)).Result()
 	if err != nil {
 		log15.Error("Failed to SMembers.", "err", err)
-		return nil
+		return nil, err
 	}
 
-	m := map[string]models.RedhatCVE{}
-	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
-	for _, cveID := range cveIDs {
-		red := r.GetRedhat(cveID)
-		if red == nil {
-			log15.Error("CVE is not found", "CVE-ID", cveID)
-			return map[string]models.RedhatCVE{}
-		}
+	m, err := r.GetRedhatMulti(cveIDs)
+	if err != nil {
+		log15.Debug("Failed to GetRedhatMulti", "err", err)
+		return nil, err
+	}
 
+	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
+	for cveID, cve := range m {
 		// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format
 		pkgStats := []models.RedhatPackageState{}
-		for _, pkgstat := range red.PackageState {
+		for _, pkgstat := range cve.PackageState {
 			if pkgstat.Cpe != cpe ||
 				pkgstat.PackageName != pkgName ||
 				pkgstat.FixState == "Not affected" ||
@@ -279,49 +279,49 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotF
 			}
 			pkgStats = append(pkgStats, pkgstat)
 		}
-		if len(pkgStats) == 0 {
-			continue
+		if len(pkgStats) > 0 {
+			cve.PackageState = pkgStats
+			m[cveID] = cve
+		} else {
+			delete(m, cveID)
 		}
-		red.PackageState = pkgStats
-		m[cveID] = *red
 	}
-	return m
+	return m, nil
 }
 
 // GetUnfixedCvesDebian : get the CVEs related to debian_release.status = 'open', major, pkgName
-func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]models.DebianCVE {
+func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (map[string]models.DebianCVE, error) {
 	return r.getCvesDebianWithFixStatus(major, pkgName, "open")
 }
 
 // GetFixedCvesDebian : get the CVEs related to debian_release.status = 'resolved', major, pkgName
-func (r *RedisDriver) GetFixedCvesDebian(major, pkgName string) map[string]models.DebianCVE {
+func (r *RedisDriver) GetFixedCvesDebian(major, pkgName string) (map[string]models.DebianCVE, error) {
 	return r.getCvesDebianWithFixStatus(major, pkgName, "resolved")
 }
 
-func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string) map[string]models.DebianCVE {
+func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string) (map[string]models.DebianCVE, error) {
 	codeName, ok := debVerCodename[major]
 	if !ok {
 		log15.Error("Not supported yet", "major", major)
-		return nil
+		return nil, xerrors.Errorf("Failed to convert from major version to codename. err: Debian %s is not supported yet", major)
 	}
 
 	ctx := context.Background()
 	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, debianName, pkgName)).Result()
 	if err != nil {
 		log15.Error("Failed to SMembers.", "err", err)
-		return nil
+		return nil, err
 	}
 
-	m := map[string]models.DebianCVE{}
-	for _, cveID := range cveIDs {
-		deb := r.GetDebian(cveID)
-		if deb == nil {
-			log15.Error("CVE is not found", "CVE-ID", cveID)
-			return map[string]models.DebianCVE{}
-		}
+	m, err := r.GetDebianMulti(cveIDs)
+	if err != nil {
+		log15.Debug("Failed to GetDebianMulti", "err", err)
+		return nil, err
+	}
 
+	for cveID, cve := range m {
 		pkgs := []models.DebianPackage{}
-		for _, pkg := range deb.Package {
+		for _, pkg := range cve.Package {
 			if pkg.PackageName != pkgName {
 				continue
 			}
@@ -337,45 +337,48 @@ func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus strin
 			pkg.Release = rels
 			pkgs = append(pkgs, pkg)
 		}
-		if len(pkgs) != 0 {
-			deb.Package = pkgs
-			m[cveID] = *deb
+		if len(pkgs) > 0 {
+			cve.Package = pkgs
+			m[cveID] = cve
+		} else {
+			delete(m, cveID)
 		}
 	}
-	return m
+	return m, nil
 }
 
 // GetDebian :
-func (r *RedisDriver) GetDebian(cveID string) *models.DebianCVE {
-	ctx := context.Background()
-	cve, err := r.conn.HGet(ctx, fmt.Sprintf(cveKeyFormat, debianName), cveID).Result()
+func (r *RedisDriver) GetDebian(cveID string) (*models.DebianCVE, error) {
+	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, debianName), cveID).Result()
 	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, nil
+		}
 		log15.Error("Failed to HGet.", "err", err)
-		return nil
+		return nil, err
 	}
 
 	var deb models.DebianCVE
 	if err := json.Unmarshal([]byte(cve), &deb); err != nil {
 		log15.Error("Failed to Unmarshal json.", "err", err)
-		return nil
+		return nil, err
 	}
-	return &deb
+	return &deb, nil
 }
 
 // GetDebianMulti :
-func (r *RedisDriver) GetDebianMulti(cveIDs []string) map[string]models.DebianCVE {
-	results := map[string]models.DebianCVE{}
+func (r *RedisDriver) GetDebianMulti(cveIDs []string) (map[string]models.DebianCVE, error) {
 	if len(cveIDs) == 0 {
-		return results
+		return map[string]models.DebianCVE{}, nil
 	}
 
-	ctx := context.Background()
-	cves, err := r.conn.HMGet(ctx, fmt.Sprintf(cveKeyFormat, debianName), cveIDs...).Result()
+	cves, err := r.conn.HMGet(context.Background(), fmt.Sprintf(cveKeyFormat, debianName), cveIDs...).Result()
 	if err != nil {
 		log15.Error("Failed to HMGet.", "err", err)
-		return nil
+		return nil, err
 	}
 
+	results := map[string]models.DebianCVE{}
 	for _, cve := range cves {
 		if cve == nil {
 			continue
@@ -384,45 +387,44 @@ func (r *RedisDriver) GetDebianMulti(cveIDs []string) map[string]models.DebianCV
 		var debian models.DebianCVE
 		if err := json.Unmarshal([]byte(cve.(string)), &debian); err != nil {
 			log15.Error("Failed to Unmarshal json.", "err", err)
-			return nil
+			return nil, err
 		}
 		results[debian.CveID] = debian
 	}
-	return results
+	return results, nil
 }
 
 // GetUnfixedCvesUbuntu :
-func (r *RedisDriver) GetUnfixedCvesUbuntu(major, pkgName string) map[string]models.UbuntuCVE {
+func (r *RedisDriver) GetUnfixedCvesUbuntu(major, pkgName string) (map[string]models.UbuntuCVE, error) {
 	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"needed", "pending"})
 }
 
 // GetFixedCvesUbuntu :
-func (r *RedisDriver) GetFixedCvesUbuntu(major, pkgName string) map[string]models.UbuntuCVE {
+func (r *RedisDriver) GetFixedCvesUbuntu(major, pkgName string) (map[string]models.UbuntuCVE, error) {
 	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"released"})
 }
 
-func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatus []string) map[string]models.UbuntuCVE {
+func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatus []string) (map[string]models.UbuntuCVE, error) {
 	codeName, ok := ubuntuVerCodename[major]
 	if !ok {
 		log15.Error("Not supported yet", "major", major)
-		return nil
+		return nil, xerrors.Errorf("Failed to convert from major version to codename. err: Ubuntu %s is not supported yet", major)
 	}
 
 	ctx := context.Background()
 	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, ubuntuName, pkgName)).Result()
 	if err != nil {
 		log15.Error("Failed to SMembers.", "err", err)
-		return nil
+		return nil, err
 	}
 
-	m := map[string]models.UbuntuCVE{}
-	for _, cveID := range cveIDs {
-		cve := r.GetUbuntu(cveID)
-		if cve == nil {
-			log15.Error("CVE is not found", "CVE-ID", cveID)
-			return map[string]models.UbuntuCVE{}
-		}
+	m, err := r.GetUbuntuMulti(cveIDs)
+	if err != nil {
+		log15.Debug("Failed to GetUbuntuMulti", "err", err)
+		return nil, err
+	}
 
+	for cveID, cve := range m {
 		patches := []models.UbuntuPatch{}
 		for _, p := range cve.Patches {
 			if p.PackageName != pkgName {
@@ -444,45 +446,48 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 			p.ReleasePatches = relPatches
 			patches = append(patches, p)
 		}
-		if len(patches) != 0 {
+		if len(patches) > 0 {
 			cve.Patches = patches
-			m[cveID] = *cve
+			m[cveID] = cve
+		} else {
+			delete(m, cveID)
 		}
 	}
-	return m
+	return m, nil
 }
 
 // GetUbuntu :
-func (r *RedisDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
-	ctx := context.Background()
-	cve, err := r.conn.HGet(ctx, fmt.Sprintf(cveKeyFormat, ubuntuName), cveID).Result()
+func (r *RedisDriver) GetUbuntu(cveID string) (*models.UbuntuCVE, error) {
+	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, ubuntuName), cveID).Result()
 	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, nil
+		}
 		log15.Error("Failed to HGet.", "err", err)
-		return nil
+		return nil, err
 	}
 
 	var c models.UbuntuCVE
 	if err := json.Unmarshal([]byte(cve), &c); err != nil {
 		log15.Error("Failed to Unmarshal json.", "err", err)
-		return nil
+		return nil, err
 	}
-	return &c
+	return &c, nil
 }
 
 // GetUbuntuMulti :
-func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) map[string]models.UbuntuCVE {
-	results := map[string]models.UbuntuCVE{}
+func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuCVE, error) {
 	if len(cveIDs) == 0 {
-		return results
+		return map[string]models.UbuntuCVE{}, nil
 	}
 
-	ctx := context.Background()
-	cves, err := r.conn.HMGet(ctx, fmt.Sprintf(cveKeyFormat, ubuntuName), cveIDs...).Result()
+	cves, err := r.conn.HMGet(context.Background(), fmt.Sprintf(cveKeyFormat, ubuntuName), cveIDs...).Result()
 	if err != nil {
 		log15.Error("Failed to HMGet.", "err", err)
-		return nil
+		return nil, err
 	}
 
+	results := map[string]models.UbuntuCVE{}
 	for _, cve := range cves {
 		if cve == nil {
 			continue
@@ -491,44 +496,45 @@ func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) map[string]models.UbuntuCV
 		var ubuntu models.UbuntuCVE
 		if err := json.Unmarshal([]byte(cve.(string)), &ubuntu); err != nil {
 			log15.Error("Failed to Unmarshal json.", "err", err)
-			return nil
+			return nil, err
 		}
 		results[ubuntu.Candidate] = ubuntu
 	}
-	return results
+	return results, nil
 }
 
 // GetMicrosoft :
-func (r *RedisDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
-	ctx := context.Background()
-	cve, err := r.conn.HGet(ctx, fmt.Sprintf(cveKeyFormat, microsoftName), cveID).Result()
+func (r *RedisDriver) GetMicrosoft(cveID string) (*models.MicrosoftCVE, error) {
+	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, microsoftName), cveID).Result()
 	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, nil
+		}
 		log15.Error("Failed to HGet.", "err", err)
-		return nil
+		return nil, err
 	}
 
 	var ms models.MicrosoftCVE
 	if err := json.Unmarshal([]byte(cve), &ms); err != nil {
 		log15.Error("Failed to Unmarshal json.", "err", err)
-		return nil
+		return nil, err
 	}
-	return &ms
+	return &ms, nil
 }
 
 // GetMicrosoftMulti :
-func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) map[string]models.MicrosoftCVE {
-	results := map[string]models.MicrosoftCVE{}
+func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) (map[string]models.MicrosoftCVE, error) {
 	if len(cveIDs) == 0 {
-		return results
+		return map[string]models.MicrosoftCVE{}, nil
 	}
 
-	ctx := context.Background()
-	cves, err := r.conn.HMGet(ctx, fmt.Sprintf(cveKeyFormat, microsoftName), cveIDs...).Result()
+	cves, err := r.conn.HMGet(context.Background(), fmt.Sprintf(cveKeyFormat, microsoftName), cveIDs...).Result()
 	if err != nil {
 		log15.Error("Failed to HMGet.", "err", err)
-		return nil
+		return nil, err
 	}
 
+	results := map[string]models.MicrosoftCVE{}
 	for _, cve := range cves {
 		if cve == nil {
 			continue
@@ -537,12 +543,12 @@ func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) map[string]models.Micro
 		var ms models.MicrosoftCVE
 		if err := json.Unmarshal([]byte(cve.(string)), &ms); err != nil {
 			log15.Error("Failed to Unmarshal json.", "err", err)
-			return nil
+			return nil, err
 		}
 		results[ms.CveID] = ms
 	}
 
-	return results
+	return results, nil
 }
 
 //InsertRedhat :

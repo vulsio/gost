@@ -2,7 +2,6 @@ package util
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -18,7 +17,6 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
 	pb "gopkg.in/cheggaaa/pb.v1"
-	"gorm.io/gorm"
 )
 
 // GenWorkers generate workers
@@ -42,26 +40,6 @@ func GetDefaultLogDir() string {
 		defaultLogDir = filepath.Join(os.Getenv("APPDATA"), "gost")
 	}
 	return defaultLogDir
-}
-
-// DeleteNil deletes nil in errs
-func DeleteNil(errs []error) (new []error) {
-	for _, err := range errs {
-		if err != nil {
-			new = append(new, err)
-		}
-	}
-	return new
-}
-
-// DeleteRecordNotFound deletes gorm.ErrRecordNotFound in errs
-func DeleteRecordNotFound(errs []error) (new []error) {
-	for _, err := range errs {
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			new = append(new, err)
-		}
-	}
-	return new
 }
 
 // TrimSpaceNewline deletes space character and newline character(CR/LF)
@@ -367,45 +345,4 @@ func (p *ProgressBar) Finish() {
 		return
 	}
 	p.client.Finish()
-}
-
-// Errors has a set of errors that occurred in GORM
-type Errors []error
-
-// Add adds an error to a given slice of errors
-func (errs Errors) Add(newErrors ...error) Errors {
-	for _, err := range newErrors {
-		if err == nil {
-			continue
-		}
-
-		if errors, ok := err.(Errors); ok {
-			errs = errs.Add(errors...)
-		} else {
-			ok = true
-			for _, e := range errs {
-				if err == e {
-					ok = false
-				}
-			}
-			if ok {
-				errs = append(errs, err)
-			}
-		}
-	}
-	return errs
-}
-
-// Error takes a slice of all errors that have occurred and returns it as a formatted string
-func (errs Errors) Error() string {
-	var errors = []string{}
-	for _, e := range errs {
-		errors = append(errors, e.Error())
-	}
-	return strings.Join(errors, "; ")
-}
-
-// GetErrors gets all errors that have occurred and returns a slice of errors (Error type)
-func (errs Errors) GetErrors() []error {
-	return errs
 }

@@ -21,19 +21,19 @@ type DB interface {
 	UpsertFetchMeta(*models.FetchMeta) error
 
 	GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error)
-	GetRedhat(string) *models.RedhatCVE
-	GetRedhatMulti([]string) map[string]models.RedhatCVE
-	GetDebian(string) *models.DebianCVE
-	GetDebianMulti([]string) map[string]models.DebianCVE
-	GetUbuntu(string) *models.UbuntuCVE
-	GetUbuntuMulti([]string) map[string]models.UbuntuCVE
-	GetMicrosoft(string) *models.MicrosoftCVE
-	GetMicrosoftMulti([]string) map[string]models.MicrosoftCVE
-	GetUnfixedCvesRedhat(string, string, bool) map[string]models.RedhatCVE
-	GetUnfixedCvesDebian(string, string) map[string]models.DebianCVE
-	GetFixedCvesDebian(string, string) map[string]models.DebianCVE
-	GetUnfixedCvesUbuntu(string, string) map[string]models.UbuntuCVE
-	GetFixedCvesUbuntu(string, string) map[string]models.UbuntuCVE
+	GetRedhat(string) (*models.RedhatCVE, error)
+	GetRedhatMulti([]string) (map[string]models.RedhatCVE, error)
+	GetDebian(string) (*models.DebianCVE, error)
+	GetDebianMulti([]string) (map[string]models.DebianCVE, error)
+	GetUbuntu(string) (*models.UbuntuCVE, error)
+	GetUbuntuMulti([]string) (map[string]models.UbuntuCVE, error)
+	GetMicrosoft(string) (*models.MicrosoftCVE, error)
+	GetMicrosoftMulti([]string) (map[string]models.MicrosoftCVE, error)
+	GetUnfixedCvesRedhat(string, string, bool) (map[string]models.RedhatCVE, error)
+	GetUnfixedCvesDebian(string, string) (map[string]models.DebianCVE, error)
+	GetFixedCvesDebian(string, string) (map[string]models.DebianCVE, error)
+	GetUnfixedCvesUbuntu(string, string) (map[string]models.UbuntuCVE, error)
+	GetFixedCvesUbuntu(string, string) (map[string]models.UbuntuCVE, error)
 
 	InsertRedhat([]models.RedhatCVEJSON) error
 	InsertDebian(models.DebianJSON) error

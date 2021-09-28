@@ -68,8 +68,11 @@ func health() echo.HandlerFunc {
 func getRedhatCve(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cveid := c.Param("id")
-		cveDetail := driver.GetRedhat(cveid)
-		//TODO error
+		cveDetail, err := driver.GetRedhat(cveid)
+		if err != nil {
+			log15.Error("Failed to get RedHat by CVEID.", "err", err)
+			return err
+		}
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }
@@ -78,8 +81,11 @@ func getRedhatCve(driver db.DB) echo.HandlerFunc {
 func getDebianCve(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cveid := c.Param("id")
-		//TODO error
-		cveDetail := driver.GetDebian(cveid)
+		cveDetail, err := driver.GetDebian(cveid)
+		if err != nil {
+			log15.Error("Failed to get Debian by CVEID.", "err", err)
+			return err
+		}
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }
@@ -88,8 +94,11 @@ func getDebianCve(driver db.DB) echo.HandlerFunc {
 func getUbuntuCve(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cveid := c.Param("id")
-		// TODO error
-		cveDetail := driver.GetUbuntu(cveid)
+		cveDetail, err := driver.GetUbuntu(cveid)
+		if err != nil {
+			log15.Error("Failed to get Ubuntu by CVEID.", "err", err)
+			return err
+		}
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }
@@ -98,8 +107,11 @@ func getUbuntuCve(driver db.DB) echo.HandlerFunc {
 func getMicrosoftCve(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cveid := c.Param("id")
-		//TODO error
-		cveDetail := driver.GetMicrosoft(cveid)
+		cveDetail, err := driver.GetMicrosoft(cveid)
+		if err != nil {
+			log15.Error("Failed to get Microsoft by CVEID.", "err", err)
+			return err
+		}
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }
@@ -115,7 +127,11 @@ func getRedhatMultiCve(driver db.DB) echo.HandlerFunc {
 		if err := c.Bind(&cveIDs); err != nil {
 			return err
 		}
-		cveDetails := driver.GetRedhatMulti(cveIDs.CveIDs)
+		cveDetails, err := driver.GetRedhatMulti(cveIDs.CveIDs)
+		if err != nil {
+			log15.Error("Failed to get RedHat by CVEIDs.", "err", err)
+			return err
+		}
 		return c.JSON(http.StatusOK, &cveDetails)
 	}
 }
@@ -127,7 +143,11 @@ func getDebianMultiCve(driver db.DB) echo.HandlerFunc {
 		if err := c.Bind(&cveIDs); err != nil {
 			return err
 		}
-		cveDetails := driver.GetDebianMulti(cveIDs.CveIDs)
+		cveDetails, err := driver.GetDebianMulti(cveIDs.CveIDs)
+		if err != nil {
+			log15.Error("Failed to get Debian by CVEIDs.", "err", err)
+			return err
+		}
 		return c.JSON(http.StatusOK, &cveDetails)
 	}
 }
@@ -139,7 +159,11 @@ func getUbuntuMultiCve(driver db.DB) echo.HandlerFunc {
 		if err := c.Bind(&cveIDs); err != nil {
 			return err
 		}
-		cveDetails := driver.GetUbuntuMulti(cveIDs.CveIDs)
+		cveDetails, err := driver.GetUbuntuMulti(cveIDs.CveIDs)
+		if err != nil {
+			log15.Error("Failed to get Ubuntu by CVEIDs.", "err", err)
+			return err
+		}
 		return c.JSON(http.StatusOK, &cveDetails)
 	}
 }
@@ -151,7 +175,11 @@ func getMicrosoftMultiCve(driver db.DB) echo.HandlerFunc {
 		if err := c.Bind(&cveIDs); err != nil {
 			return err
 		}
-		cveDetails := driver.GetMicrosoftMulti(cveIDs.CveIDs)
+		cveDetails, err := driver.GetMicrosoftMulti(cveIDs.CveIDs)
+		if err != nil {
+			log15.Error("Failed to get Microsoft by CVEIDs.", "err", err)
+			return err
+		}
 		return c.JSON(http.StatusOK, &cveDetails)
 	}
 }
@@ -161,7 +189,11 @@ func getUnfixedCvesRedhat(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		release := util.Major(c.Param("release"))
 		pkgName := c.Param("name")
-		cveDetail := driver.GetUnfixedCvesRedhat(release, pkgName, false)
+		cveDetail, err := driver.GetUnfixedCvesRedhat(release, pkgName, false)
+		if err != nil {
+			log15.Error("Failed to get Unfixed CVEs in RedHat", "err", err)
+			return err
+		}
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }
@@ -171,7 +203,11 @@ func getUnfixedCvesDebian(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		release := util.Major(c.Param("release"))
 		pkgName := c.Param("name")
-		cveDetail := driver.GetUnfixedCvesDebian(release, pkgName)
+		cveDetail, err := driver.GetUnfixedCvesDebian(release, pkgName)
+		if err != nil {
+			log15.Error("Failed to get Unfixed CVEs in Debian", "err", err)
+			return err
+		}
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }
@@ -181,7 +217,11 @@ func getFixedCvesDebian(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		release := util.Major(c.Param("release"))
 		pkgName := c.Param("name")
-		cveDetail := driver.GetFixedCvesDebian(release, pkgName)
+		cveDetail, err := driver.GetFixedCvesDebian(release, pkgName)
+		if err != nil {
+			log15.Error("Failed to get Fixed CVEs in Debian", "err", err)
+			return err
+		}
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }
@@ -191,7 +231,11 @@ func getUnfixedCvesUbuntu(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		release := util.Major(c.Param("release"))
 		pkgName := c.Param("name")
-		cveDetail := driver.GetUnfixedCvesUbuntu(release, pkgName)
+		cveDetail, err := driver.GetUnfixedCvesUbuntu(release, pkgName)
+		if err != nil {
+			log15.Error("Failed to get Unfixed CVEs in Ubuntu", "err", err)
+			return err
+		}
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }
@@ -201,7 +245,11 @@ func getFixedCvesUbuntu(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		release := util.Major(c.Param("release"))
 		pkgName := c.Param("name")
-		cveDetail := driver.GetFixedCvesUbuntu(release, pkgName)
+		cveDetail, err := driver.GetFixedCvesUbuntu(release, pkgName)
+		if err != nil {
+			log15.Error("Failed to get Fixed CVEs in Ubuntu", "err", err)
+			return err
+		}
 		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }

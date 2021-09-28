@@ -87,7 +87,10 @@ func notifyRedhat(conf config.Config) error {
 
 	for _, cve := range cves {
 		// Select CVE information from DB
-		c := driver.GetRedhat(cve.Name)
+		c, err := driver.GetRedhat(cve.Name)
+		if err != nil {
+			return err
+		}
 		db.ClearIDRedhat(c)
 
 		cve.Cvss3.Cvss3BaseScore = "10 (This is dummy)"

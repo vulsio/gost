@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
+	"golang.org/x/xerrors"
 	pb "gopkg.in/cheggaaa/pb.v1"
 	"gorm.io/gorm"
 )
@@ -23,13 +24,13 @@ func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.Redhat
 
 	// TODO: insufficient
 	for _, a := range all {
-		if err = r.conn.Model(&a).Association("Cvss3").Find(&a.Cvss3); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err = r.conn.Model(&a).Association("Cvss3").Find(&a.Cvss3); err != nil {
 			return nil, err
 		}
-		if err = r.conn.Model(&a).Association("Details").Find(&a.Details); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err = r.conn.Model(&a).Association("Details").Find(&a.Details); err != nil {
 			return nil, err
 		}
-		if err = r.conn.Model(&a).Association("PackageState").Find(&a.PackageState); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err = r.conn.Model(&a).Association("PackageState").Find(&a.PackageState); err != nil {
 			return nil, err
 		}
 		allCves = append(allCves, a)
@@ -38,44 +39,64 @@ func (r *RDBDriver) GetAfterTimeRedhat(after time.Time) (allCves []models.Redhat
 }
 
 // GetRedhat :
-func (r *RDBDriver) GetRedhat(cveID string) *models.RedhatCVE {
+func (r *RDBDriver) GetRedhat(cveID string) (*models.RedhatCVE, error) {
 	c := models.RedhatCVE{}
 	if err := r.conn.Where(&models.RedhatCVE{Name: cveID}).First(&c).Error; err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			log15.Error("Failed to get Redhat", "err", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
 		}
-		return nil
+		log15.Error("Failed to get Redhat", "err", err)
+		return nil, err
 	}
 
-	var errs util.Errors
-	errs = errs.Add(r.conn.Model(&c).Association("Details").Find(&c.Details))
-	errs = errs.Add(r.conn.Model(&c).Association("References").Find(&c.References))
-	errs = errs.Add(r.conn.Model(&c).Association("Bugzilla").Find(&c.Bugzilla))
-	errs = errs.Add(r.conn.Model(&c).Association("Cvss").Find(&c.Cvss))
-	errs = errs.Add(r.conn.Model(&c).Association("Cvss3").Find(&c.Cvss3))
-	errs = errs.Add(r.conn.Model(&c).Association("AffectedRelease").Find(&c.AffectedRelease))
-	errs = errs.Add(r.conn.Model(&c).Association("PackageState").Find(&c.PackageState))
-	errs = util.DeleteRecordNotFound(errs)
-	if len(errs.GetErrors()) > 0 {
-		log15.Error("Failed to get RedhatCVE", "err", errs.Error())
+	if err := r.conn.Model(&c).Association("Details").Find(&c.Details); err != nil {
+		log15.Error("Failed to get Redhat.Details", "err", err)
+		return nil, err
 	}
-	return &c
+	if err := r.conn.Model(&c).Association("References").Find(&c.References); err != nil {
+		log15.Error("Failed to get Redhat.References", "err", err)
+		return nil, err
+	}
+	if err := r.conn.Model(&c).Association("Bugzilla").Find(&c.Bugzilla); err != nil {
+		log15.Error("Failed to get Redhat.Bugzilla", "err", err)
+		return nil, err
+	}
+	if err := r.conn.Model(&c).Association("Cvss").Find(&c.Cvss); err != nil {
+		log15.Error("Failed to get Redhat.Cvss", "err", err)
+		return nil, err
+	}
+	if err := r.conn.Model(&c).Association("Cvss3").Find(&c.Cvss3); err != nil {
+		log15.Error("Failed to get Redhat.Cvss3", "err", err)
+		return nil, err
+	}
+	if err := r.conn.Model(&c).Association("AffectedRelease").Find(&c.AffectedRelease); err != nil {
+		log15.Error("Failed to get Redhat.AffectedRelease", "err", err)
+		return nil, err
+	}
+	if err := r.conn.Model(&c).Association("PackageState").Find(&c.PackageState); err != nil {
+		log15.Error("Failed to get Redhat.PackageState", "err", err)
+		return nil, err
+	}
+	return &c, nil
 }
 
 // GetRedhatMulti :
-func (r *RDBDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE {
+func (r *RDBDriver) GetRedhatMulti(cveIDs []string) (map[string]models.RedhatCVE, error) {
 	m := map[string]models.RedhatCVE{}
 	for _, cveID := range cveIDs {
-		cve := r.GetRedhat(cveID)
+		cve, err := r.GetRedhat(cveID)
+		if err != nil {
+			return nil, err
+		}
 		if cve != nil {
 			m[cveID] = *cve
 		}
 	}
-	return m
+	return m, nil
 }
 
 // GetUnfixedCvesRedhat gets the unfixed CVEs.
-func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix bool) map[string]models.RedhatCVE {
+func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix bool) (map[string]models.RedhatCVE, error) {
 	m := map[string]models.RedhatCVE{}
 	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
 	pkgStats := []models.RedhatPackageState{}
@@ -87,9 +108,9 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 			Cpe:         cpe,
 			PackageName: pkgName,
 		}).Find(&pkgStats).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	if err != nil {
 		log15.Error("Failed to get unfixed cves of Redhat", "err", err)
-		return nil
+		return nil, err
 	}
 
 	redhatCVEIDs := map[int64]bool{}
@@ -99,7 +120,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 
 	for id := range redhatCVEIDs {
 		rhcve := models.RedhatCVE{}
-		err = r.conn.
+		if err = r.conn.
 			Preload("Bugzilla").
 			Preload("Cvss").
 			Preload("Cvss3").
@@ -107,10 +128,12 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 			Preload("PackageState").
 			Preload("Details").
 			Preload("References").
-			Where(&models.RedhatCVE{ID: id}).First(&rhcve).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			Where(&models.RedhatCVE{ID: id}).First(&rhcve).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, xerrors.Errorf("Failed to get RedhatCVE. DB relationship may be broken, use `$ gost fetch redhat` to recreate DB. err: %w", err)
+			}
 			log15.Error("Failed to get unfixed cves of Redhat", "err", err)
-			return nil
+			return nil, err
 		}
 
 		pkgStats := []models.RedhatPackageState{}
@@ -132,7 +155,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 		rhcve.PackageState = pkgStats
 		m[rhcve.Name] = rhcve
 	}
-	return m
+	return m, nil
 }
 
 // InsertRedhat :
@@ -162,19 +185,29 @@ func (r *RDBDriver) deleteAndInsertRedhat(cves []models.RedhatCVE) (err error) {
 		tx.Commit()
 	}()
 
-	var errs util.Errors
-	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatDetail{}).Error)
-	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatReference{}).Error)
-	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatBugzilla{}).Error)
-	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCvss{}).Error)
-	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCvss3{}).Error)
-	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatAffectedRelease{}).Error)
-	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatPackageState{}).Error)
-	errs = errs.Add(tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCVE{}).Error)
-	errs = util.DeleteNil(errs)
-
-	if len(errs.GetErrors()) > 0 {
-		return fmt.Errorf("Failed to delete old records. err: %s", errs.Error())
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatDetail{}).Error; err != nil {
+		return fmt.Errorf("Failed to delete . err: %s", err)
+	}
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatReference{}).Error; err != nil {
+		return fmt.Errorf("Failed to delete . err: %s", err)
+	}
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatBugzilla{}).Error; err != nil {
+		return fmt.Errorf("Failed to delete . err: %s", err)
+	}
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCvss{}).Error; err != nil {
+		return fmt.Errorf("Failed to delete . err: %s", err)
+	}
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCvss3{}).Error; err != nil {
+		return fmt.Errorf("Failed to delete . err: %s", err)
+	}
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatAffectedRelease{}).Error; err != nil {
+		return fmt.Errorf("Failed to delete . err: %s", err)
+	}
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatPackageState{}).Error; err != nil {
+		return fmt.Errorf("Failed to delete . err: %s", err)
+	}
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCVE{}).Error; err != nil {
+		return fmt.Errorf("Failed to delete . err: %s", err)
 	}
 
 	batchSize := viper.GetInt("batch-size")
