@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
 
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
@@ -23,7 +24,7 @@ func ListAllRedhatCves(before, after string, wait int) (entries []models.RedhatE
 		}
 		body, err := util.FetchURL(url, "")
 		if err != nil {
-			return entries, fmt.Errorf("Failed to fetch RedHat CVEs list: %v, url: %s", err, url)
+			return entries, xerrors.Errorf("Failed to fetch RedHat CVEs: url: %s, err: %w", url, err)
 		}
 
 		entryList := []models.RedhatEntry{}
@@ -50,7 +51,7 @@ func GetRedhatCveDetailURL(cveID string) (url string) {
 func RetrieveRedhatCveDetails(urls []string) (cves []models.RedhatCVEJSON, err error) {
 	cveJSONs, err := util.FetchConcurrently(urls, viper.GetInt("threads"), viper.GetInt("wait"))
 	if err != nil {
-		return cves, fmt.Errorf("Failed to fetch cve data from RedHat. err: %s", err)
+		return cves, xerrors.Errorf("Failed to fetch cve data from RedHat. err: %w", err)
 	}
 
 	for _, cveJSON := range cveJSONs {
@@ -62,13 +63,13 @@ func RetrieveRedhatCveDetails(urls []string) (cves []models.RedhatCVEJSON, err e
 		case []interface{}:
 			var ar models.RedhatCVEJSONAffectedReleaseArray
 			if err = json.Unmarshal(cveJSON, &ar); err != nil {
-				return nil, fmt.Errorf("Unknown affected_release type err: %s", err)
+				return nil, xerrors.Errorf("Unknown affected_release type err: %w", err)
 			}
 			cve.AffectedRelease = ar.AffectedRelease
 		case map[string]interface{}:
 			var ar models.RedhatCVEJSONAffectedReleaseObject
 			if err = json.Unmarshal(cveJSON, &ar); err != nil {
-				return nil, fmt.Errorf("Unknown affected_release type err: %s", err)
+				return nil, xerrors.Errorf("Unknown affected_release type err: %w", err)
 			}
 			cve.AffectedRelease = []models.RedhatAffectedRelease{ar.AffectedRelease}
 		case nil:
@@ -80,13 +81,13 @@ func RetrieveRedhatCveDetails(urls []string) (cves []models.RedhatCVEJSON, err e
 		case []interface{}:
 			var ps models.RedhatCVEJSONPackageStateArray
 			if err = json.Unmarshal(cveJSON, &ps); err != nil {
-				return nil, fmt.Errorf("Unknown package_state type err: %s", err)
+				return nil, xerrors.Errorf("Unknown package_state type err: %w", err)
 			}
 			cve.PackageState = ps.PackageState
 		case map[string]interface{}:
 			var ps models.RedhatCVEJSONPackageStateObject
 			if err = json.Unmarshal(cveJSON, &ps); err != nil {
-				return nil, fmt.Errorf("Unknown package_state type err: %s", err)
+				return nil, xerrors.Errorf("Unknown package_state type err: %w", err)
 			}
 			cve.PackageState = []models.RedhatPackageState{ps.PackageState}
 		case nil:

@@ -50,7 +50,6 @@ func TrimSpaceNewline(str string) string {
 
 // FetchURL returns HTTP response body
 func FetchURL(url, apikey string) ([]byte, error) {
-	var errs []error
 	httpProxy := viper.GetString("http-proxy")
 
 	req := gorequest.New().Proxy(httpProxy).Get(url)
@@ -58,11 +57,8 @@ func FetchURL(url, apikey string) ([]byte, error) {
 		req.Header["api-key"] = []string{apikey}
 	}
 	resp, body, err := req.Type("text").EndBytes()
-	if len(errs) > 0 || resp == nil {
-		return nil, fmt.Errorf("HTTP error. errs: %v, url: %s", err, url)
-	}
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("HTTP error. errs: %v, status code: %d, url: %s", err, resp.StatusCode, url)
+	if len(err) > 0 || resp == nil || resp.StatusCode != 200 {
+		return nil, xerrors.Errorf("HTTP error. url: %s, err: %w", url, err)
 	}
 	return body, nil
 }

@@ -53,7 +53,7 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 	var after time.Time
 	if afterOption != "" {
 		if after, err = time.Parse("2006-01-02", afterOption); err != nil {
-			return fmt.Errorf("Failed to parse --select-after. err: %s", err)
+			return xerrors.Errorf("Failed to parse --select-after. err: %w", err)
 		}
 	} else {
 		now := time.Now()
@@ -76,19 +76,17 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
-			log15.Error("Failed to initialize DB. Close DB connection before fetching", "err", err)
+			return xerrors.Errorf("Failed to initialize DB. Close DB connection before fetching. err: %w", err)
 		}
 		return err
 	}
 
 	fetchMeta, err := driver.GetFetchMeta()
 	if err != nil {
-		log15.Error("Failed to get FetchMeta from DB.", "err", err)
-		return err
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
 	}
 	if fetchMeta.OutDated() {
-		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
-		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
 
 	log15.Info("Select all RedHat CVEs")
@@ -127,7 +125,7 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 	if err = save(conf); err != nil {
-		return fmt.Errorf("Failed to save the selected CVEs. err: %s", err)
+		return xerrors.Errorf("Failed to save the selected CVEs. err: %w", err)
 	}
 
 	return err
@@ -164,7 +162,7 @@ func save(conf config.Config) error {
 	confFile := "config.toml"
 	f, err := os.Create(confFile)
 	if err != nil {
-		return fmt.Errorf("Failed to save config file. err: %s", err)
+		return xerrors.Errorf("Failed to save config file. err: %w", err)
 	}
 	defer f.Close()
 	return toml.NewEncoder(f).Encode(conf)
