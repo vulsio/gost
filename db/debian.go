@@ -178,9 +178,8 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 	if err != nil {
 		if fixStatus == "open" {
 			return nil, xerrors.Errorf("Failed to get unfixed cves of Debian: %w", err)
-		} else {
-			return nil, xerrors.Errorf("Failed to get fixed cves of Debian. err: %w", err)
 		}
+		return nil, xerrors.Errorf("Failed to get fixed cves of Debian. err: %w", err)
 	}
 
 	m := map[string]models.DebianCVE{}

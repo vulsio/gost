@@ -58,7 +58,7 @@ func FetchURL(url, apikey string) ([]byte, error) {
 	}
 	resp, body, err := req.Type("text").EndBytes()
 	if len(err) > 0 || resp == nil {
-		return nil, xerrors.Errorf("HTTP error. url: %s, err: %w", err, url, err)
+		return nil, xerrors.Errorf("HTTP error. url: %s, err: %w", url, err)
 	}
 	if resp.StatusCode != 200 {
 		return nil, xerrors.Errorf("HTTP error. status code: %d, url: %s, err: %w", resp.StatusCode, url, err)
