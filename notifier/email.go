@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/vulsio/gost/config"
+	"golang.org/x/xerrors"
 )
 
 // EMailSender is interface of sending e-mail
@@ -32,7 +33,7 @@ func (e *emailSender) Send(subject, body string) (err error) {
 	cc := strings.Join(emailConf.Cc[:], ", ")
 	mailAddresses := append(emailConf.To, emailConf.Cc...)
 	if _, err := mail.ParseAddressList(strings.Join(mailAddresses[:], ", ")); err != nil {
-		return fmt.Errorf("Failed to parse email addresses: %s", err)
+		return xerrors.Errorf("Failed to parse email addresses: %w", err)
 	}
 
 	headers := make(map[string]string)
@@ -63,7 +64,7 @@ func (e *emailSender) Send(subject, body string) (err error) {
 		[]byte(message),
 	)
 	if err != nil {
-		return fmt.Errorf("Failed to send emails: %s", err)
+		return xerrors.Errorf("Failed to send emails: %w", err)
 	}
 	return nil
 }

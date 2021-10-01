@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
@@ -19,44 +18,36 @@ func (r *RDBDriver) GetUbuntu(cveID string) (*models.UbuntuCVE, error) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		log15.Error("Failed to get Ubuntu", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Ubuntu. err: %w", err)
 	}
 
 	if err := r.conn.Model(&c).Association("References").Find(&c.References); err != nil {
-		log15.Error("Failed to get Ubuntu.References", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Ubuntu.References. err: %w", err)
 	}
 	if err := r.conn.Model(&c).Association("Notes").Find(&c.Notes); err != nil {
-		log15.Error("Failed to get Ubuntu.Notes", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Ubuntu.Notes. err: %w", err)
 	}
 	if err := r.conn.Model(&c).Association("Bugs").Find(&c.Bugs); err != nil {
-		log15.Error("Failed to get Ubuntu.Bugs", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Ubuntu.Bugs. err: %w", err)
 	}
 	if err := r.conn.Model(&c).Association("Patches").Find(&c.Patches); err != nil {
-		log15.Error("Failed to get Ubuntu.Patches", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Ubuntu.Patches. err: %w", err)
 	}
 	patches := []models.UbuntuPatch{}
 	for _, p := range c.Patches {
 		if err := r.conn.Model(&p).Association("ReleasePatches").Find(&p.ReleasePatches); err != nil {
-			log15.Error("Failed to get Ubuntu.ReleasePatches", "err", err)
-			return nil, err
+			return nil, xerrors.Errorf("Failed to get Ubuntu.ReleasePatches. err: %w", err)
 		}
 		patches = append(patches, p)
 	}
 	c.Patches = patches
 	if err := r.conn.Model(&c).Association("Upstreams").Find(&c.Upstreams); err != nil {
-		log15.Error("Failed to get Ubuntu.Upstreams", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Ubuntu.Upstreams. err: %w", err)
 	}
 	upstreams := []models.UbuntuUpstream{}
 	for _, u := range c.Upstreams {
 		if err := r.conn.Model(&u).Association("UpstreamLinks").Find(&u.UpstreamLinks); err != nil {
-			log15.Error("Failed to get Ubuntu.UpstreamLinks", "err", err)
-			return nil, err
+			return nil, xerrors.Errorf("Failed to get Ubuntu.UpstreamLinks err: %w", err)
 		}
 		upstreams = append(upstreams, u)
 	}
@@ -228,7 +219,6 @@ func (r *RDBDriver) GetFixedCvesUbuntu(ver, pkgName string) (map[string]models.U
 func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []string) (map[string]models.UbuntuCVE, error) {
 	codeName, ok := ubuntuVerCodename[ver]
 	if !ok {
-		log15.Error("Ubuntu %s is not supported yet", "err", ver)
 		return nil, xerrors.Errorf("Failed to convert from major version to codename. err: Ubuntu %s is not supported yet", ver)
 	}
 
@@ -245,11 +235,9 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []
 
 	if err != nil {
 		if fixStatus[0] == "released" {
-			log15.Error("Failed to get fixed cves of Ubuntu", "err", err)
-		} else {
-			log15.Error("Failed to get unfixed cves of Ubuntu", "err", err)
+			return nil, xerrors.Errorf("Failed to get fixed cves of Ubuntu. err: %w", err)
 		}
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get unfixed cves of Ubuntu. err: %w", err)
 	}
 
 	m := map[string]models.UbuntuCVE{}
@@ -263,8 +251,7 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, xerrors.Errorf("Failed to get UbuntuCVE. DB relationship may be broken, use `$ gost fetch ubuntu` to recreate DB. err: %w", err)
 			}
-			log15.Error("Failed to get UbuntuCVE", "err", err)
-			return nil, err
+			return nil, xerrors.Errorf("Failed to get UbuntuCVE. err: %w", err)
 		}
 
 		if err := r.conn.Model(&cve).Association("References").Find(&cve.References); err != nil {

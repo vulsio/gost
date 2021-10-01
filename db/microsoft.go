@@ -13,6 +13,7 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
+	"golang.org/x/xerrors"
 	"gorm.io/gorm"
 )
 
@@ -154,7 +155,7 @@ func (r *RDBDriver) GetMicrosoftMulti(cveIDs []string) (map[string]models.Micros
 func (r *RDBDriver) InsertMicrosoft(cveJSON []models.MicrosoftXML, cveXls []models.MicrosoftBulletinSearch) (err error) {
 	cves, _ := ConvertMicrosoft(cveJSON, cveXls)
 	if err = r.deleteAndInsertMicrosoft(cves); err != nil {
-		return fmt.Errorf("Failed to insert Microsoft CVE data. err: %s", err)
+		return xerrors.Errorf("Failed to insert Microsoft CVE data. err: %w", err)
 	}
 	return nil
 }
@@ -173,28 +174,28 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(cves []models.MicrosoftCVE) (err er
 
 	// Delete all old records
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftScoreSet{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete MicrosoftScoreSet. err: %s", err)
+		return xerrors.Errorf("Failed to delete MicrosoftScoreSet. err: %s", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftReference{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete MicrosoftReference. err: %s", err)
+		return xerrors.Errorf("Failed to delete MicrosoftReference. err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftKBID{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete MicrosoftKBID. err: %s", err)
+		return xerrors.Errorf("Failed to delete MicrosoftKBID. err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftRemediation{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete MicrosoftRemediation. err: %s", err)
+		return xerrors.Errorf("Failed to delete MicrosoftRemediation. err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftThreat{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete MicrosoftThreat. err: %s", err)
+		return xerrors.Errorf("Failed to delete MicrosoftThreat. err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftProductStatus{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete MicrosoftProductStatus. err: %s", err)
+		return xerrors.Errorf("Failed to delete MicrosoftProductStatus. err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftProduct{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete MicrosoftProduct. err: %s", err)
+		return xerrors.Errorf("Failed to delete MicrosoftProduct. err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftCVE{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete MicrosoftCVE. err: %s", err)
+		return xerrors.Errorf("Failed to delete MicrosoftCVE. err: %w", err)
 	}
 
 	batchSize := viper.GetInt("batch-size")
@@ -204,7 +205,7 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(cves []models.MicrosoftCVE) (err er
 
 	for idx := range chunkSlice(len(cves), batchSize) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
-			return fmt.Errorf("Failed to insert. err: %s", err)
+			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}
 		bar.Add(idx.To - idx.From)
 	}

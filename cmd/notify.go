@@ -20,8 +20,8 @@ import (
 // notifyCmd represents the notify command
 var notifyCmd = &cobra.Command{
 	Use:   "notify",
-	Short: "Notifiy update about the specified CVE",
-	Long:  `Notifiy update about the specified CVE`,
+	Short: "Notify update about the specified CVE",
+	Long:  `Notify update about the specified CVE`,
 	RunE:  executeNotify,
 }
 
@@ -70,19 +70,17 @@ func notifyRedhat(conf config.Config) error {
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
 	if err != nil {
 		if locked {
-			log15.Error("Failed to initialize DB. Close DB connection before fetching", "err", err)
+			return xerrors.Errorf("Failed to initialize DB. Close DB connection before fetching. err: %w", err)
 		}
 		return err
 	}
 
 	fetchMeta, err := driver.GetFetchMeta()
 	if err != nil {
-		log15.Error("Failed to get FetchMeta from DB.", "err", err)
-		return err
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
 	}
 	if fetchMeta.OutDated() {
-		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
-		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
 
 	for _, cve := range cves {
@@ -113,14 +111,14 @@ func notify(subject, body string, conf config.Config) (err error) {
 		sender := notifier.NewEMailSender(conf.EMail)
 		log15.Info("Send e-mail")
 		if err = sender.Send(subject, body); err != nil {
-			return fmt.Errorf("Failed to send e-mail. err: %s", err)
+			return xerrors.Errorf("Failed to send e-mail. err: %w", err)
 		}
 	}
 
 	if viper.GetBool("to-slack") {
 		log15.Info("Send slack")
 		if err = notifier.SendSlack(body, conf.Slack); err != nil {
-			return fmt.Errorf("Failed to send to Slack. err: %s", err)
+			return xerrors.Errorf("Failed to send to Slack. err: %w", err)
 		}
 	}
 	return nil

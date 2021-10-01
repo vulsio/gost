@@ -2,10 +2,10 @@ package fetcher
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
+	"golang.org/x/xerrors"
 )
 
 // RetrieveDebianCveDetails returns CVE details from https://security-tracker.debian.org/tracker/data/json
@@ -13,8 +13,7 @@ func RetrieveDebianCveDetails() (cves models.DebianJSON, err error) {
 	url := "https://security-tracker.debian.org/tracker/data/json"
 	cveJSON, err := util.FetchURL(url, "")
 	if err != nil {
-		return cves,
-			fmt.Errorf("Failed to fetch cve data from Debian. err: %s", err)
+		return cves, xerrors.Errorf("Failed to fetch cve data from Debian. err: %w", err)
 	}
 
 	// cveJSON, err := ioutil.ReadFile("./debian.json")
@@ -24,7 +23,7 @@ func RetrieveDebianCveDetails() (cves models.DebianJSON, err error) {
 	// }
 
 	if err := json.Unmarshal(cveJSON, &cves); err != nil {
-		return nil, fmt.Errorf("failed to decode Debian JSON: %w", err)
+		return nil, xerrors.Errorf("failed to decode Debian JSON: %w", err)
 	}
 
 	return cves, nil

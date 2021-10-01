@@ -45,37 +45,29 @@ func (r *RDBDriver) GetRedhat(cveID string) (*models.RedhatCVE, error) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		log15.Error("Failed to get Redhat", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Redhat. err: %w", err)
 	}
 
 	if err := r.conn.Model(&c).Association("Details").Find(&c.Details); err != nil {
-		log15.Error("Failed to get Redhat.Details", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Redhat.Details. err: %w", err)
 	}
 	if err := r.conn.Model(&c).Association("References").Find(&c.References); err != nil {
-		log15.Error("Failed to get Redhat.References", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Redhat.References. err: %w", err)
 	}
 	if err := r.conn.Model(&c).Association("Bugzilla").Find(&c.Bugzilla); err != nil {
-		log15.Error("Failed to get Redhat.Bugzilla", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Redhat.Bugzilla. err: %w", err)
 	}
 	if err := r.conn.Model(&c).Association("Cvss").Find(&c.Cvss); err != nil {
-		log15.Error("Failed to get Redhat.Cvss", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Redhat.Cvss. err: %w", err)
 	}
 	if err := r.conn.Model(&c).Association("Cvss3").Find(&c.Cvss3); err != nil {
-		log15.Error("Failed to get Redhat.Cvss3", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Redhat.Cvss3. err: %w", err)
 	}
 	if err := r.conn.Model(&c).Association("AffectedRelease").Find(&c.AffectedRelease); err != nil {
-		log15.Error("Failed to get Redhat.AffectedRelease", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Redhat.AffectedRelease. err: %w", err)
 	}
 	if err := r.conn.Model(&c).Association("PackageState").Find(&c.PackageState); err != nil {
-		log15.Error("Failed to get Redhat.PackageState", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Redhat.PackageState. err: %w", err)
 	}
 	return &c, nil
 }
@@ -109,8 +101,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 			PackageName: pkgName,
 		}).Find(&pkgStats).Error
 	if err != nil {
-		log15.Error("Failed to get unfixed cves of Redhat", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get unfixed cves of Redhat. err: %w", err)
 	}
 
 	redhatCVEIDs := map[int64]bool{}
@@ -132,8 +123,7 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, xerrors.Errorf("Failed to get RedhatCVE. DB relationship may be broken, use `$ gost fetch redhat` to recreate DB. err: %w", err)
 			}
-			log15.Error("Failed to get unfixed cves of Redhat", "err", err)
-			return nil, err
+			return nil, xerrors.Errorf("Failed to get unfixed cves of Redhat. err: %w", err)
 		}
 
 		pkgStats := []models.RedhatPackageState{}
@@ -166,7 +156,7 @@ func (r *RDBDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
 	}
 
 	if err := r.deleteAndInsertRedhat(cves); err != nil {
-		return fmt.Errorf("Failed to insert RedHat CVE data. err: %s", err)
+		return xerrors.Errorf("Failed to insert RedHat CVE data. err: %w", err)
 	}
 
 	return nil
@@ -186,28 +176,28 @@ func (r *RDBDriver) deleteAndInsertRedhat(cves []models.RedhatCVE) (err error) {
 	}()
 
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatDetail{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete . err: %s", err)
+		return xerrors.Errorf("Failed to delete . err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatReference{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete . err: %s", err)
+		return xerrors.Errorf("Failed to delete . err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatBugzilla{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete . err: %s", err)
+		return xerrors.Errorf("Failed to delete . err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCvss{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete . err: %s", err)
+		return xerrors.Errorf("Failed to delete . err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCvss3{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete . err: %s", err)
+		return xerrors.Errorf("Failed to delete . err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatAffectedRelease{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete . err: %s", err)
+		return xerrors.Errorf("Failed to delete . err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatPackageState{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete . err: %s", err)
+		return xerrors.Errorf("Failed to delete . err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCVE{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete . err: %s", err)
+		return xerrors.Errorf("Failed to delete . err: %w", err)
 	}
 
 	batchSize := viper.GetInt("batch-size")
@@ -217,7 +207,7 @@ func (r *RDBDriver) deleteAndInsertRedhat(cves []models.RedhatCVE) (err error) {
 
 	for idx := range chunkSlice(len(cves), batchSize) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
-			return fmt.Errorf("Failed to insert. err: %s", err)
+			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}
 		bar.Add(idx.To - idx.From)
 	}
@@ -252,7 +242,7 @@ func ConvertRedhat(cveJSONs []models.RedhatCVEJSON) (cves []models.RedhatCVE, er
 				publicDate, err = time.Parse("2006-01-02T15:04:05", cve.PublicDate)
 			}
 			if err != nil {
-				return nil, fmt.Errorf("Failed to parse date. date: %s err: %s", cve.PublicDate, err)
+				return nil, xerrors.Errorf("Failed to parse date. date: %s err: %w", cve.PublicDate, err)
 			}
 		}
 

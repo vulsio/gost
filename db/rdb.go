@@ -2,7 +2,6 @@ package db
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -75,14 +74,13 @@ func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, e
 	}
 
 	if err != nil {
-		msg := fmt.Sprintf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
 		if r.name == dialectSqlite3 {
 			switch err.(sqlite3.Error).Code {
 			case sqlite3.ErrLocked, sqlite3.ErrBusy:
-				return true, fmt.Errorf(msg)
+				return true, xerrors.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %w", dbType, dbPath, err)
 			}
 		}
-		return false, fmt.Errorf(msg)
+		return false, xerrors.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %w", dbType, dbPath, err)
 	}
 
 	if r.name == dialectSqlite3 {

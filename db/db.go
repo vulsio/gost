@@ -79,7 +79,7 @@ func newDB(dbType string) (DB, error) {
 	case dialectRedis:
 		return &RedisDriver{name: dbType}, nil
 	}
-	return nil, fmt.Errorf("Invalid database dialect. err: %s", dbType)
+	return nil, fmt.Errorf("Invalid database dialect. dbType: %s", dbType)
 }
 
 // IndexChunk has a starting point and an ending point for Chunk

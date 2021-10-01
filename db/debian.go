@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
@@ -19,20 +18,17 @@ func (r *RDBDriver) GetDebian(cveID string) (*models.DebianCVE, error) {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		log15.Error("Failed to get Debian", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Debian. err: %w", err)
 	}
 
 	if err := r.conn.Model(&c).Association("Package").Find(&c.Package); err != nil {
-		log15.Error("Failed to get Debian.Package", "err", err)
-		return nil, err
+		return nil, xerrors.Errorf("Failed to get Debian.Package. err: %w", err)
 	}
 
 	newPkg := []models.DebianPackage{}
 	for _, pkg := range c.Package {
 		if err := r.conn.Model(&pkg).Association("Release").Find(&pkg.Release); err != nil {
-			log15.Error("Failed to get Debian.Package.Release", "err", err)
-			return nil, err
+			return nil, xerrors.Errorf("Failed to get Debian.Package.Release. err: %w", err)
 		}
 		newPkg = append(newPkg, pkg)
 	}
@@ -59,7 +55,7 @@ func (r *RDBDriver) GetDebianMulti(cveIDs []string) (map[string]models.DebianCVE
 func (r *RDBDriver) InsertDebian(cveJSON models.DebianJSON) (err error) {
 	cves := ConvertDebian(cveJSON)
 	if err = r.deleteAndInsertDebian(cves); err != nil {
-		return fmt.Errorf("Failed to insert Debian CVE data. err: %s", err)
+		return xerrors.Errorf("Failed to insert Debian CVE data. err: %w", err)
 	}
 	return nil
 }
@@ -77,13 +73,13 @@ func (r *RDBDriver) deleteAndInsertDebian(cves []models.DebianCVE) (err error) {
 
 	// Delete all old records
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianRelease{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete DebianRelease. err: %s", err)
+		return xerrors.Errorf("Failed to delete DebianRelease. err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianPackage{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete DebianPackage. err: %s", err)
+		return xerrors.Errorf("Failed to delete DebianPackage. err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianCVE{}).Error; err != nil {
-		return fmt.Errorf("Failed to delete DebianCVE. err: %s", err)
+		return xerrors.Errorf("Failed to delete DebianCVE. err: %w", err)
 	}
 
 	batchSize := viper.GetInt("batch-size")
@@ -93,7 +89,7 @@ func (r *RDBDriver) deleteAndInsertDebian(cves []models.DebianCVE) (err error) {
 
 	for idx := range chunkSlice(len(cves), batchSize) {
 		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
-			return fmt.Errorf("Failed to insert. err: %s", err)
+			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}
 		bar.Add(idx.To - idx.From)
 	}
@@ -165,7 +161,6 @@ func (r *RDBDriver) GetFixedCvesDebian(major, pkgName string) (map[string]models
 func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string) (map[string]models.DebianCVE, error) {
 	codeName, ok := debVerCodename[major]
 	if !ok {
-		log15.Error("Debian %s is not supported yet", "err", major)
 		return nil, xerrors.Errorf("Failed to convert from major version to codename. err: Debian %s is not supported yet", major)
 	}
 
@@ -182,11 +177,10 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 
 	if err != nil {
 		if fixStatus == "open" {
-			log15.Error("Failed to get unfixed cves of Debian", "err", err)
+			return nil, xerrors.Errorf("Failed to get unfixed cves of Debian: %w", err)
 		} else {
-			log15.Error("Failed to get fixed cves of Debian", "err", err)
+			return nil, xerrors.Errorf("Failed to get fixed cves of Debian. err: %w", err)
 		}
-		return nil, err
 	}
 
 	m := map[string]models.DebianCVE{}
@@ -200,8 +194,7 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, xerrors.Errorf("Failed to get DebianCVE. DB relationship may be broken, use `$ gost fetch debian` to recreate DB. err: %w", err)
 			}
-			log15.Error("Failed to get DebianCVE", res.DebianCveID, err)
-			return nil, err
+			return nil, xerrors.Errorf("Failed to get DebianCVE. DebianCveID: %d, err: %w", res.DebianCveID, err)
 		}
 
 		if len(debcve.Package) != 0 {
