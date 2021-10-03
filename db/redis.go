@@ -562,11 +562,9 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 			}
 
 			for _, pkg := range cve.PackageState {
-				key := fmt.Sprintf(pkgKeyFormat, redhatName, pkg.PackageName)
-				if err := pipe.SAdd(ctx, key, cve.Name).Err(); err != nil {
+				if err := pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, redhatName, pkg.PackageName), cve.Name).Err(); err != nil {
 					return xerrors.Errorf("Failed to SAdd pkg name. err: %w", err)
 				}
-
 				newDeps[cve.Name][pkg.PackageName] = struct{}{}
 				if _, ok := oldDeps[cve.Name]; ok {
 					delete(oldDeps[cve.Name], pkg.PackageName)
@@ -654,11 +652,9 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 			}
 
 			for _, pkg := range cve.Package {
-				key := fmt.Sprintf(pkgKeyFormat, debianName, pkg.PackageName)
-				if err := pipe.SAdd(ctx, key, cve.CveID).Err(); err != nil {
+				if err := pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, debianName, pkg.PackageName), cve.CveID).Err(); err != nil {
 					return xerrors.Errorf("Failed to SAdd pkg name. err: %w", err)
 				}
-
 				newDeps[cve.CveID][pkg.PackageName] = struct{}{}
 				if _, ok := oldDeps[cve.CveID]; ok {
 					delete(oldDeps[cve.CveID], pkg.PackageName)
@@ -746,11 +742,9 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 			}
 
 			for _, pkg := range cve.Patches {
-				key := fmt.Sprintf(pkgKeyFormat, ubuntuName, pkg.PackageName)
-				if err := pipe.SAdd(ctx, key, cve.Candidate).Err(); err != nil {
+				if err := pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, ubuntuName, pkg.PackageName), cve.Candidate).Err(); err != nil {
 					return xerrors.Errorf("Failed to SAdd pkg name. err: %w", err)
 				}
-
 				newDeps[cve.Candidate][pkg.PackageName] = struct{}{}
 				if _, ok := oldDeps[cve.Candidate]; ok {
 					delete(oldDeps[cve.Candidate], pkg.PackageName)
@@ -831,11 +825,9 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 	for idx := range chunkSlice(len(products), batchSize) {
 		pipe := r.conn.Pipeline()
 		for _, p := range products[idx.From:idx.To] {
-			key := fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", p.ProductID))
-			if err := pipe.SAdd(ctx, key, p.ProductName).Err(); err != nil {
+			if err := pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", p.ProductID)), p.ProductName).Err(); err != nil {
 				return xerrors.Errorf("Failed to SAdd ProductID. err: %w", err)
 			}
-
 			if _, ok := newDeps["products"][p.ProductID]; !ok {
 				newDeps["products"][p.ProductID] = map[string]struct{}{}
 			}
@@ -873,11 +865,9 @@ func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []model
 			}
 
 			for _, msKBID := range cve.KBIDs {
-				key := fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", msKBID.KBID))
-				if err := pipe.SAdd(ctx, key, cve.CveID).Err(); err != nil {
+				if err := pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", msKBID.KBID)), cve.CveID).Err(); err != nil {
 					return xerrors.Errorf("Failed to SAdd kbID. err: %w", err)
 				}
-
 				newDeps["cves"][cve.CveID][msKBID.KBID] = struct{}{}
 				if _, ok := oldDeps["cves"][cve.CveID]; ok {
 					delete(oldDeps["cves"][cve.CveID], msKBID.KBID)
