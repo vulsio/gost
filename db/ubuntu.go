@@ -3,10 +3,10 @@ package db
 import (
 	"errors"
 
+	pb "github.com/cheggaaa/pb/v3"
 	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
-	pb "gopkg.in/cheggaaa/pb.v1"
 	"gorm.io/gorm"
 )
 
