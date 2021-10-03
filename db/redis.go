@@ -518,12 +518,7 @@ func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) (map[string]models.Micr
 }
 
 //InsertRedhat :
-func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
-	cves, err := ConvertRedhat(cveJSONs)
-	if err != nil {
-		return err
-	}
-
+func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 	ctx := context.Background()
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {
@@ -611,9 +606,7 @@ func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) 
 }
 
 // InsertDebian :
-func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
-	cves := ConvertDebian(cveJSONs)
-
+func (r *RedisDriver) InsertDebian(cves []models.DebianCVE) error {
 	ctx := context.Background()
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {
@@ -701,9 +694,7 @@ func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
 }
 
 // InsertUbuntu :
-func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) {
-	cves := ConvertUbuntu(cveJSONs)
-
+func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 	ctx := context.Background()
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {
@@ -791,9 +782,7 @@ func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) 
 }
 
 // InsertMicrosoft :
-func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []models.MicrosoftBulletinSearch) (err error) {
-	cves, products := ConvertMicrosoft(cveXMLs, xls)
-
+func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, products []models.MicrosoftProduct) (err error) {
 	ctx := context.Background()
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {

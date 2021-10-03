@@ -28,10 +28,11 @@ func fetchUbuntu(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 
-	cves, err := fetcher.FetchUbuntuVulnList()
+	cveJSONs, err := fetcher.FetchUbuntuVulnList()
 	if err != nil {
-		return xerrors.Errorf("error in vulnerability DB initialize: %w", err)
+		return xerrors.Errorf("Failed to initialize vulnerability DB . err: %w", err)
 	}
+	cves := models.ConvertUbuntu(cveJSONs)
 
 	log15.Info("Initialize Database")
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))

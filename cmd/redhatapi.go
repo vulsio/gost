@@ -79,9 +79,13 @@ func fetchRedHatAPI(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	log15.Info(fmt.Sprintf("Fetched %d CVEs", len(entries)))
-	cves, err := fetcher.RetrieveRedhatCveDetails(resourceURLs)
+	cveJSONs, err := fetcher.RetrieveRedhatCveDetails(resourceURLs)
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch the CVE details. err: %w", err)
+	}
+	cves, err := models.ConvertRedhat(cveJSONs)
+	if err != nil {
+		return xerrors.Errorf("Failed to convert RedhatCVE. err: %w", err)
 	}
 
 	log15.Info("Insert RedHat into DB", "db", driver.Name())
