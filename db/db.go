@@ -35,10 +35,10 @@ type DB interface {
 	GetUnfixedCvesUbuntu(string, string) (map[string]models.UbuntuCVE, error)
 	GetFixedCvesUbuntu(string, string) (map[string]models.UbuntuCVE, error)
 
-	InsertRedhat([]models.RedhatCVEJSON) error
-	InsertDebian(models.DebianJSON) error
-	InsertUbuntu([]models.UbuntuCVEJSON) error
-	InsertMicrosoft([]models.MicrosoftXML, []models.MicrosoftBulletinSearch) error
+	InsertRedhat([]models.RedhatCVE) error
+	InsertDebian([]models.DebianCVE) error
+	InsertUbuntu([]models.UbuntuCVE) error
+	InsertMicrosoft([]models.MicrosoftCVE, []models.MicrosoftProduct) error
 }
 
 // NewDB returns db driver

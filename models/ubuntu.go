@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // UbuntuCVEJSON :
 type UbuntuCVEJSON struct {
@@ -97,4 +100,66 @@ type UbuntuUpstreamLink struct {
 	ID               int64  `json:"-"`
 	UbuntuUpstreamID int64  `json:"-" gorm:"index:idx_ubuntu_upstream_link_ubuntu_upstream_id"`
 	Link             string `json:"link" gorm:"type:text"`
+}
+
+// ConvertUbuntu :
+func ConvertUbuntu(cveJSONs []UbuntuCVEJSON) (cves []UbuntuCVE) {
+	for _, cve := range cveJSONs {
+		if strings.Contains(cve.Description, "** REJECT **") {
+			continue
+		}
+
+		references := []UbuntuReference{}
+		for _, r := range cve.References {
+			references = append(references, UbuntuReference{Reference: r})
+		}
+
+		notes := []UbuntuNote{}
+		for _, n := range cve.Notes {
+			notes = append(notes, UbuntuNote{Note: n})
+		}
+
+		bugs := []UbuntuBug{}
+		for _, b := range cve.Bugs {
+			bugs = append(bugs, UbuntuBug{Bug: b})
+		}
+
+		patches := []UbuntuPatch{}
+		for pkgName, p := range cve.Patches {
+			var releasePatch []UbuntuReleasePatch
+			for release, patch := range p {
+				releasePatch = append(releasePatch, UbuntuReleasePatch{ReleaseName: release, Status: patch.Status, Note: patch.Note})
+			}
+			patches = append(patches, UbuntuPatch{PackageName: pkgName, ReleasePatches: releasePatch})
+		}
+
+		upstreams := []UbuntuUpstream{}
+		for pkgName, u := range cve.UpstreamLinks {
+			links := []UbuntuUpstreamLink{}
+			for _, link := range u {
+				links = append(links, UbuntuUpstreamLink{Link: link})
+			}
+			upstreams = append(upstreams, UbuntuUpstream{PackageName: pkgName, UpstreamLinks: links})
+		}
+
+		c := UbuntuCVE{
+			PublicDateAtUSN:   cve.PublicDateAtUSN,
+			CRD:               cve.CRD,
+			Candidate:         cve.Candidate,
+			PublicDate:        cve.PublicDate,
+			References:        references,
+			Description:       cve.Description,
+			UbuntuDescription: cve.UbuntuDescription,
+			Notes:             notes,
+			Bugs:              bugs,
+			Priority:          cve.Priority,
+			DiscoveredBy:      cve.DiscoveredBy,
+			AssignedTo:        cve.AssignedTo,
+			Patches:           patches,
+			Upstreams:         upstreams,
+		}
+		cves = append(cves, c)
+	}
+
+	return cves
 }

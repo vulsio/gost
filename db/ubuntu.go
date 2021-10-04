@@ -2,12 +2,11 @@ package db
 
 import (
 	"errors"
-	"strings"
 
+	pb "github.com/cheggaaa/pb/v3"
 	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
-	pb "gopkg.in/cheggaaa/pb.v1"
 	"gorm.io/gorm"
 )
 
@@ -72,8 +71,7 @@ func (r *RDBDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuCVE
 }
 
 // InsertUbuntu :
-func (r *RDBDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) {
-	cves := ConvertUbuntu(cveJSONs)
+func (r *RDBDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 	if err = r.deleteAndInsertUbuntu(cves); err != nil {
 		return xerrors.Errorf("Failed to insert Ubuntu CVE data. err: %s", err)
 	}
@@ -133,68 +131,6 @@ func (r *RDBDriver) deleteAndInsertUbuntu(cves []models.UbuntuCVE) (err error) {
 	bar.Finish()
 
 	return nil
-}
-
-// ConvertUbuntu :
-func ConvertUbuntu(cveJSONs []models.UbuntuCVEJSON) (cves []models.UbuntuCVE) {
-	for _, cve := range cveJSONs {
-		if strings.Contains(cve.Description, "** REJECT **") {
-			continue
-		}
-
-		references := []models.UbuntuReference{}
-		for _, r := range cve.References {
-			references = append(references, models.UbuntuReference{Reference: r})
-		}
-
-		notes := []models.UbuntuNote{}
-		for _, n := range cve.Notes {
-			notes = append(notes, models.UbuntuNote{Note: n})
-		}
-
-		bugs := []models.UbuntuBug{}
-		for _, b := range cve.Bugs {
-			bugs = append(bugs, models.UbuntuBug{Bug: b})
-		}
-
-		patches := []models.UbuntuPatch{}
-		for pkgName, p := range cve.Patches {
-			var releasePatch []models.UbuntuReleasePatch
-			for release, patch := range p {
-				releasePatch = append(releasePatch, models.UbuntuReleasePatch{ReleaseName: release, Status: patch.Status, Note: patch.Note})
-			}
-			patches = append(patches, models.UbuntuPatch{PackageName: pkgName, ReleasePatches: releasePatch})
-		}
-
-		upstreams := []models.UbuntuUpstream{}
-		for pkgName, u := range cve.UpstreamLinks {
-			links := []models.UbuntuUpstreamLink{}
-			for _, link := range u {
-				links = append(links, models.UbuntuUpstreamLink{Link: link})
-			}
-			upstreams = append(upstreams, models.UbuntuUpstream{PackageName: pkgName, UpstreamLinks: links})
-		}
-
-		c := models.UbuntuCVE{
-			PublicDateAtUSN:   cve.PublicDateAtUSN,
-			CRD:               cve.CRD,
-			Candidate:         cve.Candidate,
-			PublicDate:        cve.PublicDate,
-			References:        references,
-			Description:       cve.Description,
-			UbuntuDescription: cve.UbuntuDescription,
-			Notes:             notes,
-			Bugs:              bugs,
-			Priority:          cve.Priority,
-			DiscoveredBy:      cve.DiscoveredBy,
-			AssignedTo:        cve.AssignedTo,
-			Patches:           patches,
-			Upstreams:         upstreams,
-		}
-		cves = append(cves, c)
-	}
-
-	return cves
 }
 
 var ubuntuVerCodename = map[string]string{

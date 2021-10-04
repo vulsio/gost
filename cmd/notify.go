@@ -60,7 +60,7 @@ func notifyRedhat(conf config.Config) error {
 		return err
 	}
 
-	cves, err := db.ConvertRedhat(cveJSONs)
+	cves, err := models.ConvertRedhat(cveJSONs)
 	if err != nil {
 		return nil
 
@@ -89,11 +89,11 @@ func notifyRedhat(conf config.Config) error {
 		if err != nil {
 			return err
 		}
-		db.ClearIDRedhat(c)
+		notifier.ClearIDRedhat(c)
 
 		cve.Cvss3.Cvss3BaseScore = "10 (This is dummy)"
 		cve.ThreatSeverity = "High (This is dummy)"
-		body := util.DiffRedhat(c, &cve, conf.Redhat[cve.Name])
+		body := notifier.DiffRedhat(c, &cve, conf.Redhat[cve.Name])
 		if body != "" {
 			subject := fmt.Sprintf("%s Update %s", conf.EMail.SubjectPrefix, cve.Name)
 			body = fmt.Sprintf("%s\nhttps://access.redhat.com/security/cve/%s\n========================================================\n",

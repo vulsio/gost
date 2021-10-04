@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
+	pb "github.com/cheggaaa/pb/v3"
 	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
-	pb "gopkg.in/cheggaaa/pb.v1"
 	"gorm.io/gorm"
 )
 
@@ -52,8 +52,7 @@ func (r *RDBDriver) GetDebianMulti(cveIDs []string) (map[string]models.DebianCVE
 }
 
 // InsertDebian :
-func (r *RDBDriver) InsertDebian(cveJSON models.DebianJSON) (err error) {
-	cves := ConvertDebian(cveJSON)
+func (r *RDBDriver) InsertDebian(cves []models.DebianCVE) (err error) {
 	if err = r.deleteAndInsertDebian(cves); err != nil {
 		return xerrors.Errorf("Failed to insert Debian CVE data. err: %w", err)
 	}
@@ -96,47 +95,6 @@ func (r *RDBDriver) deleteAndInsertDebian(cves []models.DebianCVE) (err error) {
 	bar.Finish()
 
 	return nil
-}
-
-// ConvertDebian :
-func ConvertDebian(cveJSONs models.DebianJSON) (cves []models.DebianCVE) {
-	uniqCve := map[string]models.DebianCVE{}
-	for pkgName, cveMap := range cveJSONs {
-		for cveID, cve := range cveMap {
-			var releases []models.DebianRelease
-			for release, releaseInfo := range cve.Releases {
-				r := models.DebianRelease{
-					ProductName:  release,
-					Status:       releaseInfo.Status,
-					FixedVersion: releaseInfo.FixedVersion,
-					Urgency:      releaseInfo.Urgency,
-					Version:      releaseInfo.Repositories[release],
-				}
-				releases = append(releases, r)
-			}
-
-			pkg := models.DebianPackage{
-				PackageName: pkgName,
-				Release:     releases,
-			}
-
-			pkgs := []models.DebianPackage{pkg}
-			if oldCve, ok := uniqCve[cveID]; ok {
-				pkgs = append(pkgs, oldCve.Package...)
-			}
-
-			uniqCve[cveID] = models.DebianCVE{
-				CveID:       cveID,
-				Scope:       cve.Scope,
-				Description: cve.Description,
-				Package:     pkgs,
-			}
-		}
-	}
-	for _, c := range uniqCve {
-		cves = append(cves, c)
-	}
-	return cves
 }
 
 var debVerCodename = map[string]string{

@@ -12,11 +12,11 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
+	pb "github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
 	"github.com/parnurzeal/gorequest"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
-	pb "gopkg.in/cheggaaa/pb.v1"
 )
 
 // GenWorkers generate workers

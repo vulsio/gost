@@ -59,18 +59,18 @@ func fetchMicrosoft(cmd *cobra.Command, args []string) (err error) {
 	if len(apiKey) == 0 {
 		return errors.New("apikey is required")
 	}
-	cves, err := fetcher.RetrieveMicrosoftCveDetails(apiKey)
+	cveXMLs, err := fetcher.RetrieveMicrosoftCveDetails(apiKey)
 	if err != nil {
 		return err
 	}
-
-	xls, err := fetcher.RetrieveMicrosoftBulletinSearch()
+	cveXls, err := fetcher.RetrieveMicrosoftBulletinSearch()
 	if err != nil {
 		return err
 	}
+	cves, product := models.ConvertMicrosoft(cveXMLs, cveXls)
 
 	log15.Info("Insert Microsoft CVEs into DB", "db", driver.Name())
-	if err := driver.InsertMicrosoft(cves, xls); err != nil {
+	if err := driver.InsertMicrosoft(cves, product); err != nil {
 		return xerrors.Errorf("Failed to insert. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 

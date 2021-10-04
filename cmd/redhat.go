@@ -28,9 +28,13 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 
-	cves, err := fetcher.FetchRedHatVulnList()
+	cveJSONs, err := fetcher.FetchRedHatVulnList()
 	if err != nil {
-		return xerrors.Errorf("error in vulnerability DB initialize: %w", err)
+		return xerrors.Errorf("Failed to initialize vulnerability DB . err: %w", err)
+	}
+	cves, err := models.ConvertRedhat(cveJSONs)
+	if err != nil {
+		return xerrors.Errorf("Failed to convert RedhatCVE. err: %w", err)
 	}
 
 	log15.Info("Initialize Database")

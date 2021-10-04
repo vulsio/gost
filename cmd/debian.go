@@ -49,10 +49,11 @@ func fetchDebian(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	log15.Info("Fetched all CVEs from Debian")
-	cves, err := fetcher.RetrieveDebianCveDetails()
+	cveJSONs, err := fetcher.RetrieveDebianCveDetails()
 	if err != nil {
 		return err
 	}
+	cves := models.ConvertDebian(cveJSONs)
 
 	log15.Info("Fetched", "CVEs", len(cves))
 
