@@ -473,6 +473,15 @@ func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuC
 	return results, nil
 }
 
+func (r *RedisDriver) GetCveIDsByMicrosoftKBID(kbID string) ([]string, error) {
+	ctx := context.Background()
+	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", kbID))).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+	}
+	return cveIDs, nil
+}
+
 // GetMicrosoft :
 func (r *RedisDriver) GetMicrosoft(cveID string) (*models.MicrosoftCVE, error) {
 	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, microsoftName), cveID).Result()
