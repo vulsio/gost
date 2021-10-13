@@ -12,6 +12,11 @@ import (
 	"gorm.io/gorm"
 )
 
+func (r *RDBDriver) GetCveIDsByMicrosoftKBID(kbID string) ([]string, error) {
+	// TODO
+	return nil, xerrors.Errorf("GetCveIDsByMicrosoftKBID in RDB is not implemented")
+}
+
 // GetMicrosoft :
 func (r *RDBDriver) GetMicrosoft(cveID string) (*models.MicrosoftCVE, error) {
 	c := models.MicrosoftCVE{}

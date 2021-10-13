@@ -27,6 +27,7 @@ type DB interface {
 	GetDebianMulti([]string) (map[string]models.DebianCVE, error)
 	GetUbuntu(string) (*models.UbuntuCVE, error)
 	GetUbuntuMulti([]string) (map[string]models.UbuntuCVE, error)
+	GetCveIDsByMicrosoftKBID(kbID string) ([]string, error)
 	GetMicrosoft(string) (*models.MicrosoftCVE, error)
 	GetMicrosoftMulti([]string) (map[string]models.MicrosoftCVE, error)
 	GetUnfixedCvesRedhat(string, string, bool) (map[string]models.RedhatCVE, error)
