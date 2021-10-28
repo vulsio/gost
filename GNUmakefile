@@ -3,7 +3,6 @@
 	install \
 	all \
 	vendor \
-	lint \
 	vet \
 	fmt \
 	fmtcheck \
@@ -42,10 +41,6 @@ install: main.go pretest
 b: 	main.go pretest
 	$(GO) build -ldflags "$(LDFLAGS)" -o gost $<
 
-lint:
-	$(GO_OFF) get -u golang.org/x/lint/golint
-	golint $(PKGS)
-
 vet:
 	echo $(PKGS) | xargs env $(GO) vet || exit;
 
@@ -58,7 +53,7 @@ mlint:
 fmtcheck:
 	$(foreach file,$(SRCS),gofmt -s -d $(file);)
 
-pretest: lint vet fmtcheck
+pretest: vet fmtcheck
 
 test: 
 	$(GO) test -cover -v ./... || exit;
