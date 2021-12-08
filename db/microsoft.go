@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func (r *RDBDriver) GetCveIDsByMicrosoftKBID(kbID string) ([]string, error) {
+func (r *RDBDriver) GetCveIDsByMicrosoftKBID(_ string) ([]string, error) {
 	// TODO
 	return nil, xerrors.Errorf("GetCveIDsByMicrosoftKBID in RDB is not implemented")
 }
@@ -214,6 +214,6 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(cves []models.MicrosoftCVE) (err er
 }
 
 // GetUnfixedCvesMicrosoft :
-func (r *RDBDriver) GetUnfixedCvesMicrosoft(major, pkgName string, detectWillNotFix ...bool) (map[string]models.MicrosoftCVE, error) {
+func (r *RDBDriver) GetUnfixedCvesMicrosoft(_, _ string, _ ...bool) (map[string]models.MicrosoftCVE, error) {
 	return map[string]models.MicrosoftCVE{}, nil
 }
