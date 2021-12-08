@@ -232,9 +232,12 @@ if args.list_path != None:
     list_path = args.list_path
 else:
     if args.mode in ['cveid', 'cveids']:
-        list_path = 'integration/cveid/cveid_' + args.ostype + '.txt'
+        list_path = f'integration/{args.ostype}/cveid.txt'
     if args.mode == 'package':
-        list_path = 'integration/package/package_' + args.ostype + '.txt'
+        if args.ostype == 'microsoft':
+            list_path = f'integration/{args.ostype}/kbid.txt'
+        else:
+            list_path = f'integration/{args.ostype}/package.txt'
 
 if list_path == None:
     logger.error(
