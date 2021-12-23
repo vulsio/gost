@@ -78,7 +78,7 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 		if locked {
 			return xerrors.Errorf("Failed to initialize DB. Close DB connection before fetching. err: %w", err)
 		}
-		return err
+		return xerrors.Errorf("Failed to open DB. err: %w", err)
 	}
 
 	fetchMeta, err := driver.GetFetchMeta()
@@ -86,7 +86,7 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
 	}
 	if fetchMeta.OutDated() {
-		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+		return xerrors.Errorf("Failed to register command. err: SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
 
 	log15.Info("Select all RedHat CVEs")

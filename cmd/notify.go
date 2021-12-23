@@ -72,7 +72,7 @@ func notifyRedhat(conf config.Config) error {
 		if locked {
 			return xerrors.Errorf("Failed to initialize DB. Close DB connection before fetching. err: %w", err)
 		}
-		return err
+		return xerrors.Errorf("Failed to open DB. err: %w", err)
 	}
 
 	fetchMeta, err := driver.GetFetchMeta()
@@ -80,7 +80,7 @@ func notifyRedhat(conf config.Config) error {
 		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
 	}
 	if fetchMeta.OutDated() {
-		return xerrors.Errorf("Failed to Insert CVEs into DB. SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+		return xerrors.Errorf("Failed to notify command. err: SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
 
 	for _, cve := range cves {

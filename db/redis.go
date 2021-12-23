@@ -37,24 +37,26 @@ import (
   └───┴──────────────────────────┴──────────────┴─────────────────────────────────────────────┘
 
 - Hash
-  ┌───┬────────────────┬───────────────┬──────────┬────────────────────────────────────────────────┐
-  │NO │    KEY         │     FIELD     │   VALUE  │                  PURPOSE                       │
-  └───┴────────────────┴───────────────┴──────────┴────────────────────────────────────────────────┘
-  ┌───┬────────────────┬───────────────┬──────────┬────────────────────────────────────────────────┐
-  │ 1 │ GOST#RH#CVE    │    $CVEID     │ $CVEJSON │ (RedHat) TO GET CVEJSON BY CVEID               │
-  ├───┼────────────────┼───────────────┼──────────┼────────────────────────────────────────────────┤
-  │ 2 │ GOST#DEB#CVE   │    $CVEID     │ $CVEJSON │ (RedHat) TO GET CVEJSON BY CVEID               │
-  ├───┼────────────────┼───────────────┼──────────┼────────────────────────────────────────────────┤
-  │ 3 │ GOST#UBU#CVE   │    $CVEID     │ $CVEJSON │ (RedHat) TO GET CVEJSON BY CVEID               │
-  ├───┼────────────────┼───────────────┼──────────┼────────────────────────────────────────────────┤
-  │ 4 │ GOST#MS#CVE    │    $CVEID     │ $CVEJSON │ (RedHat) TO GET CVEJSON BY CVEID               │
-  ├───┼────────────────┼───────────────┼──────────┼────────────────────────────────────────────────┤
-  │ 5 │ GOST#DEP       │ RH/DEB/UBU/MS │   JSON   │ TO DELETE OUTDATED AND UNNEEDED KEY AND MEMBER │
-  ├───┼────────────────┼───────────────┼──────────┼────────────────────────────────────────────────┤
-  │ 6 │ GOST#FETCHMETA │   Revision    │  string  │ GET Gost Binary Revision                       │
-  ├───┼────────────────┼───────────────┼──────────┼────────────────────────────────────────────────┤
-  │ 7 │ GOST#FETCHMETA │ SchemaVersion │   uint   │ GET Gost Schema Version                        │
-  └───┴────────────────┴───────────────┴──────────┴────────────────────────────────────────────────┘
+  ┌───┬────────────────┬─────────────────┬───────────┬────────────────────────────────────────────────┐
+  │NO │    KEY         │     FIELD       │   VALUE   │                  PURPOSE                       │
+  └───┴────────────────┴─────────────────┴───────────┴────────────────────────────────────────────────┘
+  ┌───┬────────────────┬─────────────────┬───────────┬────────────────────────────────────────────────┐
+  │ 1 │ GOST#RH#CVE    │    $CVEID       │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
+  ├───┼────────────────┼─────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 2 │ GOST#DEB#CVE   │    $CVEID       │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
+  ├───┼────────────────┼─────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 3 │ GOST#UBU#CVE   │    $CVEID       │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
+  ├───┼────────────────┼─────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 4 │ GOST#MS#CVE    │    $CVEID       │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
+  ├───┼────────────────┼─────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 5 │ GOST#DEP       │ RH/DEB/UBU/MS   │   JSON    │ TO DELETE OUTDATED AND UNNEEDED KEY AND MEMBER │
+  ├───┼────────────────┼─────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 6 │ GOST#FETCHMETA │   Revision      │  string   │ GET Gost Binary Revision                       │
+  ├───┼────────────────┼─────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 7 │ GOST#FETCHMETA │ SchemaVersion   │   uint    │ GET Gost Schema Version                        │
+  ├───┼────────────────┼─────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 8 │ GOST#FETCHMETA │ LastFetchedDate │ time.Time │ GET Gost Last Fetched Time                     │
+  └───┴────────────────┴─────────────────┴───────────┴────────────────────────────────────────────────┘
 
 **/
 
@@ -142,7 +144,7 @@ func (r *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
 		return nil, xerrors.Errorf("Failed to Exists. err: %w", err)
 	}
 	if exists == 0 {
-		return &models.FetchMeta{GostRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
+		return &models.FetchMeta{GostRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion, LastFetchedDate: time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)}, nil
 	}
 
 	revision, err := r.conn.HGet(ctx, fetchMetaKey, "Revision").Result()
@@ -159,12 +161,21 @@ func (r *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
 		return nil, xerrors.Errorf("Failed to ParseUint. err: %w", err)
 	}
 
-	return &models.FetchMeta{GostRevision: revision, SchemaVersion: uint(version)}, nil
+	datestr, err := r.conn.HGet(ctx, fetchMetaKey, "LastFetchedDate").Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to HGet LastFetchedDate. err: %w", err)
+	}
+	date, err := time.Parse(time.RFC3339, datestr)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to Parse date. err: %w", err)
+	}
+
+	return &models.FetchMeta{GostRevision: revision, SchemaVersion: uint(version), LastFetchedDate: date}, nil
 }
 
 // UpsertFetchMeta upsert FetchMeta to Database
 func (r *RedisDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
-	return r.conn.HSet(context.Background(), fetchMetaKey, map[string]interface{}{"Revision": fetchMeta.GostRevision, "SchemaVersion": fetchMeta.SchemaVersion}).Err()
+	return r.conn.HSet(context.Background(), fetchMetaKey, map[string]interface{}{"Revision": config.Revision, "SchemaVersion": models.LatestSchemaVersion, "LastFetchedDate": fetchMeta.LastFetchedDate}).Err()
 }
 
 // GetAfterTimeRedhat :
