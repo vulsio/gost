@@ -28,10 +28,7 @@ func SendSlack(txt string, conf config.SlackConf) error {
 		IconEmoji: conf.IconEmoji,
 		Channel:   conf.Channel,
 	}
-	if err := send(msg, conf); err != nil {
-		return err
-	}
-	return nil
+	return send(msg, conf)
 }
 
 func send(msg message, conf config.SlackConf) error {

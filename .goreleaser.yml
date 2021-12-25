@@ -9,8 +9,8 @@ builds:
   goarch:
   - amd64
   main: .
-  ldflags: -s -w -X main.version={{.Version}} -X main.revision={{.Commit}}
-  binary: go-cve-dictionary
+  ldflags: -s -w -X github.com/vulsio/gost/config.Version={{.Version}} -X github.com/vulsio/gost/config.Revision={{.Commit}}
+  binary: gost
 archives:
 - name_template: '{{ .Binary }}_{{.Version}}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
   format: tar.gz

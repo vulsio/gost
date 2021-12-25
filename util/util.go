@@ -204,10 +204,7 @@ func FileWalk(root string, targetFiles map[string]struct{}, walkFn func(r io.Rea
 		}
 		defer f.Close()
 
-		if err = walkFn(f, path); err != nil {
-			return err
-		}
-		return nil
+		return walkFn(f, path)
 	})
 	if err != nil {
 		return xerrors.Errorf("error in file walk: %w", err)
