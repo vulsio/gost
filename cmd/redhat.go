@@ -65,7 +65,7 @@ func fetchRedHat(cmd *cobra.Command, args []string) (err error) {
 		return xerrors.Errorf("Failed to insert. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 
-	fetchMeta.LastFetchedDate = time.Now()
+	fetchMeta.LastFetchedAt = time.Now()
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}

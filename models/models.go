@@ -11,10 +11,10 @@ const LatestSchemaVersion = 2
 
 // FetchMeta has meta information about fetched security tracker
 type FetchMeta struct {
-	gorm.Model      `json:"-"`
-	GostRevision    string
-	SchemaVersion   uint
-	LastFetchedDate time.Time
+	gorm.Model    `json:"-"`
+	GostRevision  string
+	SchemaVersion uint
+	LastFetchedAt time.Time
 }
 
 // OutDated checks whether last fetched feed is out dated
