@@ -82,16 +82,19 @@ func (r *RedisDriver) Name() string {
 }
 
 // OpenDB opens Database
-func (r *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (bool, error) {
-	return false, r.connectRedis(dbPath)
+func (r *RedisDriver) OpenDB(_, dbPath string, _ bool, option Option) (bool, error) {
+	return false, r.connectRedis(dbPath, option)
 }
 
-func (r *RedisDriver) connectRedis(dbPath string) error {
-	option, err := redis.ParseURL(dbPath)
+func (r *RedisDriver) connectRedis(dbPath string, option Option) error {
+	opt, err := redis.ParseURL(dbPath)
 	if err != nil {
 		return xerrors.Errorf("Failed to parse url. err: %w", err)
 	}
-	r.conn = redis.NewClient(option)
+	if 0 < option.RedisTimeout.Seconds() {
+		opt.ReadTimeout = option.RedisTimeout
+	}
+	r.conn = redis.NewClient(opt)
 	return r.conn.Ping(context.Background()).Err()
 }
 
@@ -559,17 +562,13 @@ func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
 			}
 
-			if err := pipe.HSet(ctx, cvekey, cve.Name, string(j)).Err(); err != nil {
-				return xerrors.Errorf("Failed to HSet CVE. err: %w", err)
-			}
+			_ = pipe.HSet(ctx, cvekey, cve.Name, string(j))
 			if _, ok := newDeps[cve.Name]; !ok {
 				newDeps[cve.Name] = map[string]struct{}{}
 			}
 
 			for _, pkg := range cve.PackageState {
-				if err := pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, redhatName, pkg.PackageName), cve.Name).Err(); err != nil {
-					return xerrors.Errorf("Failed to SAdd pkg name. err: %w", err)
-				}
+				_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, redhatName, pkg.PackageName), cve.Name)
 				newDeps[cve.Name][pkg.PackageName] = struct{}{}
 				if _, ok := oldDeps[cve.Name]; ok {
 					delete(oldDeps[cve.Name], pkg.PackageName)
@@ -591,23 +590,17 @@ func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 	pipe := r.conn.Pipeline()
 	for cveID, pkgs := range oldDeps {
 		for pkgName := range pkgs {
-			if err := pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, redhatName, pkgName), cveID).Err(); err != nil {
-				return xerrors.Errorf("Failed to SRem. err: %w", err)
-			}
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, redhatName, pkgName), cveID)
 		}
 		if _, ok := newDeps[cveID]; !ok {
-			if err := pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, redhatName), cveID).Err(); err != nil {
-				return xerrors.Errorf("Failed to HDel. err: %w", err)
-			}
+			_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, redhatName), cveID)
 		}
 	}
 	newDepsJSON, err := json.Marshal(newDeps)
 	if err != nil {
 		return xerrors.Errorf("Failed to Marshal JSON. err: %w", err)
 	}
-	if err := pipe.HSet(ctx, depKey, redhatName, string(newDepsJSON)).Err(); err != nil {
-		return xerrors.Errorf("Failed to Set depkey. err: %w", err)
-	}
+	_ = pipe.HSet(ctx, depKey, redhatName, string(newDepsJSON))
 	if _, err = pipe.Exec(ctx); err != nil {
 		return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 	}
@@ -655,9 +648,7 @@ func (r *RedisDriver) InsertDebian(cves []models.DebianCVE) error {
 			}
 
 			for _, pkg := range cve.Package {
-				if err := pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, debianName, pkg.PackageName), cve.CveID).Err(); err != nil {
-					return xerrors.Errorf("Failed to SAdd pkg name. err: %w", err)
-				}
+				_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, debianName, pkg.PackageName), cve.CveID)
 				newDeps[cve.CveID][pkg.PackageName] = struct{}{}
 				if _, ok := oldDeps[cve.CveID]; ok {
 					delete(oldDeps[cve.CveID], pkg.PackageName)
@@ -679,23 +670,17 @@ func (r *RedisDriver) InsertDebian(cves []models.DebianCVE) error {
 	pipe := r.conn.Pipeline()
 	for cveID, pkgs := range oldDeps {
 		for pkgName := range pkgs {
-			if err := pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, debianName, pkgName), cveID).Err(); err != nil {
-				return xerrors.Errorf("Failed to SRem. err: %w", err)
-			}
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, debianName, pkgName), cveID)
 		}
 		if _, ok := newDeps[cveID]; !ok {
-			if err := pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, debianName), cveID).Err(); err != nil {
-				return xerrors.Errorf("Failed to HDel. err: %w", err)
-			}
+			_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, debianName), cveID)
 		}
 	}
 	newDepsJSON, err := json.Marshal(newDeps)
 	if err != nil {
 		return xerrors.Errorf("Failed to Marshal JSON. err: %w", err)
 	}
-	if err := pipe.HSet(ctx, depKey, debianName, string(newDepsJSON)).Err(); err != nil {
-		return xerrors.Errorf("Failed to Set depkey. err: %w", err)
-	}
+	_ = pipe.HSet(ctx, depKey, debianName, string(newDepsJSON))
 	if _, err = pipe.Exec(ctx); err != nil {
 		return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 	}
@@ -735,17 +720,13 @@ func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
 			}
 
-			if err := pipe.HSet(ctx, cvekey, cve.Candidate, string(j)).Err(); err != nil {
-				return xerrors.Errorf("Failed to HSet CVE. err: %w", err)
-			}
+			_ = pipe.HSet(ctx, cvekey, cve.Candidate, string(j))
 			if _, ok := newDeps[cve.Candidate]; !ok {
 				newDeps[cve.Candidate] = map[string]struct{}{}
 			}
 
 			for _, pkg := range cve.Patches {
-				if err := pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, ubuntuName, pkg.PackageName), cve.Candidate).Err(); err != nil {
-					return xerrors.Errorf("Failed to SAdd pkg name. err: %w", err)
-				}
+				_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, ubuntuName, pkg.PackageName), cve.Candidate)
 				newDeps[cve.Candidate][pkg.PackageName] = struct{}{}
 				if _, ok := oldDeps[cve.Candidate]; ok {
 					delete(oldDeps[cve.Candidate], pkg.PackageName)
@@ -767,23 +748,17 @@ func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 	pipe := r.conn.Pipeline()
 	for cveID, pkgs := range oldDeps {
 		for pkgName := range pkgs {
-			if err := pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, ubuntuName, pkgName), cveID).Err(); err != nil {
-				return xerrors.Errorf("Failed to SRem. err: %w", err)
-			}
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, ubuntuName, pkgName), cveID)
 		}
 		if _, ok := newDeps[cveID]; !ok {
-			if err := pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, ubuntuName), cveID).Err(); err != nil {
-				return xerrors.Errorf("Failed to HDel. err: %w", err)
-			}
+			_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, ubuntuName), cveID)
 		}
 	}
 	newDepsJSON, err := json.Marshal(newDeps)
 	if err != nil {
 		return xerrors.Errorf("Failed to Marshal JSON. err: %w", err)
 	}
-	if err := pipe.HSet(ctx, depKey, ubuntuName, string(newDepsJSON)).Err(); err != nil {
-		return xerrors.Errorf("Failed to Set depkey. err: %w", err)
-	}
+	_ = pipe.HSet(ctx, depKey, ubuntuName, string(newDepsJSON))
 	if _, err = pipe.Exec(ctx); err != nil {
 		return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 	}
@@ -824,9 +799,7 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, products []mod
 	for idx := range chunkSlice(len(products), batchSize) {
 		pipe := r.conn.Pipeline()
 		for _, p := range products[idx.From:idx.To] {
-			if err := pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", p.ProductID)), p.ProductName).Err(); err != nil {
-				return xerrors.Errorf("Failed to SAdd ProductID. err: %w", err)
-			}
+			_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", p.ProductID)), p.ProductName)
 			if _, ok := newDeps["products"][p.ProductID]; !ok {
 				newDeps["products"][p.ProductID] = map[string]struct{}{}
 			}
@@ -856,17 +829,13 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, products []mod
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
 			}
 
-			if err := pipe.HSet(ctx, cvekey, cve.CveID, string(j)).Err(); err != nil {
-				return xerrors.Errorf("Failed to HSet CVE. err: %w", err)
-			}
+			_ = pipe.HSet(ctx, cvekey, cve.CveID, string(j))
 			if _, ok := newDeps["cves"][cve.CveID]; !ok {
 				newDeps["cves"][cve.CveID] = map[string]struct{}{}
 			}
 
 			for _, msKBID := range cve.KBIDs {
-				if err := pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", msKBID.KBID)), cve.CveID).Err(); err != nil {
-					return xerrors.Errorf("Failed to SAdd kbID. err: %w", err)
-				}
+				_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", msKBID.KBID)), cve.CveID)
 				newDeps["cves"][cve.CveID][msKBID.KBID] = struct{}{}
 				if _, ok := oldDeps["cves"][cve.CveID]; ok {
 					delete(oldDeps["cves"][cve.CveID], msKBID.KBID)
@@ -888,30 +857,22 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, products []mod
 	pipe := r.conn.Pipeline()
 	for productID, productNames := range oldDeps["products"] {
 		for productName := range productNames {
-			if err := pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", productID)), productName).Err(); err != nil {
-				return xerrors.Errorf("Failed to SRem. err: %w", err)
-			}
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", productID)), productName)
 		}
 	}
 	for cveID, kbIDs := range oldDeps["cves"] {
 		for kbID := range kbIDs {
-			if err := pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", kbID)), cveID).Err(); err != nil {
-				return xerrors.Errorf("Failed to SRem. err: %w", err)
-			}
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", kbID)), cveID)
 		}
 		if _, ok := newDeps[cveID]; !ok {
-			if err := pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, microsoftName), cveID).Err(); err != nil {
-				return xerrors.Errorf("Failed to HDel. err: %w", err)
-			}
+			_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, microsoftName), cveID)
 		}
 	}
 	newDepsJSON, err := json.Marshal(newDeps)
 	if err != nil {
 		return xerrors.Errorf("Failed to Marshal JSON. err: %w", err)
 	}
-	if err := pipe.HSet(ctx, depKey, microsoftName, string(newDepsJSON)).Err(); err != nil {
-		return xerrors.Errorf("Failed to Set depkey. err: %w", err)
-	}
+	_ = pipe.HSet(ctx, depKey, microsoftName, string(newDepsJSON))
 	if _, err = pipe.Exec(ctx); err != nil {
 		return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 	}

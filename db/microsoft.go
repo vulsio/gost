@@ -234,6 +234,6 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(cves []models.MicrosoftCVE) (err er
 }
 
 // GetUnfixedCvesMicrosoft :
-func (r *RDBDriver) GetUnfixedCvesMicrosoft(major, pkgName string, detectWillNotFix ...bool) (map[string]models.MicrosoftCVE, error) {
+func (r *RDBDriver) GetUnfixedCvesMicrosoft(_, _ string, _ ...bool) (map[string]models.MicrosoftCVE, error) {
 	return map[string]models.MicrosoftCVE{}, nil
 }

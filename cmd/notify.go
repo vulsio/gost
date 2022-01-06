@@ -35,7 +35,7 @@ func init() {
 	_ = viper.BindPFlag("to-slack", RootCmd.PersistentFlags().Lookup("to-slack"))
 }
 
-func executeNotify(cmd *cobra.Command, args []string) (err error) {
+func executeNotify(_ *cobra.Command, _ []string) (err error) {
 	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
@@ -67,7 +67,7 @@ func notifyRedhat(conf config.Config) error {
 	}
 
 	log15.Info("Initialize Database")
-	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
 		if locked {
 			return xerrors.Errorf("Failed to initialize DB. Close DB connection before fetching. err: %w", err)

@@ -1,8 +1,7 @@
 .PHONY: \
+	all \
 	build \
 	install \
-	all \
-	vendor \
 	lint \
 	vet \
 	fmt \
@@ -31,20 +30,20 @@ LDFLAGS := -X 'github.com/vulsio/gost/config.Version=$(VERSION)' \
 GO := GO111MODULE=on go
 GO_OFF := GO111MODULE=off go
 
-all: build
+all: build test
 
-build: main.go pretest
+build: main.go
 	$(GO) build -ldflags "$(LDFLAGS)" -o gost  $<
 
-install: main.go pretest
+install: main.go
 	$(GO) install -ldflags "$(LDFLAGS)"
 
-b: 	main.go pretest
+b: 	main.go
 	$(GO) build -ldflags "$(LDFLAGS)" -o gost $<
 
 lint:
-	$(GO_OFF) get -u golang.org/x/lint/golint
-	golint $(PKGS)
+	$(GO_OFF) get -u github.com/mgechev/revive
+	revive -config ./.revive.toml -formatter plain $(PKGS)
 
 vet:
 	echo $(PKGS) | xargs env $(GO) vet || exit;
@@ -60,7 +59,7 @@ fmtcheck:
 
 pretest: lint vet fmtcheck
 
-test: 
+test: pretest
 	$(GO) test -cover -v ./... || exit;
 
 unused:
