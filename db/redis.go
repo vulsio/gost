@@ -476,6 +476,7 @@ func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuC
 	return results, nil
 }
 
+// GetCveIDsByMicrosoftKBID :
 func (r *RedisDriver) GetCveIDsByMicrosoftKBID(kbID string) ([]string, error) {
 	ctx := context.Background()
 	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", kbID))).Result()

@@ -135,6 +135,7 @@ diff-package:
 	@ python integration/diff_server_mode.py package --sample_rate 0.01 debian
 	@ python integration/diff_server_mode.py package --sample_rate 0.01 ubuntu
 	@ python integration/diff_server_mode.py package --sample_rate 0.01 redhat
+	# @ python integration/diff_server_mode.py kbid --sample_rate 0.01 microsoft
 
 diff-server-rdb:
 	integration/gost.old server --dbpath=integration/gost.old.sqlite3 --port 1325 > /dev/null 2>&1 &

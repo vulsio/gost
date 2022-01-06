@@ -12,9 +12,29 @@ import (
 	"gorm.io/gorm"
 )
 
-func (r *RDBDriver) GetCveIDsByMicrosoftKBID(_ string) ([]string, error) {
-	// TODO
-	return nil, xerrors.Errorf("GetCveIDsByMicrosoftKBID in RDB is not implemented")
+// GetCveIDsByMicrosoftKBID :
+func (r *RDBDriver) GetCveIDsByMicrosoftKBID(kbID string) ([]string, error) {
+	msIDs := []string{}
+	if err := r.conn.
+		Model(&models.MicrosoftKBID{}).
+		Select("microsoft_cve_id").
+		Where("kb_id = ?", kbID).
+		Find(&msIDs).Error; err != nil {
+		return nil, xerrors.Errorf("Failed to get MicrosoftCVEID by KBID. err: %w", err)
+	}
+	if len(msIDs) == 0 {
+		return []string{}, nil
+	}
+
+	cveIDs := []string{}
+	if err := r.conn.
+		Model(&models.MicrosoftCVE{}).
+		Select("cve_id").
+		Where("id IN ?", msIDs).
+		Find(&cveIDs).Error; err != nil {
+		return nil, xerrors.Errorf("Failed to get CVEID by MicrosoftCVEID. err: %w", err)
+	}
+	return cveIDs, nil
 }
 
 // GetMicrosoft :

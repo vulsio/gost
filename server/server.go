@@ -50,6 +50,7 @@ func Start(logToFile bool, logDir string, driver db.DB) error {
 	e.GET("/debian/:release/pkgs/:name/fixed-cves", getFixedCvesDebian(driver))
 	e.GET("/ubuntu/:release/pkgs/:name/unfixed-cves", getUnfixedCvesUbuntu(driver))
 	e.GET("/ubuntu/:release/pkgs/:name/fixed-cves", getFixedCvesUbuntu(driver))
+	e.GET("/microsoft/kbids/:kbid", getCveIDsByMicrosoftKBID(driver))
 
 	bindURL := fmt.Sprintf("%s:%s", viper.GetString("bind"), viper.GetString("port"))
 	log15.Info("Listening", "URL", bindURL)
@@ -251,5 +252,18 @@ func getFixedCvesUbuntu(driver db.DB) echo.HandlerFunc {
 			return err
 		}
 		return c.JSON(http.StatusOK, &cveDetail)
+	}
+}
+
+// Handler
+func getCveIDsByMicrosoftKBID(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		kbID := c.Param("kbid")
+		cveIDs, err := driver.GetCveIDsByMicrosoftKBID(kbID)
+		if err != nil {
+			log15.Error("Failed to get CVEIDs By KBID", "err", err)
+			return err
+		}
+		return c.JSON(http.StatusOK, &cveIDs)
 	}
 }

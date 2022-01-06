@@ -172,6 +172,54 @@ def diff_package(ostype: str, package: str):
                     w.write(json.dumps(response_new, indent=4))
 
 
+def diff_kbid(ostype: str, kbid: str):
+    session = requests.Session()
+    retries = Retry(total=5,
+                    backoff_factor=1,
+                    status_forcelist=[503, 504])
+    session.mount("http://", HTTPAdapter(max_retries=retries))
+
+    # Endpoint
+    # /microsoft/kbids/:kbid
+
+    if not ostype == 'microsoft':
+        logger.error(
+            f'Failed to diff_response..., err: This OS type({ostype}) does not support test mode(package)')
+        raise NotImplementedError
+
+    path = f'{ostype}/kbids/{kbid}'
+    os.makedirs(
+        f'integration/diff/{ostype}/kbid', exist_ok=True)
+    try:
+        response_old = session.get(
+            f'http://127.0.0.1:1325/{path}', timeout=(2.0, 30.0)).json()
+        response_new = session.get(
+            f'http://127.0.0.1:1326/{path}', timeout=(2.0, 30.0)).json()
+    except requests.exceptions.ConnectionError as e:
+        logger.error(
+            f'Failed to Connection..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
+        raise
+    except requests.exceptions.ReadTimeout as e:
+        logger.warning(
+            f'Failed to Read Response..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
+        raise
+    except Exception as e:
+        logger.error(
+            f'Failed to GET request..., err: {e}, {pprint.pformat({"args": args, "path": path}, indent=2)}')
+        raise
+
+    diff = DeepDiff(response_old, response_new, ignore_order=True)
+    if diff != {}:
+        logger.warning(
+            f'There is a difference between old and new(or RDB and Redis):\n {pprint.pformat({"mode": "package", "args": args, "path": path}, indent=2)}')
+
+        diff_path = f'integration/diff/{ostype}/kbid/{kbid}'
+        with open(f'{diff_path}.old', 'w') as w:
+            w.write(json.dumps(response_old, indent=4))
+        with open(f'{diff_path}.new', 'w') as w:
+            w.write(json.dumps(response_new, indent=4))
+
+
 def diff_response(args: Tuple[str, str, list[str]]):
     try:
         if args[0] == 'cveid':
@@ -180,12 +228,14 @@ def diff_response(args: Tuple[str, str, list[str]]):
             diff_cveids(args[1], args[2])
         if args[0] == 'package':
             diff_package(args[1], args[2][0])
+        if args[0] == 'kbid':
+            diff_kbid(args[1], args[2][0])
     except Exception:
         exit(1)
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('mode', choices=['cveid', 'cveids', 'package'],
+parser.add_argument('mode', choices=['cveid', 'cveids', 'package', 'kbid'],
                     help='Specify the mode to test.')
 parser.add_argument('ostype', choices=['debian', 'ubuntu', 'redhat', 'microsoft'],
                     help='Specify the OS to be started in server mode when testing.')
@@ -232,9 +282,11 @@ if args.list_path != None:
     list_path = args.list_path
 else:
     if args.mode in ['cveid', 'cveids']:
-        list_path = 'integration/cveid/cveid_' + args.ostype + '.txt'
+        list_path = f'integration/{args.ostype}/cveid.txt'
     if args.mode == 'package':
-        list_path = 'integration/package/package_' + args.ostype + '.txt'
+        list_path = f'integration/{args.ostype}/package.txt'
+    if args.mode == 'kbid':
+        list_path = f'integration/{args.ostype}/kbid.txt'
 
 if list_path == None:
     logger.error(
