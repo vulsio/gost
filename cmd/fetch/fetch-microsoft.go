@@ -1,6 +1,7 @@
-package cmd
+package fetch
 
 import (
+	"errors"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -13,28 +14,45 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// ubuntuCmd represents the ubuntu command
-var ubuntuCmd = &cobra.Command{
-	Use:   "ubuntu",
-	Short: "Fetch the CVE information from aquasecurity/vuln-list",
-	Long:  `Fetch the CVE information from aquasecurity/vuln-list`,
-	RunE:  fetchUbuntu,
+// fetchMicrosoftCmd represents the microsoft command
+var fetchMicrosoftCmd = &cobra.Command{
+	Use:   "microsoft",
+	Short: "Fetch the CVE information from Microsoft",
+	Long:  `Fetch the CVE information from Microsoft`,
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		if err := viper.BindPFlag("debug-sql", cmd.Parent().PersistentFlags().Lookup("debug-sql")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbpath", cmd.Parent().PersistentFlags().Lookup("dbpath")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbtype", cmd.Parent().PersistentFlags().Lookup("dbtype")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("batch-size", cmd.Parent().PersistentFlags().Lookup("batch-size")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("http-proxy", cmd.Parent().PersistentFlags().Lookup("http-proxy")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("apikey", cmd.PersistentFlags().Lookup("apikey")); err != nil {
+			return err
+		}
+
+		return nil
+	},
+	RunE: fetchMicrosoft,
 }
 
-func init() {
-	fetchCmd.AddCommand(ubuntuCmd)
-}
-
-func fetchUbuntu(_ *cobra.Command, _ []string) (err error) {
+func fetchMicrosoft(_ *cobra.Command, _ []string) (err error) {
 	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
-
-	cveJSONs, err := fetcher.FetchUbuntuVulnList()
-	if err != nil {
-		return xerrors.Errorf("Failed to initialize vulnerability DB . err: %w", err)
-	}
-	cves := models.ConvertUbuntu(cveJSONs)
 
 	log15.Info("Initialize Database")
 	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
@@ -57,9 +75,23 @@ func fetchUbuntu(_ *cobra.Command, _ []string) (err error) {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 
-	log15.Info("Fetched", "CVEs", len(cves))
-	log15.Info("Insert Ubuntu into DB", "db", driver.Name())
-	if err := driver.InsertUbuntu(cves); err != nil {
+	log15.Info("Fetched all CVEs from Microsoft")
+	apiKey := viper.GetString("apikey")
+	if len(apiKey) == 0 {
+		return errors.New("apikey is required")
+	}
+	cveXMLs, err := fetcher.RetrieveMicrosoftCveDetails(apiKey)
+	if err != nil {
+		return err
+	}
+	cveXls, err := fetcher.RetrieveMicrosoftBulletinSearch()
+	if err != nil {
+		return err
+	}
+	cves, product := models.ConvertMicrosoft(cveXMLs, cveXls)
+
+	log15.Info("Insert Microsoft CVEs into DB", "db", driver.Name())
+	if err := driver.InsertMicrosoft(cves, product); err != nil {
 		return xerrors.Errorf("Failed to insert. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 

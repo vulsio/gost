@@ -1,7 +1,6 @@
-package cmd
+package fetch
 
 import (
-	"errors"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -14,22 +13,38 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// microsoftCmd represents the microsoft command
-var microsoftCmd = &cobra.Command{
-	Use:   "microsoft",
-	Short: "Fetch the CVE information from Microsoft",
-	Long:  `Fetch the CVE information from Microsoft`,
-	RunE:  fetchMicrosoft,
+// fetchDebianCmd represents the debian command
+var fetchDebianCmd = &cobra.Command{
+	Use:   "debian",
+	Short: "Fetch the CVE information from Debian",
+	Long:  `Fetch the CVE information from Debian`,
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		if err := viper.BindPFlag("debug-sql", cmd.Parent().PersistentFlags().Lookup("debug-sql")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbpath", cmd.Parent().PersistentFlags().Lookup("dbpath")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbtype", cmd.Parent().PersistentFlags().Lookup("dbtype")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("batch-size", cmd.Parent().PersistentFlags().Lookup("batch-size")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("http-proxy", cmd.Parent().PersistentFlags().Lookup("http-proxy")); err != nil {
+			return err
+		}
+
+		return nil
+	},
+	RunE: fetchDebian,
 }
 
-func init() {
-	fetchCmd.AddCommand(microsoftCmd)
-
-	microsoftCmd.PersistentFlags().String("apikey", "", "microsoft apikey")
-	_ = viper.BindPFlag("apikey", microsoftCmd.PersistentFlags().Lookup("apikey"))
-}
-
-func fetchMicrosoft(_ *cobra.Command, _ []string) (err error) {
+func fetchDebian(_ *cobra.Command, _ []string) (err error) {
 	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
@@ -52,26 +67,20 @@ func fetchMicrosoft(_ *cobra.Command, _ []string) (err error) {
 	}
 	// If the fetch fails the first time (without SchemaVersion), the DB needs to be cleaned every time, so insert SchemaVersion.
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
-		return xerrors.Errorf("Failed to upsert FetchMeta to DB. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. err: %w", err)
 	}
 
-	log15.Info("Fetched all CVEs from Microsoft")
-	apiKey := viper.GetString("apikey")
-	if len(apiKey) == 0 {
-		return errors.New("apikey is required")
-	}
-	cveXMLs, err := fetcher.RetrieveMicrosoftCveDetails(apiKey)
+	log15.Info("Fetched all CVEs from Debian")
+	cveJSONs, err := fetcher.RetrieveDebianCveDetails()
 	if err != nil {
 		return err
 	}
-	cveXls, err := fetcher.RetrieveMicrosoftBulletinSearch()
-	if err != nil {
-		return err
-	}
-	cves, product := models.ConvertMicrosoft(cveXMLs, cveXls)
+	cves := models.ConvertDebian(cveJSONs)
 
-	log15.Info("Insert Microsoft CVEs into DB", "db", driver.Name())
-	if err := driver.InsertMicrosoft(cves, product); err != nil {
+	log15.Info("Fetched", "CVEs", len(cves))
+
+	log15.Info("Insert Debian CVEs into DB", "db", driver.Name())
+	if err := driver.InsertDebian(cves); err != nil {
 		return xerrors.Errorf("Failed to insert. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 

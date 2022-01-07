@@ -1,4 +1,4 @@
-package cmd
+package fetch
 
 import (
 	"time"
@@ -13,16 +13,35 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// redhatCmd represents the redhat command
-var redHatCmd = &cobra.Command{
+// fetchRedhatCmd represents the redhat command
+var fetchRedHatCmd = &cobra.Command{
 	Use:   "redhat",
 	Short: "Fetch the CVE information from aquasecurity/vuln-list",
 	Long:  `Fetch the CVE information from aquasecurity/vuln-list`,
-	RunE:  fetchRedHat,
-}
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		if err := viper.BindPFlag("debug-sql", cmd.Parent().PersistentFlags().Lookup("debug-sql")); err != nil {
+			return err
+		}
 
-func init() {
-	fetchCmd.AddCommand(redHatCmd)
+		if err := viper.BindPFlag("dbpath", cmd.Parent().PersistentFlags().Lookup("dbpath")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbtype", cmd.Parent().PersistentFlags().Lookup("dbtype")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("batch-size", cmd.Parent().PersistentFlags().Lookup("batch-size")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("http-proxy", cmd.Parent().PersistentFlags().Lookup("http-proxy")); err != nil {
+			return err
+		}
+
+		return nil
+	},
+	RunE: fetchRedHat,
 }
 
 func fetchRedHat(_ *cobra.Command, _ []string) (err error) {
@@ -32,7 +51,7 @@ func fetchRedHat(_ *cobra.Command, _ []string) (err error) {
 
 	cveJSONs, err := fetcher.FetchRedHatVulnList()
 	if err != nil {
-		return xerrors.Errorf("Failed to initialize vulnerability DB . err: %w", err)
+		return xerrors.Errorf("Failed to initialize vulnerability DB. err: %w", err)
 	}
 	cves, err := models.ConvertRedhat(cveJSONs)
 	if err != nil {

@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	"github.com/inconshreveable/log15"
@@ -22,17 +24,53 @@ var notifyCmd = &cobra.Command{
 	Use:   "notify",
 	Short: "Notify update about the specified CVE",
 	Long:  `Notify update about the specified CVE`,
-	RunE:  executeNotify,
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		if err := viper.BindPFlag("debug-sql", cmd.PersistentFlags().Lookup("debug-sql")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbpath", cmd.PersistentFlags().Lookup("dbpath")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbtype", cmd.PersistentFlags().Lookup("dbtype")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("http-proxy", cmd.PersistentFlags().Lookup("http-proxy")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("wait", cmd.PersistentFlags().Lookup("wait")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("threads", cmd.PersistentFlags().Lookup("threads")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("to-email", cmd.PersistentFlags().Lookup("to-email")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("to-slack", cmd.PersistentFlags().Lookup("to-slack")); err != nil {
+			return err
+		}
+
+		return nil
+	},
+	RunE: executeNotify,
 }
 
 func init() {
-	RootCmd.AddCommand(notifyCmd)
-
-	RootCmd.PersistentFlags().Bool("to-email", false, "Send notification via Email")
-	_ = viper.BindPFlag("to-email", RootCmd.PersistentFlags().Lookup("to-email"))
-
-	RootCmd.PersistentFlags().Bool("to-slack", false, "Send notification via Slack")
-	_ = viper.BindPFlag("to-slack", RootCmd.PersistentFlags().Lookup("to-slack"))
+	notifyCmd.PersistentFlags().Bool("debug-sql", false, "SQL debug mode")
+	notifyCmd.PersistentFlags().String("dbpath", filepath.Join(os.Getenv("PWD"), "gost.sqlite3"), "/path/to/sqlite3 or SQL connection string")
+	notifyCmd.PersistentFlags().String("dbtype", "sqlite3", "Database type to store data in (sqlite3, mysql, postgres or redis supported)")
+	notifyCmd.PersistentFlags().String("http-proxy", "", "http://proxy-url:port")
+	notifyCmd.PersistentFlags().Int("wait", 0, "Interval between fetch (seconds)")
+	notifyCmd.PersistentFlags().Int("threads", 5, "The number of threads to be used")
+	notifyCmd.PersistentFlags().Bool("to-email", false, "Send notification via Email")
+	notifyCmd.PersistentFlags().Bool("to-slack", false, "Send notification via Slack")
 }
 
 func executeNotify(_ *cobra.Command, _ []string) (err error) {

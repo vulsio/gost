@@ -1,4 +1,4 @@
-package cmd
+package fetch
 
 import (
 	"fmt"
@@ -14,25 +14,63 @@ import (
 	"golang.org/x/xerrors"
 )
 
-// redHatAPICmd represents the redhatAPI command
-var redHatAPICmd = &cobra.Command{
+// fetchRedHatAPICmd represents the redhatAPI command
+var fetchRedHatAPICmd = &cobra.Command{
 	Use:   "redhatapi",
 	Short: "Fetch the CVE information from Red Hat API",
 	Long:  `Fetch the CVE information from Red Hat API`,
-	RunE:  fetchRedHatAPI,
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		if err := viper.BindPFlag("debug-sql", cmd.Parent().PersistentFlags().Lookup("debug-sql")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbpath", cmd.Parent().PersistentFlags().Lookup("dbpath")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbtype", cmd.Parent().PersistentFlags().Lookup("dbtype")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("batch-size", cmd.Parent().PersistentFlags().Lookup("batch-size")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("http-proxy", cmd.Parent().PersistentFlags().Lookup("http-proxy")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("after", cmd.PersistentFlags().Lookup("after")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("before", cmd.PersistentFlags().Lookup("before")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("list-only", cmd.PersistentFlags().Lookup("list-only")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("wait", cmd.PersistentFlags().Lookup("wait")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("threads", cmd.PersistentFlags().Lookup("threads")); err != nil {
+			return err
+		}
+
+		return nil
+	},
+	RunE: fetchRedHatAPI,
 }
 
 func init() {
-	fetchCmd.AddCommand(redHatAPICmd)
-
-	redHatAPICmd.PersistentFlags().String("after", "1970-01-01", "Fetch CVEs after the specified date (e.g. 2017-01-01)")
-	_ = viper.BindPFlag("after", redHatAPICmd.PersistentFlags().Lookup("after"))
-
-	redHatAPICmd.PersistentFlags().String("before", "", "Fetch CVEs before the specified date (e.g. 2017-01-01)")
-	_ = viper.BindPFlag("before", redHatAPICmd.PersistentFlags().Lookup("before"))
-
-	redHatAPICmd.PersistentFlags().Bool("list-only", false, "")
-	_ = viper.BindPFlag("list-only", redHatAPICmd.PersistentFlags().Lookup("list-only"))
+	fetchRedHatAPICmd.PersistentFlags().String("after", "1970-01-01", "Fetch CVEs after the specified date (e.g. 2017-01-01)")
+	fetchRedHatAPICmd.PersistentFlags().String("before", "", "Fetch CVEs before the specified date (e.g. 2017-01-01)")
+	fetchRedHatAPICmd.PersistentFlags().Bool("list-only", false, "")
+	fetchRedHatAPICmd.PersistentFlags().Int("wait", 0, "Interval between fetch (seconds)")
+	fetchRedHatAPICmd.PersistentFlags().Int("threads", 5, "The number of threads to be used")
 }
 
 func fetchRedHatAPI(_ *cobra.Command, _ []string) (err error) {

@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -16,17 +19,38 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start security tracker HTTP server",
 	Long:  `Start security tracker HTTP server`,
-	RunE:  executeServer,
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		if err := viper.BindPFlag("debug-sql", cmd.PersistentFlags().Lookup("debug-sql")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbpath", cmd.PersistentFlags().Lookup("dbpath")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbtype", cmd.PersistentFlags().Lookup("dbtype")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("bind", cmd.PersistentFlags().Lookup("bind")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("port", cmd.PersistentFlags().Lookup("port")); err != nil {
+			return err
+		}
+
+		return nil
+	},
+	RunE: executeServer,
 }
 
 func init() {
-	RootCmd.AddCommand(serverCmd)
-
+	serverCmd.PersistentFlags().Bool("debug-sql", false, "SQL debug mode")
+	serverCmd.PersistentFlags().String("dbpath", filepath.Join(os.Getenv("PWD"), "gost.sqlite3"), "/path/to/sqlite3 or SQL connection string")
+	serverCmd.PersistentFlags().String("dbtype", "sqlite3", "Database type to store data in (sqlite3, mysql, postgres or redis supported)")
 	serverCmd.PersistentFlags().String("bind", "127.0.0.1", "HTTP server bind to IP address")
-	_ = viper.BindPFlag("bind", serverCmd.PersistentFlags().Lookup("bind"))
-
 	serverCmd.PersistentFlags().String("port", "1325", "HTTP server port number")
-	_ = viper.BindPFlag("port", serverCmd.PersistentFlags().Lookup("port"))
 }
 
 func executeServer(_ *cobra.Command, _ []string) (err error) {

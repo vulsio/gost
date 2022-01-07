@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -27,20 +28,43 @@ var registerCmd = &cobra.Command{
 	Use:   "register",
 	Short: "Register CVEs to monitor",
 	Long:  `Register CVEs to monitor`,
-	RunE:  executeRegister,
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		if err := viper.BindPFlag("debug-sql", cmd.PersistentFlags().Lookup("debug-sql")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbpath", cmd.PersistentFlags().Lookup("dbpath")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("dbtype", cmd.PersistentFlags().Lookup("dbtype")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("select-cmd", cmd.PersistentFlags().Lookup("select-cmd")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("select-option", cmd.PersistentFlags().Lookup("select-option")); err != nil {
+			return err
+		}
+
+		if err := viper.BindPFlag("select-after", cmd.PersistentFlags().Lookup("select-after")); err != nil {
+			return err
+		}
+
+		return nil
+	},
+	RunE: executeRegister,
 }
 
 func init() {
-	RootCmd.AddCommand(registerCmd)
-
+	registerCmd.PersistentFlags().Bool("debug-sql", false, "SQL debug mode")
+	registerCmd.PersistentFlags().String("dbpath", filepath.Join(os.Getenv("PWD"), "gost.sqlite3"), "/path/to/sqlite3 or SQL connection string")
+	registerCmd.PersistentFlags().String("dbtype", "sqlite3", "Database type to store data in (sqlite3, mysql, postgres or redis supported)")
 	registerCmd.PersistentFlags().String("select-cmd", "fzf", "Select command")
-	_ = viper.BindPFlag("select-cmd", registerCmd.PersistentFlags().Lookup("select-cmd"))
-
 	registerCmd.PersistentFlags().String("select-option", "--reverse", "Select command options")
-	_ = viper.BindPFlag("select-option", registerCmd.PersistentFlags().Lookup("select-option"))
-
 	registerCmd.PersistentFlags().String("select-after", "", "Show CVEs after the specified date (e.g. 2017-01-01) (default: 30 days ago)")
-	_ = viper.BindPFlag("select-after", registerCmd.PersistentFlags().Lookup("select-after"))
 }
 
 func executeRegister(_ *cobra.Command, _ []string) (err error) {
