@@ -128,7 +128,7 @@ def diff_package(ostype: str, package: str):
         os_specific_urls = (['9', '10'], [
                             'unfixed-cves', 'fixed-cves'])
     elif ostype == 'ubuntu':
-        os_specific_urls = (['1404', '1604', '1804', '2004', '2010', '2104'], [
+        os_specific_urls = (['14.04', '16.04', '18.04', '19.10','20.04', '20.10', '21.04', '21.10'], [
                             'unfixed-cves', 'fixed-cves'])
     elif ostype == 'redhat':
         os_specific_urls = (['3', '4', '5', '6', '7', '8'], ['unfixed-cves'])
