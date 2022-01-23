@@ -43,7 +43,7 @@ type UbuntuCVE struct {
 	Notes             []UbuntuNote      `json:"notes"`
 	Bugs              []UbuntuBug       `json:"bugs"`
 	Priority          string            `json:"priority" gorm:"type:varchar(255)"`
-	DiscoveredBy      string            `json:"discovered_by" gorm:"type:varchar(255)"`
+	DiscoveredBy      string            `json:"discovered_by" gorm:"type:text"`
 	AssignedTo        string            `json:"assigned_to" gorm:"type:varchar(255)"`
 	Patches           []UbuntuPatch     `json:"patches"`
 	Upstreams         []UbuntuUpstream  `json:"upstreams"`
