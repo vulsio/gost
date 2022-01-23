@@ -35,12 +35,14 @@ var convertUbuntuCmd = &cobra.Command{
 
 // https://github.com/vulsio/goval-dictionary/blob/master/config/config.go
 var ubuVerCodename = map[string]string{
-	"trusty":  "14",
-	"xenial":  "16",
-	"bionic":  "18",
-	"eoan":    "19",
-	"focal":   "20",
-	"hirsute": "21",
+	"trusty":  "14.04",
+	"xenial":  "16.04",
+	"bionic":  "18.04",
+	"eoan":    "19.10",
+	"focal":   "20.04",
+	"groovy":  "20.10",
+	"hirsute": "21.04",
+	"impish":  "21.10",
 }
 
 func convertUbuntu(_ *cobra.Command, _ []string) (err error) {
@@ -73,16 +75,16 @@ func convertUbuntu(_ *cobra.Command, _ []string) (err error) {
 		verPatchesMap := map[string][]models.UbuntuPatch{}
 		for _, patch := range cve.Patches {
 			for _, relPatch := range patch.ReleasePatches {
-				majorVer, ok := ubuVerCodename[relPatch.ReleaseName]
+				ver, ok := ubuVerCodename[relPatch.ReleaseName]
 				if !ok {
 					continue
 				}
-				verPatchesMap[majorVer] = append(verPatchesMap[majorVer], models.UbuntuPatch{PackageName: patch.PackageName, ReleasePatches: []models.UbuntuReleasePatch{relPatch}})
+				verPatchesMap[ver] = append(verPatchesMap[ver], models.UbuntuPatch{PackageName: patch.PackageName, ReleasePatches: []models.UbuntuReleasePatch{relPatch}})
 			}
 		}
 
-		for majorVer, patches := range verPatchesMap {
-			cvesMap[majorVer] = append(cvesMap[majorVer], models.UbuntuCVE{
+		for ver, patches := range verPatchesMap {
+			cvesMap[ver] = append(cvesMap[ver], models.UbuntuCVE{
 				PublicDateAtUSN:   cve.PublicDateAtUSN,
 				CRD:               cve.CRD,
 				Candidate:         cve.Candidate,
