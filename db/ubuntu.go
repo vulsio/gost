@@ -134,12 +134,14 @@ func (r *RDBDriver) deleteAndInsertUbuntu(cves []models.UbuntuCVE) (err error) {
 }
 
 var ubuntuVerCodename = map[string]string{
-	"1404": "trusty",
-	"1604": "xenial",
-	"1804": "bionic",
-	"2004": "focal",
-	"2010": "groovy",
-	"2104": "hirsute",
+	"14.04": "trusty",
+	"16.04": "xenial",
+	"18.04": "bionic",
+	"19.10": "eoan",
+	"20.04": "focal",
+	"20.10": "groovy",
+	"21.04": "hirsute",
+	"21.10": "impish",
 }
 
 // GetUnfixedCvesUbuntu gets the CVEs related to debian_release.status IN ('needed', 'pending'), ver, pkgName.
