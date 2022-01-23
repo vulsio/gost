@@ -33,7 +33,7 @@ type UbuntuPatchJSON struct {
 type UbuntuCVE struct {
 	ID int64 `json:"-"`
 
-	PublicDateAtUSN   time.Time         `json:"public_data_at_usn"`
+	PublicDateAtUSN   time.Time         `json:"public_date_at_usn"`
 	CRD               time.Time         `json:"crd"`
 	Candidate         string            `json:"candidate" gorm:"type:varchar(255);index:idx_ubuntu_cve_candidate"`
 	PublicDate        time.Time         `json:"public_date"`
@@ -107,6 +107,18 @@ func ConvertUbuntu(cveJSONs []UbuntuCVEJSON) (cves []UbuntuCVE) {
 	for _, cve := range cveJSONs {
 		if strings.Contains(cve.Description, "** REJECT **") {
 			continue
+		}
+
+		if cve.PublicDateAtUSN == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
+			cve.PublicDateAtUSN = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+		}
+
+		if cve.CRD == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
+			cve.CRD = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+		}
+
+		if cve.PublicDate == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
+			cve.PublicDate = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
 		}
 
 		references := []UbuntuReference{}
