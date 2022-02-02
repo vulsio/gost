@@ -3,12 +3,14 @@ package db
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	pb "github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
 )
@@ -86,9 +88,17 @@ func (r *RDBDriver) GetRedhatMulti(cveIDs []string) (map[string]models.RedhatCVE
 }
 
 // GetUnfixedCvesRedhat gets the unfixed CVEs.
-func (r *RDBDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix bool) (map[string]models.RedhatCVE, error) {
+func (r *RDBDriver) GetUnfixedCvesRedhat(version, pkgName string, ignoreWillNotFix bool) (map[string]models.RedhatCVE, error) {
 	m := map[string]models.RedhatCVE{}
-	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
+	var cpe string
+	if strings.HasSuffix(version, "-eus") {
+		cpe = fmt.Sprintf("cpe:/o:redhat:rhel_eus:%s", strings.TrimSuffix(version, "-eus"))
+	} else if strings.HasSuffix(version, "-aus") {
+		cpe = fmt.Sprintf("cpe:/o:redhat:rhel_aus:%s", strings.TrimSuffix(version, "-aus"))
+	} else {
+		cpe = fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", util.Major(version))
+	}
+
 	pkgStats := []models.RedhatPackageState{}
 
 	// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format

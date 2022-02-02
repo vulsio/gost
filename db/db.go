@@ -42,6 +42,7 @@ type DB interface {
 	InsertMicrosoft([]models.MicrosoftCVE, []models.MicrosoftProduct) error
 }
 
+// Option :
 type Option struct {
 	RedisTimeout time.Duration
 }
