@@ -27,7 +27,7 @@ type DB interface {
 	GetDebianMulti([]string) (map[string]models.DebianCVE, error)
 	GetUbuntu(string) (*models.UbuntuCVE, error)
 	GetUbuntuMulti([]string) (map[string]models.UbuntuCVE, error)
-	GetCveIDsByMicrosoftKBID(kbID string) ([]string, error)
+	GetCveIDsByMicrosoftKBID([]string, []string) ([]string, error)
 	GetMicrosoft(string) (*models.MicrosoftCVE, error)
 	GetMicrosoftMulti([]string) (map[string]models.MicrosoftCVE, error)
 	GetUnfixedCvesRedhat(string, string, bool) (map[string]models.RedhatCVE, error)
@@ -39,7 +39,7 @@ type DB interface {
 	InsertRedhat([]models.RedhatCVE) error
 	InsertDebian([]models.DebianCVE) error
 	InsertUbuntu([]models.UbuntuCVE) error
-	InsertMicrosoft([]models.MicrosoftCVE, []models.MicrosoftProduct) error
+	InsertMicrosoft([]models.MicrosoftCVE, []models.MicrosoftProduct, []models.MicrosoftKBRelation) error
 }
 
 // Option :
