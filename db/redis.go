@@ -494,7 +494,7 @@ func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuC
 }
 
 // GetCveIDsByMicrosoftKBID :
-func (r *RedisDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []string) ([]string, error) {
+func (r *RedisDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []string) (map[string][]string, error) {
 	ctx := context.Background()
 
 	kbIDs, err := r.getUnAppliedKBIDs(applied, unapplied)
@@ -503,31 +503,24 @@ func (r *RedisDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []str
 	}
 
 	pipe := r.conn.Pipeline()
-	results := []*redis.StringSliceCmd{}
+	results := map[string]*redis.StringSliceCmd{}
 	for _, kbID := range kbIDs {
-		results = append(results, pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", kbID))))
+		results[kbID] = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", kbID)))
 	}
 	if _, err := pipe.Exec(ctx); err != nil {
 		return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 	}
 
-	uniqCVEID := map[string]struct{}{}
-	for _, cmder := range results {
+	kbCVEIDs := map[string][]string{}
+	for kbID, cmder := range results {
 		cveIDs, err := cmder.Result()
 		if err != nil {
 			return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
 		}
-		for _, cveID := range cveIDs {
-			uniqCVEID[cveID] = struct{}{}
-		}
+		kbCVEIDs[kbID] = cveIDs
 	}
 
-	cveIDs := []string{}
-	for cveID := range uniqCVEID {
-		cveIDs = append(cveIDs, cveID)
-	}
-
-	return cveIDs, nil
+	return kbCVEIDs, nil
 }
 
 func (r *RedisDriver) getUnAppliedKBIDs(applied []string, unapplied []string) ([]string, error) {

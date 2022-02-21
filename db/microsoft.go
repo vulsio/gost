@@ -14,33 +14,35 @@ import (
 )
 
 // GetCveIDsByMicrosoftKBID :
-func (r *RDBDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []string) ([]string, error) {
+func (r *RDBDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []string) (map[string][]string, error) {
 	kbIDs, err := r.getUnAppliedKBIDs(applied, unapplied)
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to get UnApplied KBIDs. err: %w", err)
 	}
 
-	msIDs := []string{}
-	if err := r.conn.
-		Model(&models.MicrosoftKBID{}).
-		Distinct("microsoft_cve_id").
-		Where("kb_id IN ?", kbIDs).
-		Find(&msIDs).Error; err != nil {
-		return nil, xerrors.Errorf("Failed to get MicrosoftCVEID by KBID. err: %w", err)
-	}
-	if len(msIDs) == 0 {
-		return []string{}, nil
-	}
+	kbCVEIDs := map[string][]string{}
+	for _, kbID := range kbIDs {
+		msIDs := []string{}
+		if err := r.conn.
+			Model(&models.MicrosoftKBID{}).
+			Distinct("microsoft_cve_id").
+			Where("kb_id = ?", kbIDs).
+			Find(&msIDs).Error; err != nil {
+			return nil, xerrors.Errorf("Failed to get MicrosoftCVEID by KBID. err: %w", err)
+		}
+		if len(msIDs) == 0 {
+			return map[string][]string{}, nil
+		}
 
-	cveIDs := []string{}
-	if err := r.conn.
-		Model(&models.MicrosoftCVE{}).
-		Distinct("cve_id").
-		Where("id IN ?", msIDs).
-		Find(&cveIDs).Error; err != nil {
-		return nil, xerrors.Errorf("Failed to get CVEID by MicrosoftCVEID. err: %w", err)
+		if err := r.conn.
+			Model(&models.MicrosoftCVE{}).
+			Distinct("cve_id").
+			Where("id IN ?", msIDs).
+			Find(kbCVEIDs[kbID]).Error; err != nil {
+			return nil, xerrors.Errorf("Failed to get CVEID by MicrosoftCVEID. err: %w", err)
+		}
 	}
-	return cveIDs, nil
+	return kbCVEIDs, nil
 }
 
 func (r *RDBDriver) getUnAppliedKBIDs(applied []string, unapplied []string) ([]string, error) {
