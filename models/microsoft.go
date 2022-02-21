@@ -785,6 +785,7 @@ func getProductFromName(msProducts []MicrosoftProduct, productName string) Micro
 	}
 }
 
+// ConvertMicrosoftKBRelation :
 func ConvertMicrosoftKBRelation(kbRelationJSON map[string][]string) []MicrosoftKBRelation {
 	kbRelations := []MicrosoftKBRelation{}
 
