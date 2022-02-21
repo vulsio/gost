@@ -43,11 +43,11 @@ import (
   ┌───┬────────────────┬───────────────┬───────────┬────────────────────────────────────────────────┐
   │ 1 │ GOST#RH#CVE    │    $CVEID     │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
   ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 2 │ GOST#DEB#CVE   │    $CVEID     │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
+  │ 2 │ GOST#DEB#CVE   │    $CVEID     │ $CVEJSON  │ (Debian) TO GET CVEJSON BY CVEID               │
   ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 3 │ GOST#UBU#CVE   │    $CVEID     │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
+  │ 3 │ GOST#UBU#CVE   │    $CVEID     │ $CVEJSON  │ (Ubuntu) TO GET CVEJSON BY CVEID               │
   ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 4 │ GOST#MS#CVE    │    $CVEID     │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
+  │ 4 │ GOST#MS#CVE    │    $CVEID     │ $CVEJSON  │ (Microsoft) TO GET CVEJSON BY CVEID            │
   ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
   │ 5 │ GOST#DEP       │ RH/DEB/UBU/MS │   JSON    │ TO DELETE OUTDATED AND UNNEEDED KEY AND MEMBER │
   ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
