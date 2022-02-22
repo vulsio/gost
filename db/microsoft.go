@@ -26,62 +26,71 @@ func (r *RDBDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []strin
 		if err := r.conn.
 			Model(&models.MicrosoftKBID{}).
 			Distinct("microsoft_cve_id").
-			Where("kb_id = ?", kbIDs).
+			Where("kb_id = ?", kbID).
 			Find(&msIDs).Error; err != nil {
 			return nil, xerrors.Errorf("Failed to get MicrosoftCVEID by KBID. err: %w", err)
 		}
 		if len(msIDs) == 0 {
-			return map[string][]string{}, nil
+			kbCVEIDs[kbID] = []string{}
+			continue
 		}
 
+		cveIDs := []string{}
 		if err := r.conn.
 			Model(&models.MicrosoftCVE{}).
 			Distinct("cve_id").
 			Where("id IN ?", msIDs).
-			Find(kbCVEIDs[kbID]).Error; err != nil {
+			Find(&cveIDs).Error; err != nil {
 			return nil, xerrors.Errorf("Failed to get CVEID by MicrosoftCVEID. err: %w", err)
 		}
+		kbCVEIDs[kbID] = cveIDs
 	}
 	return kbCVEIDs, nil
 }
 
 func (r *RDBDriver) getUnAppliedKBIDs(applied []string, unapplied []string) ([]string, error) {
 	uniqUnappliedKBIDs := map[string]struct{}{}
-	relations := []models.MicrosoftKBRelation{}
-	if err := r.conn.
-		Preload("SupersededBy").
-		Where("kb_id IN ?", applied).
-		Find(&relations).Error; err != nil {
-		return nil, xerrors.Errorf("Failed to get KB Relation by applied KBID: %q. err: %w", applied, err)
-	}
+	if len(applied) > 0 {
+		relations := []models.MicrosoftKBRelation{}
 
-	for _, relation := range relations {
-		isInApplied := false
-		for _, supersededby := range relation.SupersededBy {
-			if util.StringInSlice(supersededby.KBID, applied) {
-				isInApplied = true
-				break
+		if err := r.conn.
+			Preload("SupersededBy").
+			Where("kb_id IN ?", applied).
+			Find(&relations).Error; err != nil {
+			return nil, xerrors.Errorf("Failed to get KB Relation by applied KBID: %q. err: %w", applied, err)
+		}
+
+		for _, relation := range relations {
+			isInApplied := false
+			for _, supersededby := range relation.SupersededBy {
+				if util.StringInSlice(supersededby.KBID, applied) {
+					isInApplied = true
+					break
+				}
+			}
+			if !isInApplied {
+				for _, supersededby := range relation.SupersededBy {
+					uniqUnappliedKBIDs[supersededby.KBID] = struct{}{}
+				}
 			}
 		}
-		if !isInApplied {
+	}
+
+	if len(unapplied) > 0 {
+		relations := []models.MicrosoftKBRelation{}
+
+		if err := r.conn.
+			Preload("SupersededBy").
+			Where("kb_id IN ?", unapplied).
+			Find(&relations).Error; err != nil {
+			return nil, xerrors.Errorf("Failed to get KB Relation by unapplied KBID: %q. err: %w", unapplied, err)
+		}
+
+		for _, relation := range relations {
+			uniqUnappliedKBIDs[relation.KBID] = struct{}{}
 			for _, supersededby := range relation.SupersededBy {
 				uniqUnappliedKBIDs[supersededby.KBID] = struct{}{}
 			}
-		}
-	}
-
-	relations = []models.MicrosoftKBRelation{}
-	if err := r.conn.
-		Preload("SupersededBy").
-		Where("kb_id IN ?", unapplied).
-		Find(&relations).Error; err != nil {
-		return nil, xerrors.Errorf("Failed to get KB Relation by unapplied KBID: %q. err: %w", applied, err)
-	}
-
-	for _, relation := range relations {
-		uniqUnappliedKBIDs[relation.KBID] = struct{}{}
-		for _, supersededby := range relation.SupersededBy {
-			uniqUnappliedKBIDs[supersededby.KBID] = struct{}{}
 		}
 	}
 
