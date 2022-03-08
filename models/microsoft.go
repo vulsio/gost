@@ -326,6 +326,20 @@ type MicrosoftProduct struct {
 	ProductName    string `json:"product_name" gorm:"type:varchar(255)"`
 }
 
+// MicrosoftKBRelation :
+type MicrosoftKBRelation struct {
+	ID           int64  `json:"-"`
+	KBID         string `json:"kbid" gorm:"type:varchar(255);index:idx_microsoft_relation_kb_id"`
+	SupersededBy []MicrosoftSupersededBy
+}
+
+// MicrosoftSupersededBy :
+type MicrosoftSupersededBy struct {
+	ID                    int64  `json:"-"`
+	MicrosoftKBRelationID int64  `json:"-" gorm:"index:idx_microsoft_superseded_by_microsoft_kb_relation_id"`
+	KBID                  string `json:"kbid" gorm:"type:varchar(255);index:idx_microsoft_superseded_by_kb_id"`
+}
+
 // ConvertMicrosoft :
 func ConvertMicrosoft(cveXMLs []MicrosoftXML, cveXls []MicrosoftBulletinSearch) (cves []MicrosoftCVE, msProducts []MicrosoftProduct) {
 	uniqCve := map[string]MicrosoftCVE{}
@@ -769,4 +783,24 @@ func getProductFromName(msProducts []MicrosoftProduct, productName string) Micro
 	return MicrosoftProduct{
 		ProductName: productName,
 	}
+}
+
+// ConvertMicrosoftKBRelation :
+func ConvertMicrosoftKBRelation(kbRelationJSON map[string][]string) []MicrosoftKBRelation {
+	kbRelations := []MicrosoftKBRelation{}
+
+	for kbid, supersededbyKBIDs := range kbRelationJSON {
+		supersededby := []MicrosoftSupersededBy{}
+		for _, kbid := range supersededbyKBIDs {
+			supersededby = append(supersededby, MicrosoftSupersededBy{
+				KBID: kbid,
+			})
+		}
+		kbRelations = append(kbRelations, MicrosoftKBRelation{
+			KBID:         kbid,
+			SupersededBy: supersededby,
+		})
+	}
+
+	return kbRelations
 }

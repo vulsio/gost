@@ -136,6 +136,8 @@ func (r *RDBDriver) MigrateDB() error {
 		&models.MicrosoftScoreSet{},
 		&models.MicrosoftProduct{},
 		&models.MicrosoftKBID{},
+		&models.MicrosoftKBRelation{},
+		&models.MicrosoftSupersededBy{},
 	); err != nil {
 		return xerrors.Errorf("Failed to migrate. err: %w", err)
 	}

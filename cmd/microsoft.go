@@ -70,8 +70,14 @@ func fetchMicrosoft(_ *cobra.Command, _ []string) (err error) {
 	}
 	cves, product := models.ConvertMicrosoft(cveXMLs, cveXls)
 
+	kbRelationJSON, err := fetcher.RetrieveMicrosoftKBRelation()
+	if err != nil {
+		return xerrors.Errorf("Failed to retrieve Microsoft KB Relation. err: %w", err)
+	}
+	kbRelations := models.ConvertMicrosoftKBRelation(kbRelationJSON)
+
 	log15.Info("Insert Microsoft CVEs into DB", "db", driver.Name())
-	if err := driver.InsertMicrosoft(cves, product); err != nil {
+	if err := driver.InsertMicrosoft(cves, product, kbRelations); err != nil {
 		return xerrors.Errorf("Failed to insert. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 

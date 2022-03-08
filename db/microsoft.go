@@ -8,33 +8,98 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
 )
 
 // GetCveIDsByMicrosoftKBID :
-func (r *RDBDriver) GetCveIDsByMicrosoftKBID(kbID string) ([]string, error) {
-	msIDs := []string{}
-	if err := r.conn.
-		Model(&models.MicrosoftKBID{}).
-		Select("microsoft_cve_id").
-		Where("kb_id = ?", kbID).
-		Find(&msIDs).Error; err != nil {
-		return nil, xerrors.Errorf("Failed to get MicrosoftCVEID by KBID. err: %w", err)
-	}
-	if len(msIDs) == 0 {
-		return []string{}, nil
+func (r *RDBDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []string) (map[string][]string, error) {
+	kbIDs, err := r.getUnAppliedKBIDs(applied, unapplied)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to get UnApplied KBIDs. err: %w", err)
 	}
 
-	cveIDs := []string{}
-	if err := r.conn.
-		Model(&models.MicrosoftCVE{}).
-		Select("cve_id").
-		Where("id IN ?", msIDs).
-		Find(&cveIDs).Error; err != nil {
-		return nil, xerrors.Errorf("Failed to get CVEID by MicrosoftCVEID. err: %w", err)
+	kbCVEIDs := map[string][]string{}
+	for _, kbID := range kbIDs {
+		msIDs := []string{}
+		if err := r.conn.
+			Model(&models.MicrosoftKBID{}).
+			Distinct("microsoft_cve_id").
+			Where("kb_id = ?", kbID).
+			Find(&msIDs).Error; err != nil {
+			return nil, xerrors.Errorf("Failed to get MicrosoftCVEID by KBID. err: %w", err)
+		}
+		if len(msIDs) == 0 {
+			kbCVEIDs[kbID] = []string{}
+			continue
+		}
+
+		cveIDs := []string{}
+		if err := r.conn.
+			Model(&models.MicrosoftCVE{}).
+			Distinct("cve_id").
+			Where("id IN ?", msIDs).
+			Find(&cveIDs).Error; err != nil {
+			return nil, xerrors.Errorf("Failed to get CVEID by MicrosoftCVEID. err: %w", err)
+		}
+		kbCVEIDs[kbID] = cveIDs
 	}
-	return cveIDs, nil
+	return kbCVEIDs, nil
+}
+
+func (r *RDBDriver) getUnAppliedKBIDs(applied []string, unapplied []string) ([]string, error) {
+	uniqUnappliedKBIDs := map[string]struct{}{}
+	if len(applied) > 0 {
+		relations := []models.MicrosoftKBRelation{}
+
+		if err := r.conn.
+			Preload("SupersededBy").
+			Where("kb_id IN ?", applied).
+			Find(&relations).Error; err != nil {
+			return nil, xerrors.Errorf("Failed to get KB Relation by applied KBID: %q. err: %w", applied, err)
+		}
+
+		for _, relation := range relations {
+			isInApplied := false
+			for _, supersededby := range relation.SupersededBy {
+				if util.StringInSlice(supersededby.KBID, applied) {
+					isInApplied = true
+					break
+				}
+			}
+			if !isInApplied {
+				for _, supersededby := range relation.SupersededBy {
+					uniqUnappliedKBIDs[supersededby.KBID] = struct{}{}
+				}
+			}
+		}
+	}
+
+	if len(unapplied) > 0 {
+		relations := []models.MicrosoftKBRelation{}
+
+		if err := r.conn.
+			Preload("SupersededBy").
+			Where("kb_id IN ?", unapplied).
+			Find(&relations).Error; err != nil {
+			return nil, xerrors.Errorf("Failed to get KB Relation by unapplied KBID: %q. err: %w", unapplied, err)
+		}
+
+		for _, relation := range relations {
+			uniqUnappliedKBIDs[relation.KBID] = struct{}{}
+			for _, supersededby := range relation.SupersededBy {
+				uniqUnappliedKBIDs[supersededby.KBID] = struct{}{}
+			}
+		}
+	}
+
+	unappliedKBIDs := []string{}
+	for kbid := range uniqUnappliedKBIDs {
+		unappliedKBIDs = append(unappliedKBIDs, kbid)
+	}
+
+	return unappliedKBIDs, nil
 }
 
 // GetMicrosoft :
@@ -172,9 +237,14 @@ func (r *RDBDriver) GetMicrosoftMulti(cveIDs []string) (map[string]models.Micros
 }
 
 // InsertMicrosoft :
-func (r *RDBDriver) InsertMicrosoft(cves []models.MicrosoftCVE, _ []models.MicrosoftProduct) (err error) {
-	if err = r.deleteAndInsertMicrosoft(cves); err != nil {
+func (r *RDBDriver) InsertMicrosoft(cves []models.MicrosoftCVE, _ []models.MicrosoftProduct, kbRelations []models.MicrosoftKBRelation) error {
+	log15.Info("Inserting cves", "cves", len(cves))
+	if err := r.deleteAndInsertMicrosoft(cves); err != nil {
 		return xerrors.Errorf("Failed to insert Microsoft CVE data. err: %w", err)
+	}
+	log15.Info("Insert KB Relation", "kbRelation", len(kbRelations))
+	if err := r.deleteAndInsertMicrosoftKBRelation(kbRelations); err != nil {
+		return xerrors.Errorf("Failed to insert Microsoft KB Relation data. err: %w", err)
 	}
 	return nil
 }
@@ -230,6 +300,41 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(cves []models.MicrosoftCVE) (err er
 	}
 	bar.Finish()
 
+	return nil
+}
+
+func (r *RDBDriver) deleteAndInsertMicrosoftKBRelation(kbs []models.MicrosoftKBRelation) (err error) {
+	bar := pb.StartNew(len(kbs))
+	tx := r.conn.Begin()
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+	}()
+
+	// Delete all old records
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftKBRelation{}).Error; err != nil {
+		return xerrors.Errorf("Failed to delete MicrosoftKBRelation. err: %s", err)
+	}
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftSupersededBy{}).Error; err != nil {
+		return xerrors.Errorf("Failed to delete MicrosoftSupersededBy. err: %s", err)
+	}
+
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
+	for idx := range chunkSlice(len(kbs), batchSize) {
+		if err = tx.Create(kbs[idx.From:idx.To]).Error; err != nil {
+			return xerrors.Errorf("Failed to insert. err: %w", err)
+		}
+		bar.Add(idx.To - idx.From)
+	}
+	bar.Finish()
 	return nil
 }
 
