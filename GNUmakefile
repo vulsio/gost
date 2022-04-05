@@ -28,7 +28,6 @@ REVISION := $(shell git rev-parse --short HEAD)
 LDFLAGS := -X 'github.com/vulsio/gost/config.Version=$(VERSION)' \
 	-X 'github.com/vulsio/gost/config.Revision=$(REVISION)'
 GO := GO111MODULE=on go
-GO_OFF := GO111MODULE=off go
 
 all: build test
 
@@ -38,11 +37,8 @@ build: main.go
 install: main.go
 	$(GO) install -ldflags "$(LDFLAGS)"
 
-b: 	main.go
-	$(GO) build -ldflags "$(LDFLAGS)" -o gost $<
-
 lint:
-	$(GO_OFF) get -u github.com/mgechev/revive
+	$(GO) install github.com/mgechev/revive@latest
 	revive -config ./.revive.toml -formatter plain $(PKGS)
 
 vet:
