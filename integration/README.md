@@ -22,14 +22,17 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --list_path LIST_PATH
-                        A file path containing a line by line list of CVE-IDs or Packages to be diffed in server mode results
+                        A file path containing a line by line list of CVE-IDs or Packages to be
+                        diffed in server mode results
+  --sample_rate SAMPLE_RATE
+                        Adjust the rate of data used for testing (len(test_data) * sample_rate)
   --debug, --no-debug   print debug message
 ```
 
 [GNUmakefile](../GNUmakefile) has some tasks for testing.  
 Please run it in the top directory of the gost repository.
 
-**NOTE: Tests for RedHat are commented out by default because fetch takes a long time. Tests for Microsoft are commented out by default because they require API KEY. Please uncomment them if necessary.**
+**NOTE: Tests for Microsoft are commented out by default because they require API KEY. Please uncomment them if necessary.**
 
 - build-integration: create the gost binaries needed for testing
 - clean-integration: delete the gost process, binary, and docker container used in the test

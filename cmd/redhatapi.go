@@ -2,13 +2,15 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/db"
-	"github.com/knqyf263/gost/fetcher"
-	"github.com/knqyf263/gost/models"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/vulsio/gost/db"
+	"github.com/vulsio/gost/fetcher"
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 )
 
@@ -33,34 +35,39 @@ func init() {
 	_ = viper.BindPFlag("list-only", redHatAPICmd.PersistentFlags().Lookup("list-only"))
 }
 
-func fetchRedHatAPI(cmd *cobra.Command, args []string) (err error) {
+func fetchRedHatAPI(_ *cobra.Command, _ []string) (err error) {
+	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
+
 	log15.Info("Initialize Database")
-	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
 		if locked {
-			log15.Error("Failed to initialize DB. Close DB connection before fetching", "err", err)
+			return xerrors.Errorf("Failed to initialize DB. Close DB connection before fetching. err: %w", err)
 		}
-		return err
+		return xerrors.Errorf("Failed to open DB. err: %w", err)
 	}
 
 	fetchMeta, err := driver.GetFetchMeta()
 	if err != nil {
-		log15.Error("Failed to get FetchMeta from DB.", "err", err)
-		return err
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
 	}
 	if fetchMeta.OutDated() {
-		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
-		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+		return xerrors.Errorf("Failed to Insert CVEs into DB. err: SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
+	}
+	// If the fetch fails the first time (without SchemaVersion), the DB needs to be cleaned every time, so insert SchemaVersion.
+	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 
 	log15.Info("Fetch the list of CVEs")
 	entries, err := fetcher.ListAllRedhatCves(
 		viper.GetString("before"), viper.GetString("after"), viper.GetInt("threads"))
 	if err != nil {
-		log15.Error("Failed to fetch the list of CVEs.", "err", err)
-		return err
+		return xerrors.Errorf("Failed to fetch the list of CVEs. err: %w", err)
 	}
-	var resourceURLs []string
+	resourceURLs := []string{}
 	for _, entry := range entries {
 		resourceURLs = append(resourceURLs, entry.ResourceURL)
 	}
@@ -73,21 +80,23 @@ func fetchRedHatAPI(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	log15.Info(fmt.Sprintf("Fetched %d CVEs", len(entries)))
-	cves, err := fetcher.RetrieveRedhatCveDetails(resourceURLs)
+	cveJSONs, err := fetcher.RetrieveRedhatCveDetails(resourceURLs)
 	if err != nil {
-		log15.Error("Failed to fetch the CVE details.", "err", err)
-		return err
+		return xerrors.Errorf("Failed to fetch the CVE details. err: %w", err)
+	}
+	cves, err := models.ConvertRedhat(cveJSONs)
+	if err != nil {
+		return xerrors.Errorf("Failed to convert RedhatCVE. err: %w", err)
 	}
 
 	log15.Info("Insert RedHat into DB", "db", driver.Name())
 	if err := driver.InsertRedhat(cves); err != nil {
-		log15.Error("Failed to insert.", "dbpath", viper.GetString("dbpath"), "err", err)
-		return err
+		return xerrors.Errorf("Failed to insert. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 
+	fetchMeta.LastFetchedAt = time.Now()
 	if err := driver.UpsertFetchMeta(fetchMeta); err != nil {
-		log15.Error("Failed to upsert FetchMeta to DB.", "dbpath", viper.GetString("dbpath"), "err", err)
-		return err
+		return xerrors.Errorf("Failed to upsert FetchMeta to DB. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 
 	return nil

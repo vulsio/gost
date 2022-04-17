@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/util"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/vulsio/gost/util"
 )
 
 var cfgFile string
@@ -27,6 +27,9 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gost.yaml)")
+
+	RootCmd.PersistentFlags().Bool("log-to-file", false, "output log to file")
+	_ = viper.BindPFlag("log-to-file", RootCmd.PersistentFlags().Lookup("log-to-file"))
 
 	RootCmd.PersistentFlags().String("log-dir", util.GetDefaultLogDir(), "/path/to/log")
 	_ = viper.BindPFlag("log-dir", RootCmd.PersistentFlags().Lookup("log-dir"))
@@ -74,8 +77,4 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
-	logDir := viper.GetString("log-dir")
-	debug := viper.GetBool("debug")
-	logJSON := viper.GetBool("log-json")
-	util.SetLogger(logDir, debug, logJSON)
 }

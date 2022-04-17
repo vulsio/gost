@@ -1,13 +1,50 @@
-package util
+package notifier
 
 import (
 	"fmt"
 	"reflect"
 	"strings"
 
-	"github.com/knqyf263/gost/config"
-	"github.com/knqyf263/gost/models"
+	"github.com/vulsio/gost/config"
+	"github.com/vulsio/gost/models"
 )
+
+// ClearIDRedhat :
+func ClearIDRedhat(cve *models.RedhatCVE) {
+	cve.ID = 0
+	cve.Bugzilla.RedhatCVEID = 0
+	cve.Cvss.RedhatCVEID = 0
+	cve.Cvss3.RedhatCVEID = 0
+
+	affectedReleases := cve.AffectedRelease
+	cve.AffectedRelease = []models.RedhatAffectedRelease{}
+	for _, a := range affectedReleases {
+		a.RedhatCVEID = 0
+		cve.AffectedRelease = append(cve.AffectedRelease, a)
+	}
+
+	packageState := cve.PackageState
+	cve.PackageState = []models.RedhatPackageState{}
+	for _, p := range packageState {
+		p.RedhatCVEID = 0
+		cve.PackageState = append(cve.PackageState, p)
+	}
+
+	details := cve.Details
+	cve.Details = []models.RedhatDetail{}
+	for _, d := range details {
+		d.RedhatCVEID = 0
+		cve.Details = append(cve.Details, d)
+	}
+
+	references := cve.References
+	cve.References = []models.RedhatReference{}
+	for _, r := range references {
+		r.RedhatCVEID = 0
+		cve.References = append(cve.References, r)
+	}
+
+}
 
 // DiffRedhat returns the difference between the old and new CVE information
 func DiffRedhat(old, new *models.RedhatCVE, config config.RedhatWatchCve) (body string) {
@@ -41,7 +78,7 @@ func DiffRedhat(old, new *models.RedhatCVE, config config.RedhatWatchCve) (body 
 	}
 
 	if config.Bugzilla {
-		if reflect.DeepEqual(old.Bugzilla, new.Bugzilla) == false {
+		if !reflect.DeepEqual(old.Bugzilla, new.Bugzilla) {
 			body += fmt.Sprintf(`
 Bugzilla
 ------------------
@@ -61,7 +98,7 @@ URL: %s
 	}
 
 	if config.Cvss {
-		if reflect.DeepEqual(old.Cvss, new.Cvss) == false {
+		if !reflect.DeepEqual(old.Cvss, new.Cvss) {
 			body += fmt.Sprintf(`
 CVSS
 ------------------
@@ -81,7 +118,7 @@ Status: %s
 	}
 
 	if config.Cvss3 {
-		if reflect.DeepEqual(old.Cvss3, new.Cvss3) == false {
+		if !reflect.DeepEqual(old.Cvss3, new.Cvss3) {
 			body += fmt.Sprintf(`
 CVSSv3
 ------------------
@@ -116,7 +153,7 @@ Status: %s
 
 			old, ok := oldAffectedRelease[key]
 			if ok {
-				if reflect.DeepEqual(old, new) == false {
+				if !reflect.DeepEqual(old, new) {
 					isNew = true
 				}
 			} else {
@@ -165,7 +202,7 @@ Release Date: %s
 
 			old, ok := oldPackageState[key]
 			if ok {
-				if reflect.DeepEqual(old, new) == false {
+				if !reflect.DeepEqual(old, new) {
 					isNew = true
 				}
 			} else {
@@ -196,7 +233,7 @@ Package Name: %s
 	}
 
 	if config.Reference && (len(old.References) > 0 || len(new.References) > 0) {
-		if reflect.DeepEqual(old.References, new.References) == false {
+		if !reflect.DeepEqual(old.References, new.References) {
 			o := []string{}
 			for _, old := range old.References {
 				o = append(o, old.Reference)
@@ -221,7 +258,7 @@ Reference
 	}
 
 	if config.Details && (len(old.Details) > 0 || len(new.Details) > 0) {
-		if reflect.DeepEqual(old.Details, new.Details) == false {
+		if !reflect.DeepEqual(old.Details, new.Details) {
 			o := []string{}
 			for _, old := range old.Details {
 				o = append(o, old.Detail)

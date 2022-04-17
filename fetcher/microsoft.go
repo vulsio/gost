@@ -1,21 +1,24 @@
 package fetcher
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"regexp"
 
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/models"
-	"github.com/knqyf263/gost/util"
 	"github.com/pkg/errors"
 	"github.com/tealeg/xlsx"
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
+	"golang.org/x/xerrors"
 )
 
 var (
 	updateListURL                   = "https://api.msrc.microsoft.com/Updates?api-version=2016-08-01"
 	bulletinSearchURL               = "https://download.microsoft.com/download/6/7/3/673E4349-1CA5-40B9-8879-095C72D5B49D/BulletinSearch.xlsx"
 	bulletinSearchFrom2001To2008URL = "https://download.microsoft.com/download/6/7/3/673E4349-1CA5-40B9-8879-095C72D5B49D/BulletinSearch2001-2008.xlsx"
+	kbRelationURL                   = "https://raw.githubusercontent.com/MaineK00n/ms-kb-relation/main/ms_kb.json"
 	msDateRegexp                    = regexp.MustCompile(`\d+[-\/]\d+[-\/]\d+`)
 )
 
@@ -89,4 +92,17 @@ func XlsToModel(bs []byte) (cves []models.MicrosoftBulletinSearch, err error) {
 		}
 	}
 	return cves, nil
+}
+
+// RetrieveMicrosoftKBRelation :
+func RetrieveMicrosoftKBRelation() (map[string][]string, error) {
+	res, err := util.FetchURL(kbRelationURL, "")
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to fetch KB Relation JSON. err: %w", err)
+	}
+	var kbRelation map[string][]string
+	if err := json.NewDecoder(bytes.NewReader(res)).Decode(&kbRelation); err != nil {
+		return nil, xerrors.Errorf("Failed to decode KB Relation. err: %w", err)
+	}
+	return kbRelation, nil
 }

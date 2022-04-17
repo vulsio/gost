@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // UbuntuCVEJSON :
 type UbuntuCVEJSON struct {
@@ -30,7 +33,7 @@ type UbuntuPatchJSON struct {
 type UbuntuCVE struct {
 	ID int64 `json:"-"`
 
-	PublicDateAtUSN   time.Time         `json:"public_data_at_usn"`
+	PublicDateAtUSN   time.Time         `json:"public_date_at_usn"`
 	CRD               time.Time         `json:"crd"`
 	Candidate         string            `json:"candidate" gorm:"type:varchar(255);index:idx_ubuntu_cve_candidate"`
 	PublicDate        time.Time         `json:"public_date"`
@@ -40,7 +43,7 @@ type UbuntuCVE struct {
 	Notes             []UbuntuNote      `json:"notes"`
 	Bugs              []UbuntuBug       `json:"bugs"`
 	Priority          string            `json:"priority" gorm:"type:varchar(255)"`
-	DiscoveredBy      string            `json:"discovered_by" gorm:"type:varchar(255)"`
+	DiscoveredBy      string            `json:"discovered_by" gorm:"type:text"`
 	AssignedTo        string            `json:"assigned_to" gorm:"type:varchar(255)"`
 	Patches           []UbuntuPatch     `json:"patches"`
 	Upstreams         []UbuntuUpstream  `json:"upstreams"`
@@ -97,4 +100,78 @@ type UbuntuUpstreamLink struct {
 	ID               int64  `json:"-"`
 	UbuntuUpstreamID int64  `json:"-" gorm:"index:idx_ubuntu_upstream_link_ubuntu_upstream_id"`
 	Link             string `json:"link" gorm:"type:text"`
+}
+
+// ConvertUbuntu :
+func ConvertUbuntu(cveJSONs []UbuntuCVEJSON) (cves []UbuntuCVE) {
+	for _, cve := range cveJSONs {
+		if strings.Contains(cve.Description, "** REJECT **") {
+			continue
+		}
+
+		if cve.PublicDateAtUSN == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
+			cve.PublicDateAtUSN = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+		}
+
+		if cve.CRD == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
+			cve.CRD = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+		}
+
+		if cve.PublicDate == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
+			cve.PublicDate = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+		}
+
+		references := []UbuntuReference{}
+		for _, r := range cve.References {
+			references = append(references, UbuntuReference{Reference: r})
+		}
+
+		notes := []UbuntuNote{}
+		for _, n := range cve.Notes {
+			notes = append(notes, UbuntuNote{Note: n})
+		}
+
+		bugs := []UbuntuBug{}
+		for _, b := range cve.Bugs {
+			bugs = append(bugs, UbuntuBug{Bug: b})
+		}
+
+		patches := []UbuntuPatch{}
+		for pkgName, p := range cve.Patches {
+			var releasePatch []UbuntuReleasePatch
+			for release, patch := range p {
+				releasePatch = append(releasePatch, UbuntuReleasePatch{ReleaseName: release, Status: patch.Status, Note: patch.Note})
+			}
+			patches = append(patches, UbuntuPatch{PackageName: pkgName, ReleasePatches: releasePatch})
+		}
+
+		upstreams := []UbuntuUpstream{}
+		for pkgName, u := range cve.UpstreamLinks {
+			links := []UbuntuUpstreamLink{}
+			for _, link := range u {
+				links = append(links, UbuntuUpstreamLink{Link: link})
+			}
+			upstreams = append(upstreams, UbuntuUpstream{PackageName: pkgName, UpstreamLinks: links})
+		}
+
+		c := UbuntuCVE{
+			PublicDateAtUSN:   cve.PublicDateAtUSN,
+			CRD:               cve.CRD,
+			Candidate:         cve.Candidate,
+			PublicDate:        cve.PublicDate,
+			References:        references,
+			Description:       cve.Description,
+			UbuntuDescription: cve.UbuntuDescription,
+			Notes:             notes,
+			Bugs:              bugs,
+			Priority:          cve.Priority,
+			DiscoveredBy:      cve.DiscoveredBy,
+			AssignedTo:        cve.AssignedTo,
+			Patches:           patches,
+			Upstreams:         upstreams,
+		}
+		cves = append(cves, c)
+	}
+
+	return cves
 }

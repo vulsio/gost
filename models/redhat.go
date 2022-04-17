@@ -3,6 +3,9 @@ package models
 import (
 	"strings"
 	"time"
+
+	"github.com/vulsio/gost/util"
+	"golang.org/x/xerrors"
 )
 
 // RedhatEntry :
@@ -89,7 +92,7 @@ type RedhatCVE struct {
 
 // GetDetail returns details
 func (r RedhatCVE) GetDetail(sep string) string {
-	var details []string
+	details := []string{}
 	for _, d := range r.Details {
 		details = append(details, d.Detail)
 	}
@@ -103,7 +106,7 @@ func (r RedhatCVE) GetPackages(sep string) (result string) {
 		pkgs[d.PackageName] = struct{}{}
 	}
 
-	var pkgNames []string
+	pkgNames := []string{}
 	for p := range pkgs {
 		pkgNames = append(pkgNames, p)
 	}
@@ -172,4 +175,59 @@ type RedhatPackageState struct {
 	FixState    string `json:"fix_state" gorm:"type:varchar(255);index:idx_redhat_package_states_fix_state"`
 	PackageName string `json:"package_name" gorm:"type:varchar(255);index:idx_redhat_package_states_package_name"`
 	Cpe         string `json:"cpe" gorm:"type:varchar(255);index:idx_redhat_package_states_cpe"`
+}
+
+// ConvertRedhat :
+func ConvertRedhat(cveJSONs []RedhatCVEJSON) (cves []RedhatCVE, err error) {
+	for _, cve := range cveJSONs {
+		details := []RedhatDetail{}
+		for _, d := range cve.Details {
+			d = util.TrimSpaceNewline(d)
+			details = append(details, RedhatDetail{Detail: d})
+		}
+
+		references := []RedhatReference{}
+		for _, r := range cve.References {
+			r = util.TrimSpaceNewline(r)
+			references = append(references, RedhatReference{Reference: r})
+		}
+
+		cve.Bugzilla.Description = util.TrimSpaceNewline(cve.Bugzilla.Description)
+		cve.Statement = util.TrimSpaceNewline(cve.Statement)
+
+		var publicDate time.Time
+		if cve.PublicDate != "" {
+			if strings.HasSuffix(cve.PublicDate, "Z") {
+				publicDate, err = time.Parse("2006-01-02T15:04:05Z", cve.PublicDate)
+			} else {
+				publicDate, err = time.Parse("2006-01-02T15:04:05", cve.PublicDate)
+			}
+			if err != nil {
+				return nil, xerrors.Errorf("Failed to parse date. date: %s err: %w", cve.PublicDate, err)
+			}
+		}
+
+		// TODO: more efficient
+		c := RedhatCVE{
+			ThreatSeverity:       cve.ThreatSeverity,
+			PublicDate:           publicDate,
+			Bugzilla:             cve.Bugzilla,
+			Cvss:                 cve.Cvss,
+			Cvss3:                cve.Cvss3,
+			Iava:                 cve.Iava,
+			Cwe:                  cve.Cwe,
+			Statement:            cve.Statement,
+			Acknowledgement:      cve.Acknowledgement,
+			Mitigation:           cve.Mitigation,
+			AffectedRelease:      cve.AffectedRelease,
+			PackageState:         cve.PackageState,
+			Name:                 cve.Name,
+			DocumentDistribution: cve.DocumentDistribution,
+
+			Details:    details,
+			References: references,
+		}
+		cves = append(cves, c)
+	}
+	return cves, nil
 }

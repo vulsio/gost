@@ -12,12 +12,13 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/config"
-	"github.com/knqyf263/gost/db"
-	"github.com/knqyf263/gost/models"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/vulsio/gost/config"
+	"github.com/vulsio/gost/db"
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 )
 
@@ -42,13 +43,17 @@ func init() {
 	_ = viper.BindPFlag("select-after", registerCmd.PersistentFlags().Lookup("select-after"))
 }
 
-func executeRegister(cmd *cobra.Command, args []string) (err error) {
+func executeRegister(_ *cobra.Command, _ []string) (err error) {
+	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
+		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
+	}
+
 	log15.Info("Validate command-line options")
 	afterOption := viper.GetString("select-after")
 	var after time.Time
 	if afterOption != "" {
 		if after, err = time.Parse("2006-01-02", afterOption); err != nil {
-			return fmt.Errorf("Failed to parse --select-after. err: %s", err)
+			return xerrors.Errorf("Failed to parse --select-after. err: %w", err)
 		}
 	} else {
 		now := time.Now()
@@ -68,22 +73,20 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 	}
 
 	log15.Info("Initialize Database")
-	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"))
+	driver, locked, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
 		if locked {
-			log15.Error("Failed to initialize DB. Close DB connection before fetching", "err", err)
+			return xerrors.Errorf("Failed to initialize DB. Close DB connection before fetching. err: %w", err)
 		}
-		return err
+		return xerrors.Errorf("Failed to open DB. err: %w", err)
 	}
 
 	fetchMeta, err := driver.GetFetchMeta()
 	if err != nil {
-		log15.Error("Failed to get FetchMeta from DB.", "err", err)
-		return err
+		return xerrors.Errorf("Failed to get FetchMeta from DB. err: %w", err)
 	}
 	if fetchMeta.OutDated() {
-		log15.Error("Failed to Insert CVEs into DB. SchemaVersion is old", "SchemaVersion", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
-		return xerrors.New("Failed to Insert CVEs into DB. SchemaVersion is old")
+		return xerrors.Errorf("Failed to register command. err: SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
 
 	log15.Info("Select all RedHat CVEs")
@@ -101,7 +104,11 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 			redhat.Cvss3.Cvss3BaseScore, runewidth.Truncate(redhat.GetPackages(","), 20, "..."), runewidth.Truncate(redhat.GetDetail(""), 120, "...")))
 	}
 	selectedLine, err := filter(allRedhatText)
-	var cves []string
+	if err != nil {
+		return err
+	}
+
+	cves := []string{}
 	for _, line := range selectedLine {
 		split := strings.Split(line, "|")
 		if len(split) < 2 {
@@ -118,7 +125,7 @@ func executeRegister(cmd *cobra.Command, args []string) (err error) {
 		}
 	}
 	if err = save(conf); err != nil {
-		return fmt.Errorf("Failed to save the selected CVEs. err: %s", err)
+		return xerrors.Errorf("Failed to save the selected CVEs. err: %w", err)
 	}
 
 	return err
@@ -154,9 +161,9 @@ func filter(cves []string) (results []string, err error) {
 func save(conf config.Config) error {
 	confFile := "config.toml"
 	f, err := os.Create(confFile)
-	defer f.Close()
 	if err != nil {
-		return fmt.Errorf("Failed to save config file. err: %s", err)
+		return xerrors.Errorf("Failed to save config file. err: %w", err)
 	}
+	defer f.Close()
 	return toml.NewEncoder(f).Encode(conf)
 }

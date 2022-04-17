@@ -2,15 +2,15 @@ package notifier
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/cenkalti/backoff"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
 
-	"github.com/knqyf263/gost/config"
 	"github.com/parnurzeal/gorequest"
+	"github.com/vulsio/gost/config"
 )
 
 type message struct {
@@ -28,10 +28,7 @@ func SendSlack(txt string, conf config.SlackConf) error {
 		IconEmoji: conf.IconEmoji,
 		Channel:   conf.Channel,
 	}
-	if err := send(msg, conf); err != nil {
-		return err
-	}
-	return nil
+	return send(msg, conf)
 }
 
 func send(msg message, conf config.SlackConf) error {
@@ -47,9 +44,7 @@ func send(msg message, conf config.SlackConf) error {
 			if count == retryMax {
 				return nil
 			}
-			return fmt.Errorf(
-				"HTTP POST error: %v, url: %s, resp: %v, body: %s",
-				errs, conf.HookURL, resp, body)
+			return xerrors.Errorf("HTTP POST error: %v, url: %s, resp: %v, body: %s", errs, conf.HookURL, resp, body)
 		}
 		return nil
 	}
@@ -59,10 +54,10 @@ func send(msg message, conf config.SlackConf) error {
 	}
 	boff := backoff.NewExponentialBackOff()
 	if err := backoff.RetryNotify(f, boff, notify); err != nil {
-		return fmt.Errorf("HTTP error: %s", err)
+		return xerrors.Errorf("HTTP error: %w", err)
 	}
 	if count == retryMax {
-		return fmt.Errorf("Retry count exceeded")
+		return xerrors.Errorf("Retry count exceeded")
 	}
 	return nil
 }

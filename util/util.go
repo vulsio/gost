@@ -2,7 +2,6 @@ package util
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,12 +12,11 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
+	pb "github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
 	"github.com/parnurzeal/gorequest"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
-	pb "gopkg.in/cheggaaa/pb.v1"
-	"gorm.io/gorm"
 )
 
 // GenWorkers generate workers
@@ -44,26 +42,6 @@ func GetDefaultLogDir() string {
 	return defaultLogDir
 }
 
-// DeleteNil deletes nil in errs
-func DeleteNil(errs []error) (new []error) {
-	for _, err := range errs {
-		if err != nil {
-			new = append(new, err)
-		}
-	}
-	return new
-}
-
-// DeleteRecordNotFound deletes gorm.ErrRecordNotFound in errs
-func DeleteRecordNotFound(errs []error) (new []error) {
-	for _, err := range errs {
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			new = append(new, err)
-		}
-	}
-	return new
-}
-
 // TrimSpaceNewline deletes space character and newline character(CR/LF)
 func TrimSpaceNewline(str string) string {
 	str = strings.TrimSpace(str)
@@ -72,7 +50,6 @@ func TrimSpaceNewline(str string) string {
 
 // FetchURL returns HTTP response body
 func FetchURL(url, apikey string) ([]byte, error) {
-	var errs []error
 	httpProxy := viper.GetString("http-proxy")
 
 	req := gorequest.New().Proxy(httpProxy).Get(url)
@@ -80,11 +57,8 @@ func FetchURL(url, apikey string) ([]byte, error) {
 		req.Header["api-key"] = []string{apikey}
 	}
 	resp, body, err := req.Type("text").EndBytes()
-	if len(errs) > 0 || resp == nil {
-		return nil, fmt.Errorf("HTTP error. errs: %v, url: %s", err, url)
-	}
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("HTTP error. errs: %v, status code: %d, url: %s", err, resp.StatusCode, url)
+	if len(err) > 0 || resp == nil || resp.StatusCode != 200 {
+		return nil, xerrors.Errorf("HTTP error. url: %s, err: %w", url, err)
 	}
 	return body, nil
 }
@@ -108,20 +82,18 @@ func FetchConcurrently(urls []string, concurrency, wait int) (responses [][]byte
 	tasks := GenWorkers(concurrency, wait)
 	for range urls {
 		tasks <- func() {
-			select {
-			case url := <-reqChan:
-				var err error
-				for i := 1; i <= 3; i++ {
-					var res []byte
-					res, err = FetchURL(url, "")
-					if err == nil {
-						resChan <- res
-						return
-					}
-					time.Sleep(time.Duration(i*2) * time.Second)
+			url := <-reqChan
+			var err error
+			for i := 1; i <= 3; i++ {
+				var res []byte
+				res, err = FetchURL(url, "")
+				if err == nil {
+					resChan <- res
+					return
 				}
-				errChan <- err
+				time.Sleep(time.Duration(i*2) * time.Second)
 			}
+			errChan <- err
 		}
 		bar.Increment()
 	}
@@ -147,40 +119,44 @@ func FetchConcurrently(urls []string, concurrency, wait int) (responses [][]byte
 }
 
 // SetLogger set logger
-func SetLogger(logDir string, debug, logJSON bool) {
-	stderrHundler := log15.StderrHandler
+func SetLogger(logToFile bool, logDir string, debug, logJSON bool) error {
+	stderrHandler := log15.StderrHandler
 	logFormat := log15.LogfmtFormat()
 	if logJSON {
 		logFormat = log15.JsonFormatEx(false, true)
-		stderrHundler = log15.StreamHandler(os.Stderr, logFormat)
+		stderrHandler = log15.StreamHandler(os.Stderr, logFormat)
 	}
 
-	lvlHundler := log15.LvlFilterHandler(log15.LvlInfo, stderrHundler)
+	lvlHandler := log15.LvlFilterHandler(log15.LvlInfo, stderrHandler)
 	if debug {
-		lvlHundler = log15.LvlFilterHandler(log15.LvlDebug, stderrHundler)
+		lvlHandler = log15.LvlFilterHandler(log15.LvlDebug, stderrHandler)
 	}
 
-	if _, err := os.Stat(logDir); os.IsNotExist(err) {
-		if err := os.Mkdir(logDir, 0700); err != nil {
-			log15.Error("Failed to create log directory", "err", err)
+	var handler log15.Handler
+	if logToFile {
+		if _, err := os.Stat(logDir); err != nil {
+			if os.IsNotExist(err) {
+				if err := os.Mkdir(logDir, 0700); err != nil {
+					return xerrors.Errorf("Failed to create log directory. err: %w", err)
+				}
+			} else {
+				return xerrors.Errorf("Failed to check log directory. err: %w", err)
+			}
 		}
-	}
-	var hundler log15.Handler
-	if _, err := os.Stat(logDir); err == nil {
+
 		logPath := filepath.Join(logDir, "gost.log")
 		if _, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644); err != nil {
-			log15.Error("Failed to create a log file", "err", err)
-			hundler = lvlHundler
-		} else {
-			hundler = log15.MultiHandler(
-				log15.Must.FileHandler(logPath, logFormat),
-				lvlHundler,
-			)
+			return xerrors.Errorf("Failed to open a log file. err: %w", err)
 		}
+		handler = log15.MultiHandler(
+			log15.Must.FileHandler(logPath, logFormat),
+			lvlHandler,
+		)
 	} else {
-		hundler = lvlHundler
+		handler = lvlHandler
 	}
-	log15.Root().SetHandler(hundler)
+	log15.Root().SetHandler(handler)
+	return nil
 }
 
 // Major returns major version
@@ -200,6 +176,10 @@ func CacheDir() string {
 // FileWalk walks the file tree rooted at root
 func FileWalk(root string, targetFiles map[string]struct{}, walkFn func(r io.Reader, path string) error) error {
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return xerrors.Errorf("prevent panic by handling failure accessing a path %q: %w\n", path, err)
+		}
+
 		if info.IsDir() {
 			return nil
 		}
@@ -219,15 +199,12 @@ func FileWalk(root string, targetFiles map[string]struct{}, walkFn func(r io.Rea
 		}
 
 		f, err := os.Open(path)
-		defer f.Close()
 		if err != nil {
 			return xerrors.Errorf("failed to open file: %w", err)
 		}
+		defer f.Close()
 
-		if err = walkFn(f, path); err != nil {
-			return err
-		}
-		return nil
+		return walkFn(f, path)
 	})
 	if err != nil {
 		return xerrors.Errorf("error in file walk: %w", err)
@@ -361,45 +338,4 @@ func (p *ProgressBar) Finish() {
 		return
 	}
 	p.client.Finish()
-}
-
-// Errors has a set of errors that occurred in GORM
-type Errors []error
-
-// Add adds an error to a given slice of errors
-func (errs Errors) Add(newErrors ...error) Errors {
-	for _, err := range newErrors {
-		if err == nil {
-			continue
-		}
-
-		if errors, ok := err.(Errors); ok {
-			errs = errs.Add(errors...)
-		} else {
-			ok = true
-			for _, e := range errs {
-				if err == e {
-					ok = false
-				}
-			}
-			if ok {
-				errs = append(errs, err)
-			}
-		}
-	}
-	return errs
-}
-
-// Error takes a slice of all errors that have occurred and returns it as a formatted string
-func (errs Errors) Error() string {
-	var errors = []string{}
-	for _, e := range errs {
-		errors = append(errors, e.Error())
-	}
-	return strings.Join(errors, "; ")
-}
-
-// GetErrors gets all errors that have occurred and returns a slice of errors (Error type)
-func (errs Errors) GetErrors() []error {
-	return errs
 }

@@ -1,0 +1,21 @@
+project_name: gost
+release:
+  github:
+    owner: vulsio
+    name: gost
+builds:
+- goos:
+  - linux
+  goarch:
+  - amd64
+  main: .
+  ldflags: -s -w -X github.com/vulsio/gost/config.Version={{.Version}} -X github.com/vulsio/gost/config.Revision={{.Commit}}
+  binary: gost
+archives:
+- name_template: '{{ .Binary }}_{{.Version}}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+  format: tar.gz
+  files:
+  - LICENSE
+  - README*
+snapshot:
+  name_template: SNAPSHOT-{{ .Commit }}

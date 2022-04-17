@@ -1,16 +1,14 @@
 package db
 
 import (
-	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"time"
 
-	"github.com/knqyf263/gost/config"
-	"github.com/knqyf263/gost/models"
 	sqlite3 "github.com/mattn/go-sqlite3"
+	"github.com/vulsio/gost/config"
+	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -32,9 +30,8 @@ const (
 
 // RDBDriver is Driver for RDB
 type RDBDriver struct {
-	name      string
-	conn      *gorm.DB
-	batchSize int
+	name string
+	conn *gorm.DB
 }
 
 // Name return db name
@@ -43,15 +40,20 @@ func (r *RDBDriver) Name() string {
 }
 
 // OpenDB opens Database
-func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
+func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool, _ Option) (locked bool, err error) {
 	gormConfig := gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
-		Logger:                                   logger.Default.LogMode(logger.Silent),
+		Logger: logger.New(
+			log.New(os.Stderr, "\r\n", log.LstdFlags),
+			logger.Config{
+				LogLevel: logger.Silent,
+			},
+		),
 	}
 
 	if debugSQL {
 		gormConfig.Logger = logger.New(
-			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			log.New(os.Stderr, "\r\n", log.LstdFlags),
 			logger.Config{
 				SlowThreshold: time.Second,
 				LogLevel:      logger.Info,
@@ -72,14 +74,13 @@ func (r *RDBDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, e
 	}
 
 	if err != nil {
-		msg := fmt.Sprintf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
 		if r.name == dialectSqlite3 {
 			switch err.(sqlite3.Error).Code {
 			case sqlite3.ErrLocked, sqlite3.ErrBusy:
-				return true, fmt.Errorf(msg)
+				return true, xerrors.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %w", dbType, dbPath, err)
 			}
 		}
-		return false, fmt.Errorf(msg)
+		return false, xerrors.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %w", dbType, dbPath, err)
 	}
 
 	if r.name == dialectSqlite3 {
@@ -93,15 +94,11 @@ func (r *RDBDriver) CloseDB() (err error) {
 	if r.conn == nil {
 		return
 	}
-
-	var sqlDB *sql.DB
-	if sqlDB, err = r.conn.DB(); err != nil {
+	sqlDB, err := r.conn.DB()
+	if err != nil {
 		return xerrors.Errorf("Failed to get DB Object. err : %w", err)
 	}
-	if err = sqlDB.Close(); err != nil {
-		return xerrors.Errorf("Failed to close DB. Type: %s. err: %w", r.name, err)
-	}
-	return
+	return sqlDB.Close()
 }
 
 // MigrateDB migrates Database
@@ -139,6 +136,8 @@ func (r *RDBDriver) MigrateDB() error {
 		&models.MicrosoftScoreSet{},
 		&models.MicrosoftProduct{},
 		&models.MicrosoftKBID{},
+		&models.MicrosoftKBRelation{},
+		&models.MicrosoftSupersededBy{},
 	); err != nil {
 		return xerrors.Errorf("Failed to migrate. err: %w", err)
 	}
@@ -177,7 +176,7 @@ func (r *RDBDriver) GetFetchMeta() (fetchMeta *models.FetchMeta, err error) {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
-		return &models.FetchMeta{GostRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
+		return &models.FetchMeta{GostRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion, LastFetchedAt: time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)}, nil
 	}
 
 	return fetchMeta, nil
@@ -188,27 +187,4 @@ func (r *RDBDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
 	fetchMeta.GostRevision = config.Revision
 	fetchMeta.SchemaVersion = models.LatestSchemaVersion
 	return r.conn.Save(fetchMeta).Error
-}
-
-// IndexChunk has a starting point and an ending point for Chunk
-type IndexChunk struct {
-	From, To int
-}
-
-func chunkSlice(length int, chunkSize int) <-chan IndexChunk {
-	ch := make(chan IndexChunk)
-
-	go func() {
-		defer close(ch)
-
-		for i := 0; i < length; i += chunkSize {
-			idx := IndexChunk{i, i + chunkSize}
-			if length < idx.To {
-				idx.To = length
-			}
-			ch <- idx
-		}
-	}()
-
-	return ch
 }

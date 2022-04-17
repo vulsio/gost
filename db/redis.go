@@ -3,57 +3,76 @@ package db
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/cheggaaa/pb/v3"
 	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
-	"github.com/knqyf263/gost/config"
-	"github.com/knqyf263/gost/models"
-	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
+	"github.com/vulsio/gost/config"
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 )
 
 /**
 # Redis Data Structure
 
-- HASH
-  ┌───┬────────────┬──────────────────────────────────┬──────────┬─────────────────────────────────┐
-  │NO │    HASH    │         FIELD                    │  VALUE   │             PURPOSE             │
-  └───┴────────────┴──────────────────────────────────┴──────────┴─────────────────────────────────┘
-  ┌───┬────────────┬──────────────────────────────────┬──────────┬─────────────────────────────────┐
-  │ 1 │CVE#$CVEID  │  RedHat/Debian/Ubuntu/Microsoft  │ $CVEJSON │     TO GET CVEJSON BY CVEID     │
-  └───┴────────────┴──────────────────────────────────┴──────────┴─────────────────────────────────┘
+- Sets
+  ┌───┬──────────────────────────┬──────────────┬─────────────────────────────────────────────┐
+  │NO │    KEY                   │  MEMBER      │                PURPOSE                      │
+  └───┴──────────────────────────┴──────────────┴─────────────────────────────────────────────┘
+  ┌───┬──────────────────────────┬──────────────┬─────────────────────────────────────────────┐
+  │ 1 │ GOST#RH#PKG#$PKGNAME     │  $CVEID      │ (RedHat) GET RELATED []CVEID BY PKGNAME     │
+  ├───┼──────────────────────────┼──────────────┼─────────────────────────────────────────────┤
+  │ 2 │ GOST#DEB#PKG#$PKGNAME    │  $CVEID      │ (Debian) GET RELATED []CVEID BY PKGNAME     │
+  ├───┼──────────────────────────┼──────────────┼─────────────────────────────────────────────┤
+  │ 3 │ GOST#UBU#PKG#$PKGNAME    │  $CVEID      │ (Ubuntu) GET RELATED []CVEID BY PKGNAME     │
+  ├───┼──────────────────────────┼──────────────┼─────────────────────────────────────────────┤
+  │ 4 │ GOST#MS#PKG#K#$KBID      │  $CVEID      │ (Microsoft) GET RELATED []CVEID BY KBID     │
+  ├───┼──────────────────────────┼──────────────┼─────────────────────────────────────────────┤
+  │ 5 │ GOST#MS#PKG#P#$PRODUCTID │ $PRODUCTNAME │ (Microsoft) GET RELATED []PRODUCTNAME BY ID │
+  ├───┼──────────────────────────┼──────────────┼─────────────────────────────────────────────┤
+  │ 6 │ GOST#MS#PKG#R$KBID       │ $KBID        │ (Microsoft) GET SUPERSEDEDBY []KBID BY KBID │
+  └───┴──────────────────────────┴──────────────┴─────────────────────────────────────────────┘
 
-
-- ZINDE  X
-  ┌───┬────────────────┬──────────┬────────────┬───────────────────────────────────────────┐
-  │NO │    KEY         │  SCORE   │  MEMBER    │                PURPOSE                    │
-  └───┴────────────────┴──────────┴────────────┴───────────────────────────────────────────┘
-  ┌───┬────────────────┬──────────┬────────────┬───────────────────────────────────────────┐
-  │ 1 │CVE#R#$PKGNAME  │    0     │  $CVEID    │(RedHat) GET RELATED []CVEID BY PKGNAME    │
-  ├───┼────────────────┼──────────┼────────────┼───────────────────────────────────────────┤
-  │ 2 │CVE#D#$PKGNAME  │    0     │  $CVEID    │(Debian) GET RELATED []CVEID BY PKGNAME    │
-  ├───┼────────────────┼──────────┼────────────┼───────────────────────────────────────────┤
-  │ 3 │CVE#U#$PKGNAME  │    0     │  $CVEID    │(Ubuntu) GET RELATED []CVEID BY PKGNAME    │
-  ├───┼────────────────┼──────────┼────────────┼───────────────────────────────────────────┤
-  │ 3 │CVE#K#$KBID     │    0     │  $CVEID    │(Microsoft) GET RELATED []CVEID BY KBID    │
-  ├───┼────────────────┼──────────┼────────────┼───────────────────────────────────────────┤
-  │ 4 │CVE#P#$PRODUCTID│    0     │$PRODUCTNAME│(Microsoft) GET RELATED []PRODUCTNAME BY ID│
-  └───┴────────────────┴──────────┴────────────┴───────────────────────────────────────────┘
+- Hash
+  ┌───┬────────────────┬───────────────┬───────────┬────────────────────────────────────────────────┐
+  │NO │    KEY         │     FIELD     │   VALUE   │                  PURPOSE                       │
+  └───┴────────────────┴───────────────┴───────────┴────────────────────────────────────────────────┘
+  ┌───┬────────────────┬───────────────┬───────────┬────────────────────────────────────────────────┐
+  │ 1 │ GOST#RH#CVE    │    $CVEID     │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
+  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 2 │ GOST#DEB#CVE   │    $CVEID     │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
+  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 3 │ GOST#UBU#CVE   │    $CVEID     │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
+  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 4 │ GOST#MS#CVE    │    $CVEID     │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
+  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 5 │ GOST#DEP       │ RH/DEB/UBU/MS │   JSON    │ TO DELETE OUTDATED AND UNNEEDED KEY AND MEMBER │
+  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 6 │ GOST#FETCHMETA │   Revision    │  string   │ GET Gost Binary Revision                       │
+  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 7 │ GOST#FETCHMETA │ SchemaVersion │   uint    │ GET Gost Schema Version                        │
+  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 8 │ GOST#FETCHMETA │ LastFetchedAt │ time.Time │ GET Gost Last Fetched Time                     │
+  └───┴────────────────┴───────────────┴───────────┴────────────────────────────────────────────────┘
 
 **/
 
 const (
-	dialectRedis                 = "redis"
-	hashKeyPrefix                = "CVE#"
-	zindRedHatPrefix             = "CVE#R#"
-	zindDebianPrefix             = "CVE#D#"
-	zindUbuntuPrefix             = "CVE#U#"
-	zindMicrosoftKBIDPrefix      = "CVE#K#"
-	zindMicrosoftProductIDPrefix = "CVE#P#"
+	dialectRedis  = "redis"
+	cveKeyFormat  = "GOST#%s#CVE"
+	pkgKeyFormat  = "GOST#%s#PKG#%s"
+	redhatName    = "RH"
+	debianName    = "DEB"
+	ubuntuName    = "UBU"
+	microsoftName = "MS"
+	depKey        = "GOST#DEP"
+	fetchMetaKey  = "GOST#FETCHMETA"
 )
 
 // RedisDriver is Driver for Redis
@@ -68,35 +87,28 @@ func (r *RedisDriver) Name() string {
 }
 
 // OpenDB opens Database
-func (r *RedisDriver) OpenDB(dbType, dbPath string, debugSQL bool) (locked bool, err error) {
-	if err = r.connectRedis(dbPath); err != nil {
-		err = fmt.Errorf("Failed to open DB. dbtype: %s, dbpath: %s, err: %s", dbType, dbPath, err)
-	}
-	return
+func (r *RedisDriver) OpenDB(_, dbPath string, _ bool, option Option) (bool, error) {
+	return false, r.connectRedis(dbPath, option)
 }
 
-func (r *RedisDriver) connectRedis(dbPath string) error {
-	ctx := context.Background()
-	var err error
-	var option *redis.Options
-	if option, err = redis.ParseURL(dbPath); err != nil {
-		log15.Error("Failed to parse url.", "err", err)
-		return err
+func (r *RedisDriver) connectRedis(dbPath string, option Option) error {
+	opt, err := redis.ParseURL(dbPath)
+	if err != nil {
+		return xerrors.Errorf("Failed to parse url. err: %w", err)
 	}
-	r.conn = redis.NewClient(option)
-	err = r.conn.Ping(ctx).Err()
-	return err
+	if 0 < option.RedisTimeout.Seconds() {
+		opt.ReadTimeout = option.RedisTimeout
+	}
+	r.conn = redis.NewClient(opt)
+	return r.conn.Ping(context.Background()).Err()
 }
 
 // CloseDB close Database
-func (r *RedisDriver) CloseDB() (err error) {
+func (r *RedisDriver) CloseDB() error {
 	if r.conn == nil {
-		return
+		return nil
 	}
-	if err = r.conn.Close(); err != nil {
-		return xerrors.Errorf("Failed to close DB. Type: %s. err: %w", r.name, err)
-	}
-	return
+	return r.conn.Close()
 }
 
 // MigrateDB migrates Database
@@ -106,95 +118,160 @@ func (r *RedisDriver) MigrateDB() error {
 
 // IsGostModelV1 determines if the DB was created at the time of Gost Model v1
 func (r *RedisDriver) IsGostModelV1() (bool, error) {
+	ctx := context.Background()
+
+	exists, err := r.conn.Exists(ctx, fetchMetaKey).Result()
+	if err != nil {
+		return false, xerrors.Errorf("Failed to Exists. err: %w", err)
+	}
+	if exists == 0 {
+		keys, _, err := r.conn.Scan(ctx, 0, "GOST#*", 1).Result()
+		if err != nil {
+			return false, xerrors.Errorf("Failed to Scan. err: %w", err)
+		}
+		if len(keys) == 0 {
+			return false, nil
+		}
+		return true, nil
+	}
+
 	return false, nil
 }
 
 // GetFetchMeta get FetchMeta from Database
 func (r *RedisDriver) GetFetchMeta() (*models.FetchMeta, error) {
-	return &models.FetchMeta{GostRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion}, nil
+	ctx := context.Background()
+
+	exists, err := r.conn.Exists(ctx, fetchMetaKey).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to Exists. err: %w", err)
+	}
+	if exists == 0 {
+		return &models.FetchMeta{GostRevision: config.Revision, SchemaVersion: models.LatestSchemaVersion, LastFetchedAt: time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)}, nil
+	}
+
+	revision, err := r.conn.HGet(ctx, fetchMetaKey, "Revision").Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to HGet Revision. err: %w", err)
+	}
+
+	verstr, err := r.conn.HGet(ctx, fetchMetaKey, "SchemaVersion").Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to HGet SchemaVersion. err: %w", err)
+	}
+	version, err := strconv.ParseUint(verstr, 10, 8)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to ParseUint. err: %w", err)
+	}
+
+	datestr, err := r.conn.HGet(ctx, fetchMetaKey, "LastFetchedAt").Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			return nil, xerrors.Errorf("Failed to HGet LastFetchedAt. err: %w", err)
+		}
+		datestr = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC).Format(time.RFC3339)
+	}
+	date, err := time.Parse(time.RFC3339, datestr)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to Parse date. err: %w", err)
+	}
+
+	return &models.FetchMeta{GostRevision: revision, SchemaVersion: uint(version), LastFetchedAt: date}, nil
 }
 
 // UpsertFetchMeta upsert FetchMeta to Database
-func (r *RedisDriver) UpsertFetchMeta(*models.FetchMeta) error {
-	return nil
+func (r *RedisDriver) UpsertFetchMeta(fetchMeta *models.FetchMeta) error {
+	return r.conn.HSet(context.Background(), fetchMetaKey, map[string]interface{}{"Revision": config.Revision, "SchemaVersion": models.LatestSchemaVersion, "LastFetchedAt": fetchMeta.LastFetchedAt}).Err()
 }
 
 // GetAfterTimeRedhat :
-func (r *RedisDriver) GetAfterTimeRedhat(time.Time) ([]models.RedhatCVE, error) {
-	return nil, fmt.Errorf("Not implemented yet")
+func (r *RedisDriver) GetAfterTimeRedhat(after time.Time) ([]models.RedhatCVE, error) {
+	ctx := context.Background()
+
+	cves, err := r.conn.HGetAll(ctx, fmt.Sprintf(cveKeyFormat, redhatName)).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to HGetAll. err: %w", err)
+	}
+	if len(cves) == 0 {
+		return []models.RedhatCVE{}, nil
+	}
+
+	allCves := []models.RedhatCVE{}
+	for _, cvestr := range cves {
+		var cve models.RedhatCVE
+		if err := json.Unmarshal([]byte(cvestr), &cve); err != nil {
+			return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
+		}
+
+		if !after.After(cve.PublicDate) {
+			allCves = append(allCves, cve)
+		}
+	}
+
+	return allCves, nil
 }
 
 // GetRedhat :
-func (r *RedisDriver) GetRedhat(cveID string) *models.RedhatCVE {
-	ctx := context.Background()
-	result := r.conn.HGetAll(ctx, hashKeyPrefix+cveID)
-	if result.Err() != nil {
-		log15.Error("Failed to get cve.", "err", result.Err())
-		return nil
+func (r *RedisDriver) GetRedhat(cveID string) (*models.RedhatCVE, error) {
+	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, redhatName), cveID).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, nil
+		}
+		return nil, xerrors.Errorf("Failed to HGet. err: %w", err)
 	}
 
 	var redhat models.RedhatCVE
-	if j, ok := result.Val()["RedHat"]; ok {
-		if err := json.Unmarshal([]byte(j), &redhat); err != nil {
-			log15.Error("Failed to Unmarshal json.", "err", err)
-			return nil
-		}
+	if err := json.Unmarshal([]byte(cve), &redhat); err != nil {
+		return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
 	}
-	return &redhat
+	return &redhat, nil
 }
 
 // GetRedhatMulti :
-func (r *RedisDriver) GetRedhatMulti(cveIDs []string) map[string]models.RedhatCVE {
-	ctx := context.Background()
+func (r *RedisDriver) GetRedhatMulti(cveIDs []string) (map[string]models.RedhatCVE, error) {
+	if len(cveIDs) == 0 {
+		return map[string]models.RedhatCVE{}, nil
+	}
+
+	cves, err := r.conn.HMGet(context.Background(), fmt.Sprintf(cveKeyFormat, redhatName), cveIDs...).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to HMGet. err: %w", err)
+	}
+
 	results := map[string]models.RedhatCVE{}
-	rs := map[string]*redis.StringStringMapCmd{}
-
-	pipe := r.conn.Pipeline()
-	for _, cveID := range cveIDs {
-		rs[cveID] = pipe.HGetAll(ctx, hashKeyPrefix+cveID)
-	}
-	if _, err := pipe.Exec(ctx); err != nil {
-		if err != redis.Nil {
-			log15.Error("Failed to get multi cve json.", "err", err)
-			return nil
-		}
-	}
-
-	for cveID, result := range rs {
-		var redhat models.RedhatCVE
-		if j, ok := result.Val()["RedHat"]; ok {
-			if err := json.Unmarshal([]byte(j), &redhat); err != nil {
-				log15.Error("Failed to Unmarshal json.", "err", err)
-				return nil
-			}
-		}
-		results[cveID] = redhat
-	}
-	return results
-}
-
-// GetUnfixedCvesRedhat :
-func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix bool) (m map[string]models.RedhatCVE) {
-	ctx := context.Background()
-	m = map[string]models.RedhatCVE{}
-
-	var result *redis.StringSliceCmd
-	if result = r.conn.ZRange(ctx, zindRedHatPrefix+pkgName, 0, -1); result.Err() != nil {
-		log.Error(result.Err())
-		return
-	}
-
-	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
-	for _, cveID := range result.Val() {
-		red := r.GetRedhat(cveID)
-		if red == nil {
-			log15.Error("CVE is not found", "CVE-ID", cveID)
+	for _, cve := range cves {
+		if cve == nil {
 			continue
 		}
 
+		var redhat models.RedhatCVE
+		if err := json.Unmarshal([]byte(cve.(string)), &redhat); err != nil {
+			return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
+		}
+		results[redhat.Name] = redhat
+	}
+	return results, nil
+}
+
+// GetUnfixedCvesRedhat :
+func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix bool) (map[string]models.RedhatCVE, error) {
+	ctx := context.Background()
+	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, redhatName, pkgName)).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+	}
+
+	m, err := r.GetRedhatMulti(cveIDs)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to GetRedhatMulti. err: %w", err)
+	}
+
+	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
+	for cveID, cve := range m {
 		// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format
 		pkgStats := []models.RedhatPackageState{}
-		for _, pkgstat := range red.PackageState {
+		for _, pkgstat := range cve.PackageState {
 			if pkgstat.Cpe != cpe ||
 				pkgstat.PackageName != pkgName ||
 				pkgstat.FixState == "Not affected" ||
@@ -206,48 +283,46 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotF
 			}
 			pkgStats = append(pkgStats, pkgstat)
 		}
-		if len(pkgStats) == 0 {
-			continue
+		if len(pkgStats) > 0 {
+			cve.PackageState = pkgStats
+			m[cveID] = cve
+		} else {
+			delete(m, cveID)
 		}
-		red.PackageState = pkgStats
-		m[cveID] = *red
 	}
-	return
+	return m, nil
 }
 
 // GetUnfixedCvesDebian : get the CVEs related to debian_release.status = 'open', major, pkgName
-func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) map[string]models.DebianCVE {
+func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (map[string]models.DebianCVE, error) {
 	return r.getCvesDebianWithFixStatus(major, pkgName, "open")
 }
 
 // GetFixedCvesDebian : get the CVEs related to debian_release.status = 'resolved', major, pkgName
-func (r *RedisDriver) GetFixedCvesDebian(major, pkgName string) map[string]models.DebianCVE {
+func (r *RedisDriver) GetFixedCvesDebian(major, pkgName string) (map[string]models.DebianCVE, error) {
 	return r.getCvesDebianWithFixStatus(major, pkgName, "resolved")
 }
 
-func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string) (m map[string]models.DebianCVE) {
-	ctx := context.Background()
-	m = map[string]models.DebianCVE{}
+func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string) (map[string]models.DebianCVE, error) {
 	codeName, ok := debVerCodename[major]
 	if !ok {
-		log15.Error("Not supported yet", "major", major)
-		return
-	}
-	var result *redis.StringSliceCmd
-	if result = r.conn.ZRange(ctx, zindDebianPrefix+pkgName, 0, -1); result.Err() != nil {
-		log.Error(result.Err())
-		return
+		return nil, xerrors.Errorf("Failed to convert from major version to codename. err: Debian %s is not supported yet", major)
 	}
 
-	for _, cveID := range result.Val() {
-		deb := r.GetDebian(cveID)
-		if deb == nil {
-			log15.Error("CVE is not found", "CVE-ID", cveID)
-			continue
-		}
+	ctx := context.Background()
+	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, debianName, pkgName)).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+	}
 
+	m, err := r.GetDebianMulti(cveIDs)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to GetDebianMulti. err: %w", err)
+	}
+
+	for cveID, cve := range m {
 		pkgs := []models.DebianPackage{}
-		for _, pkg := range deb.Package {
+		for _, pkg := range cve.Package {
 			if pkg.PackageName != pkgName {
 				continue
 			}
@@ -263,66 +338,87 @@ func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus strin
 			pkg.Release = rels
 			pkgs = append(pkgs, pkg)
 		}
-		if len(pkgs) != 0 {
-			deb.Package = pkgs
-			m[cveID] = *deb
+		if len(pkgs) > 0 {
+			cve.Package = pkgs
+			m[cveID] = cve
+		} else {
+			delete(m, cveID)
 		}
 	}
-	return
+	return m, nil
 }
 
 // GetDebian :
-func (r *RedisDriver) GetDebian(cveID string) *models.DebianCVE {
-	ctx := context.Background()
-	var result *redis.StringStringMapCmd
-	if result = r.conn.HGetAll(ctx, hashKeyPrefix+cveID); result.Err() != nil {
-		log.Error(result.Err())
-		return nil
-	}
-	deb := models.DebianCVE{}
-	j, ok := result.Val()["Debian"]
-	if !ok {
-		return nil
+func (r *RedisDriver) GetDebian(cveID string) (*models.DebianCVE, error) {
+	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, debianName), cveID).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, nil
+		}
+		return nil, xerrors.Errorf("Failed to HGet. err: %w", err)
 	}
 
-	if err := json.Unmarshal([]byte(j), &deb); err != nil {
-		log.Errorf("Failed to Unmarshal json. err : %s", err)
-		return nil
+	var deb models.DebianCVE
+	if err := json.Unmarshal([]byte(cve), &deb); err != nil {
+		return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
 	}
-	return &deb
+	return &deb, nil
+}
+
+// GetDebianMulti :
+func (r *RedisDriver) GetDebianMulti(cveIDs []string) (map[string]models.DebianCVE, error) {
+	if len(cveIDs) == 0 {
+		return map[string]models.DebianCVE{}, nil
+	}
+
+	cves, err := r.conn.HMGet(context.Background(), fmt.Sprintf(cveKeyFormat, debianName), cveIDs...).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to HMGet. err: %w", err)
+	}
+
+	results := map[string]models.DebianCVE{}
+	for _, cve := range cves {
+		if cve == nil {
+			continue
+		}
+
+		var debian models.DebianCVE
+		if err := json.Unmarshal([]byte(cve.(string)), &debian); err != nil {
+			return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
+		}
+		results[debian.CveID] = debian
+	}
+	return results, nil
 }
 
 // GetUnfixedCvesUbuntu :
-func (r *RedisDriver) GetUnfixedCvesUbuntu(major, pkgName string) map[string]models.UbuntuCVE {
+func (r *RedisDriver) GetUnfixedCvesUbuntu(major, pkgName string) (map[string]models.UbuntuCVE, error) {
 	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"needed", "pending"})
 }
 
 // GetFixedCvesUbuntu :
-func (r *RedisDriver) GetFixedCvesUbuntu(major, pkgName string) map[string]models.UbuntuCVE {
+func (r *RedisDriver) GetFixedCvesUbuntu(major, pkgName string) (map[string]models.UbuntuCVE, error) {
 	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"released"})
 }
 
-func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatus []string) (m map[string]models.UbuntuCVE) {
-	ctx := context.Background()
-	m = map[string]models.UbuntuCVE{}
+func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatus []string) (map[string]models.UbuntuCVE, error) {
 	codeName, ok := ubuntuVerCodename[major]
 	if !ok {
-		log15.Error("Not supported yet", "major", major)
-		return
-	}
-	var result *redis.StringSliceCmd
-	if result = r.conn.ZRange(ctx, zindUbuntuPrefix+pkgName, 0, -1); result.Err() != nil {
-		log.Error(result.Err())
-		return
+		return nil, xerrors.Errorf("Failed to convert from major version to codename. err: Ubuntu %s is not supported yet", major)
 	}
 
-	for _, cveID := range result.Val() {
-		cve := r.GetUbuntu(cveID)
-		if cve == nil {
-			log15.Error("CVE is not found", "CVE-ID", cveID)
-			continue
-		}
+	ctx := context.Background()
+	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, ubuntuName, pkgName)).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+	}
 
+	m, err := r.GetUbuntuMulti(cveIDs)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to GetUbuntuMulti. err: %w", err)
+	}
+
+	for cveID, cve := range m {
 		patches := []models.UbuntuPatch{}
 		for _, p := range cve.Patches {
 			if p.PackageName != pkgName {
@@ -344,346 +440,575 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 			p.ReleasePatches = relPatches
 			patches = append(patches, p)
 		}
-		if len(patches) != 0 {
+		if len(patches) > 0 {
 			cve.Patches = patches
-			m[cveID] = *cve
+			m[cveID] = cve
+		} else {
+			delete(m, cveID)
 		}
 	}
-	return
+	return m, nil
 }
 
 // GetUbuntu :
-func (r *RedisDriver) GetUbuntu(cveID string) *models.UbuntuCVE {
+func (r *RedisDriver) GetUbuntu(cveID string) (*models.UbuntuCVE, error) {
+	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, ubuntuName), cveID).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, nil
+		}
+		return nil, xerrors.Errorf("Failed to HGet. err: %w", err)
+	}
+
+	var c models.UbuntuCVE
+	if err := json.Unmarshal([]byte(cve), &c); err != nil {
+		return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
+	}
+	return &c, nil
+}
+
+// GetUbuntuMulti :
+func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuCVE, error) {
+	if len(cveIDs) == 0 {
+		return map[string]models.UbuntuCVE{}, nil
+	}
+
+	cves, err := r.conn.HMGet(context.Background(), fmt.Sprintf(cveKeyFormat, ubuntuName), cveIDs...).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to HMGet. err: %w", err)
+	}
+
+	results := map[string]models.UbuntuCVE{}
+	for _, cve := range cves {
+		if cve == nil {
+			continue
+		}
+
+		var ubuntu models.UbuntuCVE
+		if err := json.Unmarshal([]byte(cve.(string)), &ubuntu); err != nil {
+			return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
+		}
+		results[ubuntu.Candidate] = ubuntu
+	}
+	return results, nil
+}
+
+// GetCveIDsByMicrosoftKBID :
+func (r *RedisDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []string) (map[string][]string, error) {
 	ctx := context.Background()
-	var result *redis.StringStringMapCmd
-	if result = r.conn.HGetAll(ctx, hashKeyPrefix+cveID); result.Err() != nil {
-		log.Error(result.Err())
-		return nil
+
+	kbIDs, err := r.getUnAppliedKBIDs(applied, unapplied)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to get UnApplied KBIDs. err: %w", err)
 	}
 
-	c := models.UbuntuCVE{}
-	j, ok := result.Val()["Ubuntu"]
-	if !ok {
-		return nil
+	pipe := r.conn.Pipeline()
+	results := map[string]*redis.StringSliceCmd{}
+	for _, kbID := range kbIDs {
+		results[kbID] = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", kbID)))
+	}
+	if _, err := pipe.Exec(ctx); err != nil {
+		return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 	}
 
-	if err := json.Unmarshal([]byte(j), &c); err != nil {
-		xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
-		return nil
+	kbCVEIDs := map[string][]string{}
+	for kbID, cmder := range results {
+		cveIDs, err := cmder.Result()
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+		}
+		kbCVEIDs[kbID] = cveIDs
 	}
 
-	return &c
+	return kbCVEIDs, nil
+}
+
+func (r *RedisDriver) getUnAppliedKBIDs(applied []string, unapplied []string) ([]string, error) {
+	ctx := context.Background()
+
+	uniqUnappliedKBIDs := map[string]struct{}{}
+
+	relations := map[string]*redis.StringSliceCmd{}
+	pipe := r.conn.Pipeline()
+	for _, kbID := range applied {
+		relations[kbID] = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("R#%s", kbID)))
+	}
+	if _, err := pipe.Exec(ctx); err != nil {
+		return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	}
+
+	for _, cmder := range relations {
+		supersededby, err := cmder.Result()
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+		}
+
+		isInApplied := false
+		for _, kbID := range supersededby {
+			if util.StringInSlice(kbID, applied) {
+				isInApplied = true
+				break
+			}
+		}
+		if !isInApplied {
+			for _, kbID := range supersededby {
+				uniqUnappliedKBIDs[kbID] = struct{}{}
+			}
+		}
+	}
+
+	relations = map[string]*redis.StringSliceCmd{}
+	pipe = r.conn.Pipeline()
+	for _, kbID := range unapplied {
+		relations[kbID] = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("R#%s", kbID)))
+	}
+	if _, err := pipe.Exec(ctx); err != nil {
+		return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	}
+
+	for kbID, cmder := range relations {
+		supersededby, err := cmder.Result()
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+		}
+		uniqUnappliedKBIDs[kbID] = struct{}{}
+		for _, kbID := range supersededby {
+			uniqUnappliedKBIDs[kbID] = struct{}{}
+		}
+	}
+
+	unappliedKBIDs := []string{}
+	for kbid := range uniqUnappliedKBIDs {
+		unappliedKBIDs = append(unappliedKBIDs, kbid)
+	}
+
+	return unappliedKBIDs, nil
 }
 
 // GetMicrosoft :
-func (r *RedisDriver) GetMicrosoft(cveID string) *models.MicrosoftCVE {
-	ctx := context.Background()
-	result := r.conn.HGetAll(ctx, hashKeyPrefix+cveID)
-	if result.Err() != nil {
-		log15.Error("Failed to get cve.", "err", result.Err())
-		return nil
+func (r *RedisDriver) GetMicrosoft(cveID string) (*models.MicrosoftCVE, error) {
+	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, microsoftName), cveID).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, nil
+		}
+		return nil, xerrors.Errorf("Failed to HGet. err: %w", err)
 	}
 
 	var ms models.MicrosoftCVE
-	if j, ok := result.Val()["Microsoft"]; ok {
-		if err := json.Unmarshal([]byte(j), &ms); err != nil {
-			log15.Error("Failed to Unmarshal json.", "err", err)
-			return nil
-		}
+	if err := json.Unmarshal([]byte(cve), &ms); err != nil {
+		return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
 	}
-	return &ms
+	return &ms, nil
 }
 
 // GetMicrosoftMulti :
-func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) map[string]models.MicrosoftCVE {
-	ctx := context.Background()
+func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) (map[string]models.MicrosoftCVE, error) {
+	if len(cveIDs) == 0 {
+		return map[string]models.MicrosoftCVE{}, nil
+	}
+
+	cves, err := r.conn.HMGet(context.Background(), fmt.Sprintf(cveKeyFormat, microsoftName), cveIDs...).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to HMGet. err: %w", err)
+	}
+
 	results := map[string]models.MicrosoftCVE{}
-	rs := map[string]*redis.StringStringMapCmd{}
-
-	pipe := r.conn.Pipeline()
-	for _, cveID := range cveIDs {
-		rs[cveID] = pipe.HGetAll(ctx, hashKeyPrefix+cveID)
-	}
-	if _, err := pipe.Exec(ctx); err != nil {
-		if err != redis.Nil {
-			log15.Error("Failed to get multi cve json.", "err", err)
-			return nil
+	for _, cve := range cves {
+		if cve == nil {
+			continue
 		}
-	}
 
-	for cveID, result := range rs {
 		var ms models.MicrosoftCVE
-		if j, ok := result.Val()["Microsoft"]; ok {
-			if err := json.Unmarshal([]byte(j), &ms); err != nil {
-				log15.Error("Failed to Unmarshal json.", "err", err)
-				return nil
-			}
+		if err := json.Unmarshal([]byte(cve.(string)), &ms); err != nil {
+			return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
 		}
-		results[cveID] = ms
+		results[ms.CveID] = ms
 	}
-	return results
+
+	return results, nil
 }
 
 //InsertRedhat :
-func (r *RedisDriver) InsertRedhat(cveJSONs []models.RedhatCVEJSON) (err error) {
-	expire := viper.GetUint("expire")
-
+func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 	ctx := context.Background()
-	cves, err := ConvertRedhat(cveJSONs)
-	if err != nil {
-		return err
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return xerrors.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
 	}
+
+	// newDeps, oldDeps: {"CVEID": {"PKGNAME": {}}}
+	newDeps := map[string]map[string]struct{}{}
+	oldDepsStr, err := r.conn.HGet(ctx, depKey, redhatName).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			return xerrors.Errorf("Failed to Get key: %s. err: %w", depKey, err)
+		}
+		oldDepsStr = "{}"
+	}
+	var oldDeps map[string]map[string]struct{}
+	if err := json.Unmarshal([]byte(oldDepsStr), &oldDeps); err != nil {
+		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
+	}
+
 	bar := pb.StartNew(len(cves))
-
-	for _, cve := range cves {
+	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
-		bar.Increment()
-
-		j, err := json.Marshal(cve)
-		if err != nil {
-			return fmt.Errorf("Failed to marshal json. err: %s", err)
-		}
-
-		key := hashKeyPrefix + cve.Name
-		if result := pipe.HSet(ctx, key, "RedHat", string(j)); result.Err() != nil {
-			return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
-		}
-		if expire > 0 {
-			if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+		cvekey := fmt.Sprintf(cveKeyFormat, redhatName)
+		for _, cve := range cves[idx.From:idx.To] {
+			j, err := json.Marshal(cve)
+			if err != nil {
+				return xerrors.Errorf("Failed to marshal json. err: %w", err)
 			}
-		} else {
-			if err := pipe.Persist(ctx, key).Err(); err != nil {
-				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
-			}
-		}
 
-		for _, pkg := range cve.PackageState {
-			key := zindRedHatPrefix + pkg.PackageName
-			if result := pipe.ZAdd(
-				ctx,
-				key,
-				&redis.Z{Score: 0, Member: cve.Name},
-			); result.Err() != nil {
-				return fmt.Errorf("Failed to ZAdd pkg name. err: %s", result.Err())
+			_ = pipe.HSet(ctx, cvekey, cve.Name, string(j))
+			if _, ok := newDeps[cve.Name]; !ok {
+				newDeps[cve.Name] = map[string]struct{}{}
 			}
-			if expire > 0 {
-				if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+
+			for _, pkg := range cve.PackageState {
+				_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, redhatName, pkg.PackageName), cve.Name)
+				newDeps[cve.Name][pkg.PackageName] = struct{}{}
+				if _, ok := oldDeps[cve.Name]; ok {
+					delete(oldDeps[cve.Name], pkg.PackageName)
 				}
-			} else {
-				if err := pipe.Persist(ctx, key).Err(); err != nil {
-					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+			}
+			if _, ok := oldDeps[cve.Name]; ok {
+				if len(oldDeps[cve.Name]) == 0 {
+					delete(oldDeps, cve.Name)
 				}
 			}
 		}
-
-		if _, err = pipe.Exec(ctx); err != nil {
-			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
+		if _, err := pipe.Exec(ctx); err != nil {
+			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
+		bar.Add(idx.To - idx.From)
 	}
 	bar.Finish()
+
+	pipe := r.conn.Pipeline()
+	for cveID, pkgs := range oldDeps {
+		for pkgName := range pkgs {
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, redhatName, pkgName), cveID)
+		}
+		if _, ok := newDeps[cveID]; !ok {
+			_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, redhatName), cveID)
+		}
+	}
+	newDepsJSON, err := json.Marshal(newDeps)
+	if err != nil {
+		return xerrors.Errorf("Failed to Marshal JSON. err: %w", err)
+	}
+	_ = pipe.HSet(ctx, depKey, redhatName, string(newDepsJSON))
+	if _, err = pipe.Exec(ctx); err != nil {
+		return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	}
 
 	return nil
 }
 
 // InsertDebian :
-func (r *RedisDriver) InsertDebian(cveJSONs models.DebianJSON) error {
-	expire := viper.GetUint("expire")
-
+func (r *RedisDriver) InsertDebian(cves []models.DebianCVE) error {
 	ctx := context.Background()
-	cves := ConvertDebian(cveJSONs)
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return xerrors.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
+	// newDeps, oldDeps: {"CVEID": {"PKGNAME": {}}}
+	newDeps := map[string]map[string]struct{}{}
+	oldDepsStr, err := r.conn.HGet(ctx, depKey, debianName).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			return xerrors.Errorf("Failed to Get key: %s. err: %w", depKey, err)
+		}
+		oldDepsStr = "{}"
+	}
+	var oldDeps map[string]map[string]struct{}
+	if err := json.Unmarshal([]byte(oldDepsStr), &oldDeps); err != nil {
+		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
+	}
+
 	bar := pb.StartNew(len(cves))
-
-	for _, cve := range cves {
+	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
-		bar.Increment()
-
-		j, err := json.Marshal(cve)
-		if err != nil {
-			return fmt.Errorf("Failed to marshal json. err: %s", err)
-		}
-
-		key := hashKeyPrefix + cve.CveID
-		if result := pipe.HSet(ctx, key, "Debian", string(j)); result.Err() != nil {
-			return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
-		}
-		if expire > 0 {
-			if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+		cvekey := fmt.Sprintf(cveKeyFormat, debianName)
+		for _, cve := range cves[idx.From:idx.To] {
+			j, err := json.Marshal(cve)
+			if err != nil {
+				return xerrors.Errorf("Failed to marshal json. err: %w", err)
 			}
-		} else {
-			if err := pipe.Persist(ctx, key).Err(); err != nil {
-				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
-			}
-		}
 
-		for _, pkg := range cve.Package {
-			key := zindDebianPrefix + pkg.PackageName
-			if result := pipe.ZAdd(
-				ctx,
-				key,
-				&redis.Z{Score: 0, Member: cve.CveID},
-			); result.Err() != nil {
-				return fmt.Errorf("Failed to ZAdd pkg name. err: %s", result.Err())
+			if result := pipe.HSet(ctx, cvekey, cve.CveID, string(j)); result.Err() != nil {
+				return xerrors.Errorf("Failed to HSet CVE. err: %w", result.Err())
 			}
-			if expire > 0 {
-				if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+			if _, ok := newDeps[cve.CveID]; !ok {
+				newDeps[cve.CveID] = map[string]struct{}{}
+			}
+
+			for _, pkg := range cve.Package {
+				_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, debianName, pkg.PackageName), cve.CveID)
+				newDeps[cve.CveID][pkg.PackageName] = struct{}{}
+				if _, ok := oldDeps[cve.CveID]; ok {
+					delete(oldDeps[cve.CveID], pkg.PackageName)
 				}
-			} else {
-				if err := pipe.Persist(ctx, key).Err(); err != nil {
-					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+			}
+			if _, ok := oldDeps[cve.CveID]; ok {
+				if len(oldDeps[cve.CveID]) == 0 {
+					delete(oldDeps, cve.CveID)
 				}
 			}
 		}
-
-		if _, err = pipe.Exec(ctx); err != nil {
-			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
+		if _, err := pipe.Exec(ctx); err != nil {
+			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
+		bar.Add(idx.To - idx.From)
 	}
 	bar.Finish()
+
+	pipe := r.conn.Pipeline()
+	for cveID, pkgs := range oldDeps {
+		for pkgName := range pkgs {
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, debianName, pkgName), cveID)
+		}
+		if _, ok := newDeps[cveID]; !ok {
+			_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, debianName), cveID)
+		}
+	}
+	newDepsJSON, err := json.Marshal(newDeps)
+	if err != nil {
+		return xerrors.Errorf("Failed to Marshal JSON. err: %w", err)
+	}
+	_ = pipe.HSet(ctx, depKey, debianName, string(newDepsJSON))
+	if _, err = pipe.Exec(ctx); err != nil {
+		return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	}
+
 	return nil
 }
 
 // InsertUbuntu :
-func (r *RedisDriver) InsertUbuntu(cveJSONs []models.UbuntuCVEJSON) (err error) {
-	expire := viper.GetUint("expire")
-
+func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 	ctx := context.Background()
-	cves := ConvertUbuntu(cveJSONs)
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return xerrors.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
+	// newDeps, oldDeps: {"CVEID": {"PKGNAME": {}}}
+	newDeps := map[string]map[string]struct{}{}
+	oldDepsStr, err := r.conn.HGet(ctx, depKey, ubuntuName).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			return xerrors.Errorf("Failed to Get key: %s. err: %w", depKey, err)
+		}
+		oldDepsStr = "{}"
+	}
+	var oldDeps map[string]map[string]struct{}
+	if err := json.Unmarshal([]byte(oldDepsStr), &oldDeps); err != nil {
+		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
+	}
+
 	bar := pb.StartNew(len(cves))
-
-	for _, cve := range cves {
+	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
-		bar.Increment()
-
-		j, err := json.Marshal(cve)
-		if err != nil {
-			return fmt.Errorf("Failed to marshal json. err: %s", err)
-		}
-
-		key := hashKeyPrefix + cve.Candidate
-		if result := pipe.HSet(ctx, key, "Ubuntu", string(j)); result.Err() != nil {
-			return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
-		}
-		if expire > 0 {
-			if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+		cvekey := fmt.Sprintf(cveKeyFormat, ubuntuName)
+		for _, cve := range cves[idx.From:idx.To] {
+			j, err := json.Marshal(cve)
+			if err != nil {
+				return xerrors.Errorf("Failed to marshal json. err: %w", err)
 			}
-		} else {
-			if err := pipe.Persist(ctx, key).Err(); err != nil {
-				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
-			}
-		}
 
-		for _, pkg := range cve.Patches {
-			key := zindUbuntuPrefix + pkg.PackageName
-			if result := pipe.ZAdd(
-				ctx,
-				key,
-				&redis.Z{Score: 0, Member: cve.Candidate},
-			); result.Err() != nil {
-				return fmt.Errorf("Failed to ZAdd pkg name. err: %s", result.Err())
+			_ = pipe.HSet(ctx, cvekey, cve.Candidate, string(j))
+			if _, ok := newDeps[cve.Candidate]; !ok {
+				newDeps[cve.Candidate] = map[string]struct{}{}
 			}
-			if expire > 0 {
-				if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+
+			for _, pkg := range cve.Patches {
+				_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, ubuntuName, pkg.PackageName), cve.Candidate)
+				newDeps[cve.Candidate][pkg.PackageName] = struct{}{}
+				if _, ok := oldDeps[cve.Candidate]; ok {
+					delete(oldDeps[cve.Candidate], pkg.PackageName)
 				}
-			} else {
-				if err := pipe.Persist(ctx, key).Err(); err != nil {
-					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+			}
+			if _, ok := oldDeps[cve.Candidate]; ok {
+				if len(oldDeps[cve.Candidate]) == 0 {
+					delete(oldDeps, cve.Candidate)
 				}
 			}
 		}
-
-		if _, err = pipe.Exec(ctx); err != nil {
-			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
+		if _, err := pipe.Exec(ctx); err != nil {
+			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
+		bar.Add(idx.To - idx.From)
 	}
 	bar.Finish()
+
+	pipe := r.conn.Pipeline()
+	for cveID, pkgs := range oldDeps {
+		for pkgName := range pkgs {
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, ubuntuName, pkgName), cveID)
+		}
+		if _, ok := newDeps[cveID]; !ok {
+			_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, ubuntuName), cveID)
+		}
+	}
+	newDepsJSON, err := json.Marshal(newDeps)
+	if err != nil {
+		return xerrors.Errorf("Failed to Marshal JSON. err: %w", err)
+	}
+	_ = pipe.HSet(ctx, depKey, ubuntuName, string(newDepsJSON))
+	if _, err = pipe.Exec(ctx); err != nil {
+		return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	}
+
 	return nil
 }
 
 // InsertMicrosoft :
-func (r *RedisDriver) InsertMicrosoft(cveXMLs []models.MicrosoftXML, xls []models.MicrosoftBulletinSearch) (err error) {
-	expire := viper.GetUint("expire")
-
+func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, products []models.MicrosoftProduct, kbRelations []models.MicrosoftKBRelation) (err error) {
 	ctx := context.Background()
-	cves, products := ConvertMicrosoft(cveXMLs, xls)
-	bar := pb.StartNew(len(cves))
-
-	pipe := r.conn.Pipeline()
-	for _, p := range products {
-		key := zindMicrosoftProductIDPrefix + p.ProductID
-		if result := pipe.ZAdd(
-			ctx,
-			key,
-			&redis.Z{Score: 0, Member: p.ProductName},
-		); result.Err() != nil {
-			return fmt.Errorf("Failed to ZAdd kbID. err: %s", result.Err())
-		}
-		if expire > 0 {
-			if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
-			}
-		} else {
-			if err := pipe.Persist(ctx, key).Err(); err != nil {
-				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
-			}
-		}
-	}
-	if _, err = pipe.Exec(ctx); err != nil {
-		return fmt.Errorf("Failed to exec pipeline. err: %s", err)
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return xerrors.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
-	for _, cve := range cves {
+	// newDeps, oldDeps: {"products": {"ProductID": {"ProductName": {}}}, "cves": {"CVEID": {"KBID": {}}}, "relations": {"KBID": {"SUPERSEDEDBY": {}}}}
+	newDeps := map[string]map[string]map[string]struct{}{
+		"products":  {},
+		"cves":      {},
+		"relations": {},
+	}
+	oldDepsStr, err := r.conn.HGet(ctx, depKey, microsoftName).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			return xerrors.Errorf("Failed to Get key: %s. err: %w", depKey, err)
+		}
+		oldDepsStr = `{
+			"products":{},
+			"cves": {},
+			"relations": {}
+		}`
+	}
+	var oldDeps map[string]map[string]map[string]struct{}
+	if err := json.Unmarshal([]byte(oldDepsStr), &oldDeps); err != nil {
+		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
+	}
+
+	log15.Info("Inserting products", "products", len(products))
+	bar := pb.StartNew(len(products))
+	for idx := range chunkSlice(len(products), batchSize) {
 		pipe := r.conn.Pipeline()
-		bar.Increment()
-
-		j, err := json.Marshal(cve)
-		if err != nil {
-			return fmt.Errorf("Failed to marshal json. err: %s", err)
-		}
-
-		key := hashKeyPrefix + cve.CveID
-		if result := pipe.HSet(ctx, key, "Microsoft", string(j)); result.Err() != nil {
-			return fmt.Errorf("Failed to HSet CVE. err: %s", result.Err())
-		}
-		if expire > 0 {
-			if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-				return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
+		for _, p := range products[idx.From:idx.To] {
+			_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", p.ProductID)), p.ProductName)
+			if _, ok := newDeps["products"][p.ProductID]; !ok {
+				newDeps["products"][p.ProductID] = map[string]struct{}{}
 			}
-		} else {
-			if err := pipe.Persist(ctx, key).Err(); err != nil {
-				return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
-			}
-		}
-
-		for _, msKBID := range cve.KBIDs {
-			key := zindMicrosoftKBIDPrefix + msKBID.KBID
-			if result := pipe.ZAdd(
-				ctx,
-				key,
-				&redis.Z{Score: 0, Member: cve.CveID},
-			); result.Err() != nil {
-				return fmt.Errorf("Failed to ZAdd kbID. err: %s", result.Err())
-			}
-			if expire > 0 {
-				if err := pipe.Expire(ctx, key, time.Duration(expire*uint(time.Second))).Err(); err != nil {
-					return fmt.Errorf("Failed to set Expire to Key. err: %s", err)
-				}
-			} else {
-				if err := pipe.Persist(ctx, key).Err(); err != nil {
-					return fmt.Errorf("Failed to remove the existing timeout on Key. err: %s", err)
+			newDeps["products"][p.ProductID][p.ProductName] = struct{}{}
+			if _, ok := oldDeps["products"][p.ProductID]; ok {
+				delete(oldDeps["products"][p.ProductID], p.ProductName)
+				if len(oldDeps["products"][p.ProductID]) == 0 {
+					delete(oldDeps["products"], p.ProductID)
 				}
 			}
 		}
-
 		if _, err = pipe.Exec(ctx); err != nil {
-			return fmt.Errorf("Failed to exec pipeline. err: %s", err)
+			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
+		bar.Add(idx.To - idx.From)
 	}
 	bar.Finish()
+
+	log15.Info("Inserting cves", "cves", len(cves))
+	bar = pb.StartNew(len(cves))
+	for idx := range chunkSlice(len(cves), batchSize) {
+		pipe := r.conn.Pipeline()
+		cvekey := fmt.Sprintf(cveKeyFormat, microsoftName)
+		for _, cve := range cves[idx.From:idx.To] {
+			j, err := json.Marshal(cve)
+			if err != nil {
+				return xerrors.Errorf("Failed to marshal json. err: %w", err)
+			}
+
+			_ = pipe.HSet(ctx, cvekey, cve.CveID, string(j))
+			if _, ok := newDeps["cves"][cve.CveID]; !ok {
+				newDeps["cves"][cve.CveID] = map[string]struct{}{}
+			}
+
+			for _, msKBID := range cve.KBIDs {
+				_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", msKBID.KBID)), cve.CveID)
+				newDeps["cves"][cve.CveID][msKBID.KBID] = struct{}{}
+				if _, ok := oldDeps["cves"][cve.CveID]; ok {
+					delete(oldDeps["cves"][cve.CveID], msKBID.KBID)
+				}
+			}
+			if _, ok := oldDeps["cves"][cve.CveID]; ok {
+				if len(oldDeps["cves"][cve.CveID]) == 0 {
+					delete(oldDeps["cves"], cve.CveID)
+				}
+			}
+		}
+		if _, err = pipe.Exec(ctx); err != nil {
+			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+		}
+		bar.Add(idx.To - idx.From)
+	}
+	bar.Finish()
+
+	log15.Info("Insert KB Relation", "kbRelation", len(kbRelations))
+	bar = pb.StartNew(len(kbRelations))
+	for idx := range chunkSlice(len(kbRelations), batchSize) {
+		pipe := r.conn.Pipeline()
+		for _, relation := range kbRelations[idx.From:idx.To] {
+			key := fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("R#%s", relation.KBID))
+			if _, ok := newDeps["relations"][relation.KBID]; !ok {
+				newDeps["relations"][relation.KBID] = map[string]struct{}{}
+			}
+			for _, supersededby := range relation.SupersededBy {
+				_ = pipe.SAdd(ctx, key, supersededby.KBID)
+				newDeps["relations"][relation.KBID][supersededby.KBID] = struct{}{}
+				if _, ok := oldDeps["relations"][relation.KBID]; ok {
+					delete(oldDeps["relations"][relation.KBID], supersededby.KBID)
+					if len(oldDeps["relations"][relation.KBID]) == 0 {
+						delete(oldDeps["relations"], relation.KBID)
+					}
+				}
+			}
+		}
+		if _, err = pipe.Exec(ctx); err != nil {
+			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+		}
+		bar.Add(idx.To - idx.From)
+	}
+	bar.Finish()
+
+	pipe := r.conn.Pipeline()
+	for productID, productNames := range oldDeps["products"] {
+		for productName := range productNames {
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", productID)), productName)
+		}
+	}
+	for cveID, kbIDs := range oldDeps["cves"] {
+		for kbID := range kbIDs {
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", kbID)), cveID)
+		}
+		if _, ok := newDeps[cveID]; !ok {
+			_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, microsoftName), cveID)
+		}
+	}
+	for rootKBID, supersededby := range oldDeps["relations"] {
+		for kbid := range supersededby {
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("R#%s", rootKBID)), kbid)
+		}
+	}
+	newDepsJSON, err := json.Marshal(newDeps)
+	if err != nil {
+		return xerrors.Errorf("Failed to Marshal JSON. err: %w", err)
+	}
+	_ = pipe.HSet(ctx, depKey, microsoftName, string(newDepsJSON))
+	if _, err = pipe.Exec(ctx); err != nil {
+		return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	}
+
 	return nil
 }

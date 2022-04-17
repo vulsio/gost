@@ -49,3 +49,44 @@ type DebianRelease struct {
 	Urgency         string `gorm:"type:varchar(255);"`
 	Version         string `gorm:"type:varchar(255);"`
 }
+
+// ConvertDebian :
+func ConvertDebian(cveJSONs DebianJSON) (cves []DebianCVE) {
+	uniqCve := map[string]DebianCVE{}
+	for pkgName, cveMap := range cveJSONs {
+		for cveID, cve := range cveMap {
+			var releases []DebianRelease
+			for release, releaseInfo := range cve.Releases {
+				r := DebianRelease{
+					ProductName:  release,
+					Status:       releaseInfo.Status,
+					FixedVersion: releaseInfo.FixedVersion,
+					Urgency:      releaseInfo.Urgency,
+					Version:      releaseInfo.Repositories[release],
+				}
+				releases = append(releases, r)
+			}
+
+			pkg := DebianPackage{
+				PackageName: pkgName,
+				Release:     releases,
+			}
+
+			pkgs := []DebianPackage{pkg}
+			if oldCve, ok := uniqCve[cveID]; ok {
+				pkgs = append(pkgs, oldCve.Package...)
+			}
+
+			uniqCve[cveID] = DebianCVE{
+				CveID:       cveID,
+				Scope:       cve.Scope,
+				Description: cve.Description,
+				Package:     pkgs,
+			}
+		}
+	}
+	for _, c := range uniqCve {
+		cves = append(cves, c)
+	}
+	return cves
+}
