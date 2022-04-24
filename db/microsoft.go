@@ -7,11 +7,11 @@ import (
 	"github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/slices"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
 
 	"github.com/vulsio/gost/models"
-	"github.com/vulsio/gost/util"
 )
 
 // GetCveIDsByMicrosoftKBID :
@@ -21,7 +21,7 @@ func (r *RDBDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []strin
 		return nil, xerrors.Errorf("Failed to get UnApplied KBIDs. err: %w", err)
 	}
 
-	kbCVEIDs := map[string][]string{}
+	cveIDtoKBIDs := map[string][]string{}
 	for _, kbID := range kbIDs {
 		msIDs := []string{}
 		if err := r.conn.
@@ -32,21 +32,59 @@ func (r *RDBDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []strin
 			return nil, xerrors.Errorf("Failed to get MicrosoftCVEID by KBID. err: %w", err)
 		}
 		if len(msIDs) == 0 {
-			kbCVEIDs[kbID] = []string{}
+			cveIDtoKBIDs[""] = append(cveIDtoKBIDs[""], kbID)
 			continue
 		}
 
 		cveIDs := []string{}
 		if err := r.conn.
 			Model(&models.MicrosoftCVE{}).
-			Distinct("cve_id").
+			Select("cve_id").
 			Where("id IN ?", msIDs).
 			Find(&cveIDs).Error; err != nil {
 			return nil, xerrors.Errorf("Failed to get CVEID by MicrosoftCVEID. err: %w", err)
 		}
-		kbCVEIDs[kbID] = cveIDs
+		for _, cveID := range cveIDs {
+			cveIDtoKBIDs[cveID] = append(cveIDtoKBIDs[cveID], kbID)
+		}
 	}
-	return kbCVEIDs, nil
+
+	appliedMSIDs := []string{}
+	if err := r.conn.
+		Model(&models.MicrosoftKBID{}).
+		Distinct("microsoft_cve_id").
+		Where("kb_id IN ?", applied).
+		Find(&appliedMSIDs).Error; err != nil {
+		return nil, xerrors.Errorf("Failed to get MicrosoftCVEID by KBID. err: %w", err)
+	}
+	if len(appliedMSIDs) > 0 {
+		appliedCVEIDs := []string{}
+		if err := r.conn.
+			Model(&models.MicrosoftCVE{}).
+			Select("cve_id").
+			Where("id IN ?", appliedMSIDs).
+			Find(&appliedCVEIDs).Error; err != nil {
+			return nil, xerrors.Errorf("Failed to get CVEID by MicrosoftCVEID. err: %w", err)
+		}
+		for _, cveID := range appliedCVEIDs {
+			delete(cveIDtoKBIDs, cveID)
+		}
+	}
+
+	kbIDtoCVEIDs := map[string][]string{}
+	for cveID, kbIDs := range cveIDtoKBIDs {
+		for _, kbID := range kbIDs {
+			if cveID == "" {
+				if _, ok := kbIDtoCVEIDs[kbID]; !ok {
+					kbIDtoCVEIDs[kbID] = []string{}
+				}
+			} else {
+				kbIDtoCVEIDs[kbID] = append(kbIDtoCVEIDs[kbID], cveID)
+			}
+		}
+	}
+
+	return kbIDtoCVEIDs, nil
 }
 
 func (r *RDBDriver) getUnAppliedKBIDs(applied []string, unapplied []string) ([]string, error) {
@@ -64,7 +102,7 @@ func (r *RDBDriver) getUnAppliedKBIDs(applied []string, unapplied []string) ([]s
 		for _, relation := range relations {
 			isInApplied := false
 			for _, supersededby := range relation.SupersededBy {
-				if util.StringInSlice(supersededby.KBID, applied) {
+				if slices.Contains(applied, supersededby.KBID) {
 					isInApplied = true
 					break
 				}

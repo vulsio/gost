@@ -20,6 +20,7 @@ require (
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.12.0
 	github.com/tealeg/xlsx v1.0.5
+	golang.org/x/exp v0.0.0-20220414153411-bcd21879b8fd
 	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gorm.io/driver/mysql v1.3.4

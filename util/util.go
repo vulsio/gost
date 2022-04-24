@@ -233,16 +233,6 @@ func Exists(path string) (bool, error) {
 	return true, err
 }
 
-// StringInSlice search within Slice by String
-func StringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
 // Exec run the command
 func Exec(command string, args []string) (string, error) {
 	cmd := exec.Command(command, args...)
