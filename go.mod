@@ -30,7 +30,8 @@ require (
 	github.com/spf13/viper v1.8.1
 	github.com/tealeg/xlsx v1.0.5
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b // indirect
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
+	golang.org/x/exp v0.0.0-20220414153411-bcd21879b8fd
+	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect
 	golang.org/x/text v0.3.6 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
