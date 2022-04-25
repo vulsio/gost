@@ -12,10 +12,11 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
+
 	"github.com/vulsio/gost/config"
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
-	"golang.org/x/xerrors"
 )
 
 /**

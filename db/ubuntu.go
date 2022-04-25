@@ -5,9 +5,10 @@ import (
 
 	pb "github.com/cheggaaa/pb/v3"
 	"github.com/spf13/viper"
-	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
+
+	"github.com/vulsio/gost/models"
 )
 
 // GetUbuntu :
@@ -137,9 +138,12 @@ var ubuntuVerCodename = map[string]string{
 	"1404": "trusty",
 	"1604": "xenial",
 	"1804": "bionic",
+	"1910": "eoan",
 	"2004": "focal",
 	"2010": "groovy",
 	"2104": "hirsute",
+	"2110": "impish",
+	"2204": "jammy",
 }
 
 // GetUnfixedCvesUbuntu gets the CVEs related to debian_release.status IN ('needed', 'pending'), ver, pkgName.

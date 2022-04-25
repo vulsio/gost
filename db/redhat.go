@@ -9,10 +9,11 @@ import (
 	pb "github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
-	"github.com/vulsio/gost/models"
-	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
+
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 )
 
 // GetAfterTimeRedhat :

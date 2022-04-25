@@ -21,6 +21,6 @@ func init() {
 	fetchCmd.PersistentFlags().Int("threads", 5, "The number of threads to be used")
 	_ = viper.BindPFlag("threads", fetchCmd.PersistentFlags().Lookup("threads"))
 
-	fetchCmd.PersistentFlags().Int("batch-size", 15, "The number of batch size to insert.")
+	fetchCmd.PersistentFlags().Int("batch-size", 10, "The number of batch size to insert.")
 	_ = viper.BindPFlag("batch-size", fetchCmd.PersistentFlags().Lookup("batch-size"))
 }
