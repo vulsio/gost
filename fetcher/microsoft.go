@@ -9,9 +9,10 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
 	"github.com/tealeg/xlsx"
+	"golang.org/x/xerrors"
+
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
-	"golang.org/x/xerrors"
 )
 
 var (

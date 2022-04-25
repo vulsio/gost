@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
-	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
+
+	"github.com/vulsio/gost/models"
 )
 
 // DB is interface for a database driver

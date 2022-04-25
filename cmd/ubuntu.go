@@ -6,11 +6,12 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
+
 	"github.com/vulsio/gost/db"
 	"github.com/vulsio/gost/fetcher"
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
-	"golang.org/x/xerrors"
 )
 
 // ubuntuCmd represents the ubuntu command

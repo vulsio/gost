@@ -6,9 +6,10 @@ import (
 
 	pb "github.com/cheggaaa/pb/v3"
 	"github.com/spf13/viper"
-	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
+
+	"github.com/vulsio/gost/models"
 )
 
 // GetDebian :

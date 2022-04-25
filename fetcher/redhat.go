@@ -8,10 +8,11 @@ import (
 	"path/filepath"
 
 	"github.com/inconshreveable/log15"
+	"golang.org/x/xerrors"
+
 	"github.com/vulsio/gost/git"
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
-	"golang.org/x/xerrors"
 )
 
 const (

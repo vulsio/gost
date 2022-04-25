@@ -5,10 +5,10 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/inconshreveable/log15"
-	"golang.org/x/xerrors"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/xerrors"
+
 	"github.com/vulsio/gost/config"
 	"github.com/vulsio/gost/db"
 	"github.com/vulsio/gost/fetcher"

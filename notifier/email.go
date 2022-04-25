@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vulsio/gost/config"
 	"golang.org/x/xerrors"
+
+	"github.com/vulsio/gost/config"
 )
 
 // EMailSender is interface of sending e-mail
