@@ -12,6 +12,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"golang.org/x/xerrors"
 
@@ -496,12 +497,12 @@ func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuC
 
 // GetCveIDsByMicrosoftKBID :
 func (r *RedisDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []string) (map[string][]string, error) {
-	kbIDs, err := r.getUnAppliedKBIDs(applied, unapplied)
+	applied, unapplied, err := r.extractKBIDs(applied, unapplied)
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to get UnApplied KBIDs. err: %w", err)
 	}
 
-	cveIDtoUnAppliedKBIDs, err := r.getCVEIDtoKBIDs(kbIDs)
+	cveIDtoUnAppliedKBIDs, err := r.getCVEIDtoKBIDs(unapplied)
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to get CVEID to UnApplied KBIDs. err: %w", err)
 	}
@@ -531,24 +532,32 @@ func (r *RedisDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []str
 	return kbIDtoCVEIDs, nil
 }
 
-func (r *RedisDriver) getUnAppliedKBIDs(applied []string, unapplied []string) ([]string, error) {
+func (r *RedisDriver) extractKBIDs(applied []string, unapplied []string) ([]string, []string, error) {
 	ctx := context.Background()
 
+	uniqAppliedKBIDs := map[string]struct{}{}
 	uniqUnappliedKBIDs := map[string]struct{}{}
+	for _, kbID := range applied {
+		uniqAppliedKBIDs[kbID] = struct{}{}
+	}
+	for _, kbID := range unapplied {
+		uniqUnappliedKBIDs[kbID] = struct{}{}
+		delete(uniqAppliedKBIDs, kbID)
+	}
+	applied = maps.Keys(uniqAppliedKBIDs)
 
-	relations := map[string]*redis.StringSliceCmd{}
 	pipe := r.conn.Pipeline()
 	for _, kbID := range applied {
-		relations[kbID] = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("R#%s", kbID)))
+		_ = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("R#%s", kbID)))
 	}
-	if _, err := pipe.Exec(ctx); err != nil {
-		return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	cmders, err := pipe.Exec(ctx)
+	if err != nil {
+		return nil, nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 	}
-
-	for _, cmder := range relations {
-		supersededby, err := cmder.Result()
+	for _, cmder := range cmders {
+		supersededby, err := cmder.(*redis.StringSliceCmd).Result()
 		if err != nil {
-			return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+			return nil, nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
 		}
 
 		isInApplied := false
@@ -565,32 +574,25 @@ func (r *RedisDriver) getUnAppliedKBIDs(applied []string, unapplied []string) ([
 		}
 	}
 
-	relations = map[string]*redis.StringSliceCmd{}
 	pipe = r.conn.Pipeline()
-	for _, kbID := range unapplied {
-		relations[kbID] = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("R#%s", kbID)))
+	for kbID := range uniqUnappliedKBIDs {
+		_ = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("R#%s", kbID)))
 	}
-	if _, err := pipe.Exec(ctx); err != nil {
-		return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	cmders, err = pipe.Exec(ctx)
+	if err != nil {
+		return nil, nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 	}
-
-	for kbID, cmder := range relations {
-		supersededby, err := cmder.Result()
+	for _, cmder := range cmders {
+		supersededby, err := cmder.(*redis.StringSliceCmd).Result()
 		if err != nil {
-			return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+			return nil, nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
 		}
-		uniqUnappliedKBIDs[kbID] = struct{}{}
 		for _, kbID := range supersededby {
 			uniqUnappliedKBIDs[kbID] = struct{}{}
 		}
 	}
 
-	unappliedKBIDs := []string{}
-	for kbid := range uniqUnappliedKBIDs {
-		unappliedKBIDs = append(unappliedKBIDs, kbid)
-	}
-
-	return unappliedKBIDs, nil
+	return applied, maps.Keys(uniqUnappliedKBIDs), nil
 }
 
 func (r *RedisDriver) getCVEIDtoKBIDs(kbIDs []string) (map[string][]string, error) {

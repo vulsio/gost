@@ -7,6 +7,7 @@ import (
 	"github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
@@ -16,13 +17,13 @@ import (
 
 // GetCveIDsByMicrosoftKBID :
 func (r *RDBDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []string) (map[string][]string, error) {
-	kbIDs, err := r.getUnAppliedKBIDs(applied, unapplied)
+	applied, unapplied, err := r.extractKBIDs(applied, unapplied)
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to get UnApplied KBIDs. err: %w", err)
 	}
 
 	cveIDtoKBIDs := map[string][]string{}
-	for _, kbID := range kbIDs {
+	for _, kbID := range unapplied {
 		msIDs := []string{}
 		if err := r.conn.
 			Model(&models.MicrosoftKBID{}).
@@ -87,8 +88,18 @@ func (r *RDBDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []strin
 	return kbIDtoCVEIDs, nil
 }
 
-func (r *RDBDriver) getUnAppliedKBIDs(applied []string, unapplied []string) ([]string, error) {
+func (r *RDBDriver) extractKBIDs(applied []string, unapplied []string) ([]string, []string, error) {
+	uniqAppliedKBIDs := map[string]struct{}{}
 	uniqUnappliedKBIDs := map[string]struct{}{}
+	for _, kbID := range applied {
+		uniqAppliedKBIDs[kbID] = struct{}{}
+	}
+	for _, kbID := range unapplied {
+		uniqUnappliedKBIDs[kbID] = struct{}{}
+		delete(uniqAppliedKBIDs, kbID)
+	}
+	applied = maps.Keys(uniqAppliedKBIDs)
+
 	if len(applied) > 0 {
 		relations := []models.MicrosoftKBRelation{}
 
@@ -96,7 +107,7 @@ func (r *RDBDriver) getUnAppliedKBIDs(applied []string, unapplied []string) ([]s
 			Preload("SupersededBy").
 			Where("kb_id IN ?", applied).
 			Find(&relations).Error; err != nil {
-			return nil, xerrors.Errorf("Failed to get KB Relation by applied KBID: %q. err: %w", applied, err)
+			return nil, nil, xerrors.Errorf("Failed to get KB Relation by applied KBID: %q. err: %w", applied, err)
 		}
 
 		for _, relation := range relations {
@@ -115,30 +126,24 @@ func (r *RDBDriver) getUnAppliedKBIDs(applied []string, unapplied []string) ([]s
 		}
 	}
 
-	if len(unapplied) > 0 {
+	if len(uniqUnappliedKBIDs) > 0 {
 		relations := []models.MicrosoftKBRelation{}
 
 		if err := r.conn.
 			Preload("SupersededBy").
-			Where("kb_id IN ?", unapplied).
+			Where("kb_id IN ?", maps.Keys(uniqUnappliedKBIDs)).
 			Find(&relations).Error; err != nil {
-			return nil, xerrors.Errorf("Failed to get KB Relation by unapplied KBID: %q. err: %w", unapplied, err)
+			return nil, nil, xerrors.Errorf("Failed to get KB Relation by unapplied KBID: %q. err: %w", unapplied, err)
 		}
 
 		for _, relation := range relations {
-			uniqUnappliedKBIDs[relation.KBID] = struct{}{}
 			for _, supersededby := range relation.SupersededBy {
 				uniqUnappliedKBIDs[supersededby.KBID] = struct{}{}
 			}
 		}
 	}
 
-	unappliedKBIDs := []string{}
-	for kbid := range uniqUnappliedKBIDs {
-		unappliedKBIDs = append(unappliedKBIDs, kbid)
-	}
-
-	return unappliedKBIDs, nil
+	return applied, maps.Keys(uniqUnappliedKBIDs), nil
 }
 
 // GetMicrosoft :
