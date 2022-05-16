@@ -93,29 +93,10 @@ func (r *RDBDriver) deleteAndInsertUbuntu(cves []models.UbuntuCVE) (err error) {
 	}()
 
 	// Delete all old records
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuUpstreamLink{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuUpstreamLink. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuUpstream{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuUpstream. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuReleasePatch{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuReleasePatch. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuPatch{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuPatch. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuBug{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuBug. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuNote{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuNote. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuReference{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuReference. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuCVE{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuCVE. err: %w", err)
+	for _, table := range []interface{}{models.UbuntuUpstreamLink{}, models.UbuntuUpstream{}, models.UbuntuReleasePatch{}, models.UbuntuPatch{}, models.UbuntuBug{}, models.UbuntuNote{}, models.UbuntuReference{}, models.UbuntuCVE{}} {
+		if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(table).Error; err != nil {
+			return xerrors.Errorf("Failed to delete old records. err: %w", err)
+		}
 	}
 
 	batchSize := viper.GetInt("batch-size")

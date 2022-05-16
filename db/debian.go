@@ -72,14 +72,10 @@ func (r *RDBDriver) deleteAndInsertDebian(cves []models.DebianCVE) (err error) {
 	}()
 
 	// Delete all old records
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianRelease{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete DebianRelease. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianPackage{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete DebianPackage. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.DebianCVE{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete DebianCVE. err: %w", err)
+	for _, table := range []interface{}{models.DebianRelease{}, models.DebianPackage{}, models.DebianCVE{}} {
+		if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(table).Error; err != nil {
+			return xerrors.Errorf("Failed to delete old records. err: %w", err)
+		}
 	}
 
 	batchSize := viper.GetInt("batch-size")
