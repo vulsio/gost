@@ -126,13 +126,9 @@ func (r *RDBDriver) MigrateDB() error {
 		&models.UbuntuUpstreamLink{},
 
 		&models.MicrosoftCVE{},
-		&models.MicrosoftProductStatus{},
-		&models.MicrosoftThreat{},
-		&models.MicrosoftRemediation{},
-		&models.MicrosoftReference{},
-		&models.MicrosoftScoreSet{},
 		&models.MicrosoftProduct{},
-		&models.MicrosoftKBID{},
+		&models.MicrosoftScoreSet{},
+		&models.MicrosoftKB{},
 		&models.MicrosoftKBRelation{},
 		&models.MicrosoftSupersededBy{},
 	); err != nil {
