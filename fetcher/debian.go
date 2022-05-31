@@ -12,7 +12,7 @@ import (
 // RetrieveDebianCveDetails returns CVE details from https://security-tracker.debian.org/tracker/data/json
 func RetrieveDebianCveDetails() (cves models.DebianJSON, err error) {
 	url := "https://security-tracker.debian.org/tracker/data/json"
-	cveJSON, err := util.FetchURL(url, "")
+	cveJSON, err := util.FetchURL(url)
 	if err != nil {
 		return cves, xerrors.Errorf("Failed to fetch cve data from Debian. err: %w", err)
 	}

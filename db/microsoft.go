@@ -15,77 +15,63 @@ import (
 	"github.com/vulsio/gost/models"
 )
 
-// GetCveIDsByMicrosoftKBID :
-func (r *RDBDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []string) (map[string][]string, error) {
+// GetCvesByMicrosoftKBID :
+func (r *RDBDriver) GetCvesByMicrosoftKBID(products []string, applied []string, unapplied []string) (map[string]models.MicrosoftCVE, error) {
 	applied, unapplied, err := r.extractKBIDs(applied, unapplied)
 	if err != nil {
-		return nil, xerrors.Errorf("Failed to get UnApplied KBIDs. err: %w", err)
+		return nil, xerrors.Errorf("Failed to extract KBIDs. err: %w", err)
 	}
 
-	cveIDtoKBIDs := map[string][]string{}
-	for _, kbID := range unapplied {
-		msIDs := []string{}
-		if err := r.conn.
-			Model(&models.MicrosoftKBID{}).
-			Distinct("microsoft_cve_id").
-			Where("kb_id = ?", kbID).
-			Find(&msIDs).Error; err != nil {
-			return nil, xerrors.Errorf("Failed to get MicrosoftCVEID by KBID. err: %w", err)
-		}
-		if len(msIDs) == 0 {
-			cveIDtoKBIDs[""] = append(cveIDtoKBIDs[""], kbID)
-			continue
-		}
+	detected := map[string]models.MicrosoftCVE{}
 
-		cveIDs := []string{}
-		if err := r.conn.
-			Model(&models.MicrosoftCVE{}).
-			Select("cve_id").
-			Where("id IN ?", msIDs).
-			Find(&cveIDs).Error; err != nil {
-			return nil, xerrors.Errorf("Failed to get CVEID by MicrosoftCVEID. err: %w", err)
-		}
-		for _, cveID := range cveIDs {
-			cveIDtoKBIDs[cveID] = append(cveIDtoKBIDs[cveID], kbID)
-		}
+	var q *gorm.DB
+	if len(products) > 0 {
+		q = r.conn.Preload("Products", "name IN ?", products)
+	} else {
+		q = r.conn.Preload("Products")
 	}
+	cs := []models.MicrosoftCVE{}
+	if err := q.
+		Preload("Products.ScoreSet").
+		Preload("Products.KBs").
+		FindInBatches(&cs, 500, func(tx *gorm.DB, batch int) error {
+			for _, c := range cs {
+				ps := []models.MicrosoftProduct{}
+				for _, p := range c.Products {
+					if len(p.KBs) == 0 {
+						ps = append(ps, p)
+						continue
+					}
 
-	appliedMSIDs := []string{}
-	if err := r.conn.
-		Model(&models.MicrosoftKBID{}).
-		Distinct("microsoft_cve_id").
-		Where("kb_id IN ?", applied).
-		Find(&appliedMSIDs).Error; err != nil {
-		return nil, xerrors.Errorf("Failed to get MicrosoftCVEID by KBID. err: %w", err)
-	}
-	if len(appliedMSIDs) > 0 {
-		appliedCVEIDs := []string{}
-		if err := r.conn.
-			Model(&models.MicrosoftCVE{}).
-			Select("cve_id").
-			Where("id IN ?", appliedMSIDs).
-			Find(&appliedCVEIDs).Error; err != nil {
-			return nil, xerrors.Errorf("Failed to get CVEID by MicrosoftCVEID. err: %w", err)
-		}
-		for _, cveID := range appliedCVEIDs {
-			delete(cveIDtoKBIDs, cveID)
-		}
-	}
-
-	kbIDtoCVEIDs := map[string][]string{}
-	for cveID, kbIDs := range cveIDtoKBIDs {
-		for _, kbID := range kbIDs {
-			if cveID == "" {
-				if _, ok := kbIDtoCVEIDs[kbID]; !ok {
-					kbIDtoCVEIDs[kbID] = []string{}
+					kbs := []models.MicrosoftKB{}
+					for _, kb := range p.KBs {
+						if slices.Contains(applied, kb.Article) {
+							kbs = []models.MicrosoftKB{}
+							break
+						}
+						if slices.Contains(unapplied, kb.Article) {
+							kbs = append(kbs, kb)
+						}
+					}
+					if len(kbs) > 0 {
+						p.KBs = kbs
+						ps = append(ps, p)
+					}
 				}
-			} else {
-				kbIDtoCVEIDs[kbID] = append(kbIDtoCVEIDs[kbID], cveID)
+				if len(ps) > 0 {
+					c.Products = ps
+					detected[c.CveID] = c
+				}
 			}
-		}
+
+			tx.Save(&cs)
+
+			return nil
+		}).Error; err != nil {
+		return nil, err
 	}
 
-	return kbIDtoCVEIDs, nil
+	return detected, nil
 }
 
 func (r *RDBDriver) extractKBIDs(applied []string, unapplied []string) ([]string, []string, error) {
@@ -149,145 +135,49 @@ func (r *RDBDriver) extractKBIDs(applied []string, unapplied []string) ([]string
 // GetMicrosoft :
 func (r *RDBDriver) GetMicrosoft(cveID string) (*models.MicrosoftCVE, error) {
 	c := models.MicrosoftCVE{}
-	if err := r.conn.Where(&models.MicrosoftCVE{CveID: cveID}).First(&c).Error; err != nil {
+	if err := r.conn.
+		Preload("Products").
+		Preload("Products.ScoreSet").
+		Preload("Products.KBs").
+		Where(&models.MicrosoftCVE{CveID: cveID}).
+		Take(&c).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		log15.Error("Failed to get Microsoft", "err", err)
 		return nil, err
 	}
-
-	if err := r.conn.Model(&c).Association("MicrosoftProductStatuses").Find(&c.MicrosoftProductStatuses); err != nil {
-		return nil, err
-	}
-	if len(c.MicrosoftProductStatuses) == 0 {
-		c.MicrosoftProductStatuses = nil
-	} else {
-		for i := range c.MicrosoftProductStatuses {
-			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("MicrosoftProductStatus:%d", i)).Find(&c.MicrosoftProductStatuses[i].Products).Error; err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Impact'", c.ID).Find(&c.Impact).Error; err != nil {
-		return nil, err
-	}
-	if len(c.Impact) == 0 {
-		c.Impact = nil
-	} else {
-		for i := range c.Impact {
-			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("Impact:%d", i)).Find(&c.Impact[i].Products).Error; err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Severity'", c.ID).Find(&c.Severity).Error; err != nil {
-		return nil, err
-	}
-	if len(c.Severity) == 0 {
-		c.Severity = nil
-	} else {
-		for i := range c.Severity {
-			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("Severity:%d", i)).Find(&c.Severity[i].Products).Error; err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Vendor Fix'", c.ID).Find(&c.VendorFix).Error; err != nil {
-		return nil, err
-	}
-	if len(c.VendorFix) == 0 {
-		c.VendorFix = nil
-	} else {
-		for i := range c.VendorFix {
-			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("VendorFix:%d", i)).Find(&c.VendorFix[i].Products).Error; err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'None Available'", c.ID).Find(&c.NoneAvailable).Error; err != nil {
-		return nil, err
-	}
-	if len(c.NoneAvailable) == 0 {
-		c.NoneAvailable = nil
-	} else {
-		for i := range c.NoneAvailable {
-			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("NoneAvailable:%d", i)).Find(&c.NoneAvailable[i].Products).Error; err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if err := r.conn.Where("microsoft_cve_id = ? AND attr_type = 'Will Not Fix'", c.ID).Find(&c.WillNotFix).Error; err != nil {
-		return nil, err
-	}
-	if len(c.WillNotFix) == 0 {
-		c.WillNotFix = nil
-	} else {
-		for i := range c.WillNotFix {
-			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("WillNotFix:%d", i)).Find(&c.WillNotFix[i].Products).Error; err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if err := r.conn.Model(&c).Association("ScoreSets").Find(&c.ScoreSets); err != nil {
-		return nil, err
-	}
-	if len(c.ScoreSets) == 0 {
-		c.ScoreSets = nil
-	} else {
-		for i := range c.ScoreSets {
-			if err := r.conn.Where("microsoft_cve_id = ? AND category = ?", c.ID, fmt.Sprintf("MicrosoftScoreSet:%d", i)).Find(&c.ScoreSets[i].Products).Error; err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if err := r.conn.Model(&c).Association("References").Find(&c.References); err != nil {
-		return nil, err
-	}
-	if len(c.References) == 0 {
-		c.References = nil
-	}
-
-	if err := r.conn.Model(&c).Association("KBIDs").Find(&c.KBIDs); err != nil {
-		return nil, err
-	}
-	if len(c.KBIDs) == 0 {
-		c.KBIDs = nil
-	}
-
 	return &c, nil
 }
 
 // GetMicrosoftMulti :
 func (r *RDBDriver) GetMicrosoftMulti(cveIDs []string) (map[string]models.MicrosoftCVE, error) {
+	cs := []models.MicrosoftCVE{}
+	if err := r.conn.
+		Preload("Products").
+		Preload("Products.ScoreSet").
+		Preload("Products.KBs").
+		Where("cve_id IN ?", cveIDs).
+		Find(&cs).Error; err != nil {
+		log15.Error("Failed to get Microsoft", "err", err)
+		return nil, err
+	}
+
 	m := map[string]models.MicrosoftCVE{}
-	for _, cveID := range cveIDs {
-		cve, err := r.GetMicrosoft(cveID)
-		if err != nil {
-			return nil, err
-		}
-		if cve != nil {
-			m[cveID] = *cve
-		}
+	for _, c := range cs {
+		m[c.CveID] = c
 	}
 	return m, nil
 }
 
 // InsertMicrosoft :
-func (r *RDBDriver) InsertMicrosoft(cves []models.MicrosoftCVE, _ []models.MicrosoftProduct, kbRelations []models.MicrosoftKBRelation) error {
+func (r *RDBDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []models.MicrosoftKBRelation) error {
 	log15.Info("Inserting cves", "cves", len(cves))
 	if err := r.deleteAndInsertMicrosoft(cves); err != nil {
 		return xerrors.Errorf("Failed to insert Microsoft CVE data. err: %w", err)
 	}
-	log15.Info("Insert KB Relation", "kbRelation", len(kbRelations))
-	if err := r.deleteAndInsertMicrosoftKBRelation(kbRelations); err != nil {
+	log15.Info("Insert KB Relation", "relations", len(relations))
+	if err := r.deleteAndInsertMicrosoftKBRelation(relations); err != nil {
 		return xerrors.Errorf("Failed to insert Microsoft KB Relation data. err: %w", err)
 	}
 	return nil
@@ -306,23 +196,11 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(cves []models.MicrosoftCVE) (err er
 	}()
 
 	// Delete all old records
+	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftKB{}).Error; err != nil {
+		return xerrors.Errorf("Failed to delete MicrosoftKB. err: %s", err)
+	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftScoreSet{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftScoreSet. err: %s", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftReference{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftReference. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftKBID{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftKBID. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftRemediation{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftRemediation. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftThreat{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftThreat. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftProductStatus{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftProductStatus. err: %w", err)
+		return xerrors.Errorf("Failed to delete MicrosoftScoreSet. err: %w", err)
 	}
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftProduct{}).Error; err != nil {
 		return xerrors.Errorf("Failed to delete MicrosoftProduct. err: %w", err)
@@ -380,9 +258,4 @@ func (r *RDBDriver) deleteAndInsertMicrosoftKBRelation(kbs []models.MicrosoftKBR
 	}
 	bar.Finish()
 	return nil
-}
-
-// GetUnfixedCvesMicrosoft :
-func (r *RDBDriver) GetUnfixedCvesMicrosoft(_, _ string, _ ...bool) (map[string]models.MicrosoftCVE, error) {
-	return map[string]models.MicrosoftCVE{}, nil
 }

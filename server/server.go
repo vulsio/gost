@@ -256,7 +256,8 @@ func getFixedCvesUbuntu(driver db.DB) echo.HandlerFunc {
 	}
 }
 
-type kbIDs struct {
+type msBody struct {
+	Products  []string `json:"products"`
 	Applied   []string `json:"applied"`
 	Unapplied []string `json:"unapplied"`
 }
@@ -264,11 +265,11 @@ type kbIDs struct {
 // Handler
 func getCveIDsByMicrosoftKBID(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		kbIDs := kbIDs{}
-		if err := c.Bind(&kbIDs); err != nil {
+		b := msBody{}
+		if err := c.Bind(&b); err != nil {
 			return err
 		}
-		cveIDs, err := driver.GetCveIDsByMicrosoftKBID(kbIDs.Applied, kbIDs.Unapplied)
+		cveIDs, err := driver.GetCvesByMicrosoftKBID(b.Products, b.Applied, b.Unapplied)
 		if err != nil {
 			log15.Error("Failed to get CVEIDs By KBID", "err", err)
 			return err

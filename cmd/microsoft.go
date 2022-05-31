@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -25,9 +24,6 @@ var microsoftCmd = &cobra.Command{
 
 func init() {
 	fetchCmd.AddCommand(microsoftCmd)
-
-	microsoftCmd.PersistentFlags().String("apikey", "", "microsoft apikey")
-	_ = viper.BindPFlag("apikey", microsoftCmd.PersistentFlags().Lookup("apikey"))
 }
 
 func fetchMicrosoft(_ *cobra.Command, _ []string) (err error) {
@@ -57,28 +53,14 @@ func fetchMicrosoft(_ *cobra.Command, _ []string) (err error) {
 	}
 
 	log15.Info("Fetched all CVEs from Microsoft")
-	apiKey := viper.GetString("apikey")
-	if len(apiKey) == 0 {
-		return errors.New("apikey is required")
-	}
-	cveXMLs, err := fetcher.RetrieveMicrosoftCveDetails(apiKey)
+	vulns, supercedences, err := fetcher.RetrieveMicrosoftCveDetails()
 	if err != nil {
 		return err
 	}
-	cveXls, err := fetcher.RetrieveMicrosoftBulletinSearch()
-	if err != nil {
-		return err
-	}
-	cves, product := models.ConvertMicrosoft(cveXMLs, cveXls)
-
-	kbRelationJSON, err := fetcher.RetrieveMicrosoftKBRelation()
-	if err != nil {
-		return xerrors.Errorf("Failed to retrieve Microsoft KB Relation. err: %w", err)
-	}
-	kbRelations := models.ConvertMicrosoftKBRelation(kbRelationJSON)
+	cves, relations := models.ConvertMicrosoft(vulns, supercedences)
 
 	log15.Info("Insert Microsoft CVEs into DB", "db", driver.Name())
-	if err := driver.InsertMicrosoft(cves, product, kbRelations); err != nil {
+	if err := driver.InsertMicrosoft(cves, relations); err != nil {
 		return xerrors.Errorf("Failed to insert. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 
