@@ -3,7 +3,7 @@ module github.com/vulsio/gost
 go 1.18
 
 require (
-	github.com/BurntSushi/toml v0.3.1
+	github.com/BurntSushi/toml v1.1.0
 	github.com/briandowns/spinner v1.12.0
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cheggaaa/pb/v3 v3.0.7
