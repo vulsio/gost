@@ -6,10 +6,10 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/inconshreveable/log15"
+	"github.com/parnurzeal/gorequest"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
 
-	"github.com/parnurzeal/gorequest"
 	"github.com/vulsio/gost/config"
 )
 

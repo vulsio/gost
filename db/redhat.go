@@ -9,10 +9,11 @@ import (
 	pb "github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
-	"github.com/vulsio/gost/models"
-	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
+
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 )
 
 // GetAfterTimeRedhat :
@@ -178,29 +179,11 @@ func (r *RDBDriver) deleteAndInsertRedhat(cves []models.RedhatCVE) (err error) {
 		tx.Commit()
 	}()
 
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatDetail{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete . err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatReference{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete . err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatBugzilla{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete . err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCvss{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete . err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCvss3{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete . err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatAffectedRelease{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete . err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatPackageState{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete . err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.RedhatCVE{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete . err: %w", err)
+	// Delete all old records
+	for _, table := range []interface{}{models.RedhatDetail{}, models.RedhatReference{}, models.RedhatBugzilla{}, models.RedhatCvss{}, models.RedhatCvss3{}, models.RedhatAffectedRelease{}, models.RedhatPackageState{}, models.RedhatCVE{}} {
+		if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(table).Error; err != nil {
+			return xerrors.Errorf("Failed to delete old records. err: %w", err)
+		}
 	}
 
 	batchSize := viper.GetInt("batch-size")

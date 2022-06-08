@@ -11,7 +11,7 @@ COPY . $GOPATH/src/$REPOSITORY
 RUN cd $GOPATH/src/$REPOSITORY && make install
 
 
-FROM alpine:3.14
+FROM alpine:3.15
 
 ENV LOGDIR /var/log/gost
 ENV WORKDIR /gost

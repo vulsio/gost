@@ -3,9 +3,10 @@ package fetcher
 import (
 	"encoding/json"
 
+	"golang.org/x/xerrors"
+
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
-	"golang.org/x/xerrors"
 )
 
 // RetrieveDebianCveDetails returns CVE details from https://security-tracker.debian.org/tracker/data/json

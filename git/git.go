@@ -7,11 +7,12 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/inconshreveable/log15"
-	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
+
+	"github.com/vulsio/gost/util"
 )
 
 func getGitVersion() (string, error) {

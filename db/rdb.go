@@ -7,18 +7,15 @@ import (
 	"time"
 
 	sqlite3 "github.com/mattn/go-sqlite3"
-	"github.com/vulsio/gost/config"
-	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	// Required MySQL.  See https://gorm.io/docs/connecting_to_the_database.html
-	"gorm.io/driver/mysql"
-	"gorm.io/driver/postgres"
-
-	// Required SQLite3.
-	"gorm.io/driver/sqlite"
+	"github.com/vulsio/gost/config"
+	"github.com/vulsio/gost/models"
 )
 
 // Supported DB dialects.

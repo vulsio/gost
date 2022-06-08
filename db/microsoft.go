@@ -7,10 +7,11 @@ import (
 	"github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
-	"github.com/vulsio/gost/models"
-	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
+
+	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 )
 
 // GetCveIDsByMicrosoftKBID :
@@ -262,29 +263,10 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(cves []models.MicrosoftCVE) (err er
 	}()
 
 	// Delete all old records
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftScoreSet{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftScoreSet. err: %s", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftReference{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftReference. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftKBID{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftKBID. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftRemediation{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftRemediation. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftThreat{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftThreat. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftProductStatus{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftProductStatus. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftProduct{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftProduct. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftCVE{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftCVE. err: %w", err)
+	for _, table := range []interface{}{models.MicrosoftScoreSet{}, models.MicrosoftReference{}, models.MicrosoftKBID{}, models.MicrosoftRemediation{}, models.MicrosoftThreat{}, models.MicrosoftProductStatus{}, models.MicrosoftProduct{}, models.MicrosoftCVE{}} {
+		if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(table).Error; err != nil {
+			return xerrors.Errorf("Failed to delete old records. err: %w", err)
+		}
 	}
 
 	batchSize := viper.GetInt("batch-size")
@@ -316,11 +298,10 @@ func (r *RDBDriver) deleteAndInsertMicrosoftKBRelation(kbs []models.MicrosoftKBR
 	}()
 
 	// Delete all old records
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftKBRelation{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftKBRelation. err: %s", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.MicrosoftSupersededBy{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete MicrosoftSupersededBy. err: %s", err)
+	for _, table := range []interface{}{models.MicrosoftKBRelation{}, models.MicrosoftSupersededBy{}} {
+		if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(table).Error; err != nil {
+			return xerrors.Errorf("Failed to delete old records. err: %w", err)
+		}
 	}
 
 	batchSize := viper.GetInt("batch-size")

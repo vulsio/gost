@@ -5,9 +5,10 @@ import (
 
 	pb "github.com/cheggaaa/pb/v3"
 	"github.com/spf13/viper"
-	"github.com/vulsio/gost/models"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
+
+	"github.com/vulsio/gost/models"
 )
 
 // GetUbuntu :
@@ -92,29 +93,10 @@ func (r *RDBDriver) deleteAndInsertUbuntu(cves []models.UbuntuCVE) (err error) {
 	}()
 
 	// Delete all old records
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuUpstreamLink{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuUpstreamLink. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuUpstream{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuUpstream. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuReleasePatch{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuReleasePatch. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuPatch{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuPatch. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuBug{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuBug. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuNote{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuNote. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuReference{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuReference. err: %w", err)
-	}
-	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(models.UbuntuCVE{}).Error; err != nil {
-		return xerrors.Errorf("Failed to delete UbuntuCVE. err: %w", err)
+	for _, table := range []interface{}{models.UbuntuUpstreamLink{}, models.UbuntuUpstream{}, models.UbuntuReleasePatch{}, models.UbuntuPatch{}, models.UbuntuBug{}, models.UbuntuNote{}, models.UbuntuReference{}, models.UbuntuCVE{}} {
+		if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(table).Error; err != nil {
+			return xerrors.Errorf("Failed to delete old records. err: %w", err)
+		}
 	}
 
 	batchSize := viper.GetInt("batch-size")
@@ -137,9 +119,12 @@ var ubuntuVerCodename = map[string]string{
 	"1404": "trusty",
 	"1604": "xenial",
 	"1804": "bionic",
+	"1910": "eoan",
 	"2004": "focal",
 	"2010": "groovy",
 	"2104": "hirsute",
+	"2110": "impish",
+	"2204": "jammy",
 }
 
 // GetUnfixedCvesUbuntu gets the CVEs related to debian_release.status IN ('needed', 'pending'), ver, pkgName.

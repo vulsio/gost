@@ -4,8 +4,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vulsio/gost/util"
 	"golang.org/x/xerrors"
+
+	"github.com/vulsio/gost/util"
 )
 
 // RedhatEntry :
