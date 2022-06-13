@@ -13,7 +13,7 @@ require (
 	github.com/inconshreveable/log15 v0.0.0-20201112154412-8562bdadbbac
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/mattn/go-runewidth v0.0.13
-	github.com/mattn/go-sqlite3 v1.14.13
+	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/pkg/errors v0.9.1
