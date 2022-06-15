@@ -26,7 +26,7 @@ func init() {
 	fetchCmd.AddCommand(microsoftCmd)
 }
 
-func fetchMicrosoft(_ *cobra.Command, _ []string) (err error) {
+func fetchMicrosoft(_ *cobra.Command, args []string) (err error) {
 	if err := util.SetLogger(viper.GetBool("log-to-file"), viper.GetString("log-dir"), viper.GetBool("debug"), viper.GetBool("log-json")); err != nil {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
@@ -53,7 +53,7 @@ func fetchMicrosoft(_ *cobra.Command, _ []string) (err error) {
 	}
 
 	log15.Info("Fetched all CVEs from Microsoft")
-	vulns, supercedences, err := fetcher.RetrieveMicrosoftCveDetails()
+	vulns, supercedences, err := fetcher.RetrieveMicrosoftCveDetails(args[0], args[1])
 	if err != nil {
 		return err
 	}
