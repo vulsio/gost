@@ -396,7 +396,7 @@ func (r *RedisDriver) GetDebianMulti(cveIDs []string) (map[string]models.DebianC
 
 // GetUnfixedCvesUbuntu :
 func (r *RedisDriver) GetUnfixedCvesUbuntu(major, pkgName string) (map[string]models.UbuntuCVE, error) {
-	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"needed", "pending"})
+	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"needed", "deferred", "pending"})
 }
 
 // GetFixedCvesUbuntu :
@@ -718,7 +718,7 @@ func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) (map[string]models.Micr
 	return results, nil
 }
 
-//InsertRedhat :
+// InsertRedhat :
 func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 	ctx := context.Background()
 	batchSize := viper.GetInt("batch-size")

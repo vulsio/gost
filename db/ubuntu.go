@@ -127,12 +127,12 @@ var ubuntuVerCodename = map[string]string{
 	"2204": "jammy",
 }
 
-// GetUnfixedCvesUbuntu gets the CVEs related to debian_release.status IN ('needed', 'pending'), ver, pkgName.
+// GetUnfixedCvesUbuntu gets the CVEs related to ubuntu_release_patches.status IN ('needed', 'deferred', 'pending'), ver, pkgName.
 func (r *RDBDriver) GetUnfixedCvesUbuntu(ver, pkgName string) (map[string]models.UbuntuCVE, error) {
-	return r.getCvesUbuntuWithFixStatus(ver, pkgName, []string{"needed", "pending"})
+	return r.getCvesUbuntuWithFixStatus(ver, pkgName, []string{"needed", "deferred", "pending"})
 }
 
-// GetFixedCvesUbuntu gets the CVEs related to debian_release.status IN ('released'), ver, pkgName.
+// GetFixedCvesUbuntu gets the CVEs related to ubuntu_release_patches.status IN ('released'), ver, pkgName.
 func (r *RDBDriver) GetFixedCvesUbuntu(ver, pkgName string) (map[string]models.UbuntuCVE, error) {
 	return r.getCvesUbuntuWithFixStatus(ver, pkgName, []string{"released"})
 }
