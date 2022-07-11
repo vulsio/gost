@@ -24,7 +24,7 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gorm.io/driver/mysql v1.3.4
 	gorm.io/driver/postgres v1.3.7
-	gorm.io/driver/sqlite v1.3.4
+	gorm.io/driver/sqlite v1.3.6
 	gorm.io/gorm v1.23.5
 )
 
