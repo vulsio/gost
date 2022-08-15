@@ -23,9 +23,9 @@ require (
 	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gorm.io/driver/mysql v1.3.4
-	gorm.io/driver/postgres v1.3.7
+	gorm.io/driver/postgres v1.3.9
 	gorm.io/driver/sqlite v1.3.4
-	gorm.io/gorm v1.23.5
+	gorm.io/gorm v1.23.7
 )
 
 require (
