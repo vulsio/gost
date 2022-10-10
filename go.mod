@@ -13,7 +13,7 @@ require (
 	github.com/inconshreveable/log15 v0.0.0-20201112154412-8562bdadbbac
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/mattn/go-runewidth v0.0.13
-	github.com/mattn/go-sqlite3 v1.14.13
+	github.com/mattn/go-sqlite3 v1.14.15
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/pkg/errors v0.9.1
@@ -24,8 +24,8 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gorm.io/driver/mysql v1.3.4
 	gorm.io/driver/postgres v1.3.7
-	gorm.io/driver/sqlite v1.3.4
-	gorm.io/gorm v1.23.5
+	gorm.io/driver/sqlite v1.4.2
+	gorm.io/gorm v1.24.0
 )
 
 require (
