@@ -11,17 +11,18 @@ import (
 
 // RedhatEntry :
 type RedhatEntry struct {
-	CveID             string        `json:"CVE"`
-	Severity          string        `json:"severity"`
-	PublicDate        time.Time     `json:"public_date"`
-	Advisories        []interface{} `json:"advisories"`
-	Bugzilla          string        `json:"bugzilla"`
-	CvssScore         interface{}   `json:"cvss_score"`
-	CvssScoringVector interface{}   `json:"cvss_scoring_vector"`
-	CWE               string        `json:"CWE"`
-	AffectedPackages  []interface{} `json:"affected_packages"`
-	ResourceURL       string        `json:"resource_url"`
-	Cvss3Score        float64       `json:"cvss3_score"`
+	CveID              string        `json:"CVE"`
+	Severity           string        `json:"severity"`
+	PublicDate         time.Time     `json:"public_date"`
+	Advisories         []interface{} `json:"advisories"`
+	Bugzilla           string        `json:"bugzilla"`
+	CvssScore          interface{}   `json:"cvss_score"`
+	CvssScoringVector  interface{}   `json:"cvss_scoring_vector"`
+	CWE                string        `json:"CWE"`
+	AffectedPackages   []interface{} `json:"affected_packages"`
+	ResourceURL        string        `json:"resource_url"`
+	Cvss3Score         string        `json:"cvss3_score"`
+	Cvss3ScoringVector string        `json:"cvss3_scoring_vector"`
 }
 
 // RedhatCVEJSON :
