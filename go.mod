@@ -8,7 +8,6 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cheggaaa/pb/v3 v3.0.8
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/grokify/html-strip-tags-go v0.0.1
 	github.com/hashicorp/go-version v1.5.0
 	github.com/inconshreveable/log15 v0.0.0-20201112154412-8562bdadbbac
 	github.com/labstack/echo v3.3.10+incompatible
@@ -16,10 +15,9 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.13
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/parnurzeal/gorequest v0.2.16
-	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.12.0
-	github.com/tealeg/xlsx v1.0.5
+	golang.org/x/exp v0.0.0-20220414153411-bcd21879b8fd
 	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gorm.io/driver/mysql v1.3.4
@@ -60,6 +58,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/sergi/go-diff v1.0.0 // indirect
 	github.com/smartystreets/goconvey v1.7.2 // indirect
@@ -76,6 +75,7 @@ require (
 	golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2 // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/text v0.3.7 // indirect
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.2 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect

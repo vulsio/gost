@@ -22,7 +22,7 @@ func ListAllRedhatCves(before, after string, wait int) (entries []models.RedhatE
 			url += fmt.Sprintf("&before=%s", before)
 
 		}
-		body, err := util.FetchURL(url, "")
+		body, err := util.FetchURL(url)
 		if err != nil {
 			return entries, xerrors.Errorf("Failed to fetch RedHat CVEs: url: %s, err: %w", url, err)
 		}

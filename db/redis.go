@@ -12,6 +12,8 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 	"golang.org/x/xerrors"
 
 	"github.com/vulsio/gost/config"
@@ -33,11 +35,11 @@ import (
   ├───┼──────────────────────────┼──────────────┼─────────────────────────────────────────────┤
   │ 3 │ GOST#UBU#PKG#$PKGNAME    │  $CVEID      │ (Ubuntu) GET RELATED []CVEID BY PKGNAME     │
   ├───┼──────────────────────────┼──────────────┼─────────────────────────────────────────────┤
-  │ 4 │ GOST#MS#PKG#K#$KBID      │  $CVEID      │ (Microsoft) GET RELATED []CVEID BY KBID     │
+  │ 4 │ GOST#MS#PKG#C#$PKGNAME   │  $CVEID      │ (Microsoft) GET RELATED []CVEID BY PKGNAME  │
   ├───┼──────────────────────────┼──────────────┼─────────────────────────────────────────────┤
-  │ 5 │ GOST#MS#PKG#P#$PRODUCTID │ $PRODUCTNAME │ (Microsoft) GET RELATED []PRODUCTNAME BY ID │
+  │ 5 │ GOST#MS#PKG#P#$KBID      │  $PRODUCT    │ (Microsoft) GET []PRODUCT NAME BY KBID      │
   ├───┼──────────────────────────┼──────────────┼─────────────────────────────────────────────┤
-  │ 6 │ GOST#MS#PKG#R$KBID       │ $KBID        │ (Microsoft) GET SUPERSEDEDBY []KBID BY KBID │
+  │ 6 │ GOST#MS#PKG#K#$KBID      │  $KBID       │ (Microsoft) GET SUPERSEDEDBY []KBID BY KBID │
   └───┴──────────────────────────┴──────────────┴─────────────────────────────────────────────┘
 
 - Hash
@@ -494,59 +496,98 @@ func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuC
 	return results, nil
 }
 
-// GetCveIDsByMicrosoftKBID :
-func (r *RedisDriver) GetCveIDsByMicrosoftKBID(applied []string, unapplied []string) (map[string][]string, error) {
-	ctx := context.Background()
-
-	kbIDs, err := r.getUnAppliedKBIDs(applied, unapplied)
+// GetCvesByMicrosoftKBID :
+func (r *RedisDriver) GetCvesByMicrosoftKBID(osName string, installedProducts []string, applied []string, unapplied []string) (map[string]models.MicrosoftCVE, error) {
+	applied, unapplied, err := r.extractKBIDs(applied, unapplied)
 	if err != nil {
-		return nil, xerrors.Errorf("Failed to get UnApplied KBIDs. err: %w", err)
+		return nil, xerrors.Errorf("Failed to extract KBIDs. err: %w", err)
 	}
 
-	pipe := r.conn.Pipeline()
-	results := map[string]*redis.StringSliceCmd{}
-	for _, kbID := range kbIDs {
-		results[kbID] = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", kbID)))
-	}
-	if _, err := pipe.Exec(ctx); err != nil {
-		return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	productsFromKBID, err := r.getProductsByKBIDs(append(applied, unapplied...))
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to get Products by KBIDs. err: %w", err)
 	}
 
-	kbCVEIDs := map[string][]string{}
-	for kbID, cmder := range results {
-		cveIDs, err := cmder.Result()
-		if err != nil {
-			return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+	products := getProductLists(osName, append(installedProducts, productsFromKBID...))
+
+	cveIDs, err := r.getCVEIDByProducts(products)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to get CVE-IDs by products. err: %w", err)
+	}
+
+	m, err := r.GetMicrosoftMulti(cveIDs)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to GetMicrosoftMulti. err: %w", err)
+	}
+
+	detected := map[string]models.MicrosoftCVE{}
+	for _, c := range m {
+		ps := []models.MicrosoftProduct{}
+		for _, p := range c.Products {
+			if len(products) > 0 && !slices.Contains(products, p.Name) {
+				continue
+			}
+
+			if len(p.KBs) == 0 {
+				ps = append(ps, p)
+				continue
+			}
+
+			kbs := []models.MicrosoftKB{}
+			for _, kb := range p.KBs {
+				if slices.Contains(applied, kb.Article) {
+					kbs = []models.MicrosoftKB{}
+					break
+				}
+				if slices.Contains(unapplied, kb.Article) {
+					kbs = append(kbs, kb)
+				}
+			}
+			if len(kbs) > 0 {
+				p.KBs = kbs
+				ps = append(ps, p)
+			}
 		}
-		kbCVEIDs[kbID] = cveIDs
+		if len(ps) > 0 {
+			c.Products = ps
+			detected[c.CveID] = c
+		}
 	}
 
-	return kbCVEIDs, nil
+	return detected, nil
 }
 
-func (r *RedisDriver) getUnAppliedKBIDs(applied []string, unapplied []string) ([]string, error) {
+func (r *RedisDriver) extractKBIDs(applied []string, unapplied []string) ([]string, []string, error) {
 	ctx := context.Background()
 
+	uniqAppliedKBIDs := map[string]struct{}{}
 	uniqUnappliedKBIDs := map[string]struct{}{}
+	for _, kbID := range applied {
+		uniqAppliedKBIDs[kbID] = struct{}{}
+	}
+	for _, kbID := range unapplied {
+		uniqUnappliedKBIDs[kbID] = struct{}{}
+		delete(uniqAppliedKBIDs, kbID)
+	}
+	applied = maps.Keys(uniqAppliedKBIDs)
 
-	relations := map[string]*redis.StringSliceCmd{}
 	pipe := r.conn.Pipeline()
 	for _, kbID := range applied {
-		relations[kbID] = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("R#%s", kbID)))
+		_ = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", kbID)))
 	}
-	if _, err := pipe.Exec(ctx); err != nil {
-		return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	cmders, err := pipe.Exec(ctx)
+	if err != nil {
+		return nil, nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 	}
-
-	for _, cmder := range relations {
-		supersededby, err := cmder.Result()
+	for _, cmder := range cmders {
+		supersededby, err := cmder.(*redis.StringSliceCmd).Result()
 		if err != nil {
-			return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+			return nil, nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
 		}
 
 		isInApplied := false
 		for _, kbID := range supersededby {
-			if util.StringInSlice(kbID, applied) {
+			if slices.Contains(applied, kbID) {
 				isInApplied = true
 				break
 			}
@@ -558,32 +599,79 @@ func (r *RedisDriver) getUnAppliedKBIDs(applied []string, unapplied []string) ([
 		}
 	}
 
-	relations = map[string]*redis.StringSliceCmd{}
 	pipe = r.conn.Pipeline()
-	for _, kbID := range unapplied {
-		relations[kbID] = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("R#%s", kbID)))
+	for kbID := range uniqUnappliedKBIDs {
+		_ = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", kbID)))
 	}
-	if _, err := pipe.Exec(ctx); err != nil {
-		return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	cmders, err = pipe.Exec(ctx)
+	if err != nil {
+		return nil, nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 	}
-
-	for kbID, cmder := range relations {
-		supersededby, err := cmder.Result()
+	for _, cmder := range cmders {
+		supersededby, err := cmder.(*redis.StringSliceCmd).Result()
 		if err != nil {
-			return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+			return nil, nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
 		}
-		uniqUnappliedKBIDs[kbID] = struct{}{}
 		for _, kbID := range supersededby {
 			uniqUnappliedKBIDs[kbID] = struct{}{}
 		}
 	}
 
-	unappliedKBIDs := []string{}
-	for kbid := range uniqUnappliedKBIDs {
-		unappliedKBIDs = append(unappliedKBIDs, kbid)
+	return applied, maps.Keys(uniqUnappliedKBIDs), nil
+}
+
+func (r *RedisDriver) getCVEIDByProducts(products []string) ([]string, error) {
+	ctx := context.Background()
+
+	if len(products) == 0 {
+		cves, err := r.conn.HKeys(ctx, fmt.Sprintf(cveKeyFormat, microsoftName)).Result()
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to HKeys. err: %w", err)
+		}
+		return cves, nil
 	}
 
-	return unappliedKBIDs, nil
+	pipe := r.conn.Pipeline()
+	for _, product := range products {
+		_ = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("C#%s", product)))
+	}
+	cmders, err := pipe.Exec(ctx)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	}
+
+	cves := []string{}
+	for _, cmder := range cmders {
+		cs, err := cmder.(*redis.StringSliceCmd).Result()
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+		}
+		cves = append(cves, cs...)
+	}
+	return util.Unique(cves), nil
+}
+
+func (r *RedisDriver) getProductsByKBIDs(kbids []string) ([]string, error) {
+	ctx := context.Background()
+
+	pipe := r.conn.Pipeline()
+	for _, kbid := range kbids {
+		_ = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", kbid)))
+	}
+	cmders, err := pipe.Exec(ctx)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	}
+
+	products := []string{}
+	for _, cmder := range cmders {
+		ps, err := cmder.(*redis.StringSliceCmd).Result()
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+		}
+		products = append(products, ps...)
+	}
+	return util.Unique(products), nil
 }
 
 // GetMicrosoft :
@@ -740,9 +828,7 @@ func (r *RedisDriver) InsertDebian(cves []models.DebianCVE) error {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
 			}
 
-			if result := pipe.HSet(ctx, cvekey, cve.CveID, string(j)); result.Err() != nil {
-				return xerrors.Errorf("Failed to HSet CVE. err: %w", result.Err())
-			}
+			_ = pipe.HSet(ctx, cvekey, cve.CveID, string(j))
 			if _, ok := newDeps[cve.CveID]; !ok {
 				newDeps[cve.CveID] = map[string]struct{}{}
 			}
@@ -867,17 +953,17 @@ func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 }
 
 // InsertMicrosoft :
-func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, products []models.MicrosoftProduct, kbRelations []models.MicrosoftKBRelation) (err error) {
+func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []models.MicrosoftKBRelation) (err error) {
 	ctx := context.Background()
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {
 		return xerrors.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
-	// newDeps, oldDeps: {"products": {"ProductID": {"ProductName": {}}}, "cves": {"CVEID": {"KBID": {}}}, "relations": {"KBID": {"SUPERSEDEDBY": {}}}}
+	// newDeps, oldDeps: {"cves": {"CVEID": {"ProductName": {}}}, "products": {"KBID": {"ProductName": {}}}, "relations": {"KBID": {"SUPERSEDEDBY": {}}}}
 	newDeps := map[string]map[string]map[string]struct{}{
-		"products":  {},
 		"cves":      {},
+		"products":  {},
 		"relations": {},
 	}
 	oldDepsStr, err := r.conn.HGet(ctx, depKey, microsoftName).Result()
@@ -886,8 +972,8 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, products []mod
 			return xerrors.Errorf("Failed to Get key: %s. err: %w", depKey, err)
 		}
 		oldDepsStr = `{
-			"products":{},
 			"cves": {},
+			"products": {},
 			"relations": {}
 		}`
 	}
@@ -896,32 +982,8 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, products []mod
 		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
 	}
 
-	log15.Info("Inserting products", "products", len(products))
-	bar := pb.StartNew(len(products))
-	for idx := range chunkSlice(len(products), batchSize) {
-		pipe := r.conn.Pipeline()
-		for _, p := range products[idx.From:idx.To] {
-			_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", p.ProductID)), p.ProductName)
-			if _, ok := newDeps["products"][p.ProductID]; !ok {
-				newDeps["products"][p.ProductID] = map[string]struct{}{}
-			}
-			newDeps["products"][p.ProductID][p.ProductName] = struct{}{}
-			if _, ok := oldDeps["products"][p.ProductID]; ok {
-				delete(oldDeps["products"][p.ProductID], p.ProductName)
-				if len(oldDeps["products"][p.ProductID]) == 0 {
-					delete(oldDeps["products"], p.ProductID)
-				}
-			}
-		}
-		if _, err = pipe.Exec(ctx); err != nil {
-			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
-		}
-		bar.Add(idx.To - idx.From)
-	}
-	bar.Finish()
-
 	log15.Info("Inserting cves", "cves", len(cves))
-	bar = pb.StartNew(len(cves))
+	bar := pb.StartNew(len(cves))
 	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
 		cvekey := fmt.Sprintf(cveKeyFormat, microsoftName)
@@ -936,11 +998,25 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, products []mod
 				newDeps["cves"][cve.CveID] = map[string]struct{}{}
 			}
 
-			for _, msKBID := range cve.KBIDs {
-				_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", msKBID.KBID)), cve.CveID)
-				newDeps["cves"][cve.CveID][msKBID.KBID] = struct{}{}
+			for _, p := range cve.Products {
+				_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("C#%s", p.Name)), cve.CveID)
+				newDeps["cves"][cve.CveID][p.Name] = struct{}{}
 				if _, ok := oldDeps["cves"][cve.CveID]; ok {
-					delete(oldDeps["cves"][cve.CveID], msKBID.KBID)
+					delete(oldDeps["cves"][cve.CveID], p.Name)
+				}
+
+				for _, kb := range p.KBs {
+					_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", kb.Article)), p.Name)
+					if _, ok := newDeps["products"][kb.Article]; !ok {
+						newDeps["products"][kb.Article] = map[string]struct{}{}
+					}
+					newDeps["products"][kb.Article][p.Name] = struct{}{}
+					if _, ok := oldDeps["products"][kb.Article]; ok {
+						delete(oldDeps["products"][kb.Article], p.Name)
+						if len(oldDeps["products"][kb.Article]) == 0 {
+							delete(oldDeps["products"], kb.Article)
+						}
+					}
 				}
 			}
 			if _, ok := oldDeps["cves"][cve.CveID]; ok {
@@ -949,19 +1025,19 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, products []mod
 				}
 			}
 		}
-		if _, err = pipe.Exec(ctx); err != nil {
+		if _, err := pipe.Exec(ctx); err != nil {
 			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
 		bar.Add(idx.To - idx.From)
 	}
 	bar.Finish()
 
-	log15.Info("Insert KB Relation", "kbRelation", len(kbRelations))
-	bar = pb.StartNew(len(kbRelations))
-	for idx := range chunkSlice(len(kbRelations), batchSize) {
+	log15.Info("Insert KB Relation", "relations", len(relations))
+	bar = pb.StartNew(len(relations))
+	for idx := range chunkSlice(len(relations), batchSize) {
 		pipe := r.conn.Pipeline()
-		for _, relation := range kbRelations[idx.From:idx.To] {
-			key := fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("R#%s", relation.KBID))
+		for _, relation := range relations[idx.From:idx.To] {
+			key := fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", relation.KBID))
 			if _, ok := newDeps["relations"][relation.KBID]; !ok {
 				newDeps["relations"][relation.KBID] = map[string]struct{}{}
 			}
@@ -976,7 +1052,7 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, products []mod
 				}
 			}
 		}
-		if _, err = pipe.Exec(ctx); err != nil {
+		if _, err := pipe.Exec(ctx); err != nil {
 			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
 		bar.Add(idx.To - idx.From)
@@ -984,22 +1060,22 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, products []mod
 	bar.Finish()
 
 	pipe := r.conn.Pipeline()
-	for productID, productNames := range oldDeps["products"] {
-		for productName := range productNames {
-			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", productID)), productName)
-		}
-	}
-	for cveID, kbIDs := range oldDeps["cves"] {
-		for kbID := range kbIDs {
-			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", kbID)), cveID)
+	for cveID, products := range oldDeps["cves"] {
+		for product := range products {
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("C#%s", product)), cveID)
 		}
 		if _, ok := newDeps[cveID]; !ok {
 			_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, microsoftName), cveID)
 		}
 	}
+	for kbid, products := range oldDeps["products"] {
+		for product := range products {
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", kbid)), product)
+		}
+	}
 	for rootKBID, supersededby := range oldDeps["relations"] {
 		for kbid := range supersededby {
-			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("R#%s", rootKBID)), kbid)
+			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", rootKBID)), kbid)
 		}
 	}
 	newDepsJSON, err := json.Marshal(newDeps)

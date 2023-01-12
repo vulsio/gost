@@ -16,8 +16,18 @@ import (
 	"github.com/inconshreveable/log15"
 	"github.com/parnurzeal/gorequest"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/maps"
 	"golang.org/x/xerrors"
 )
+
+// Unique return unique elements
+func Unique[T comparable](s []T) []T {
+	m := map[T]struct{}{}
+	for _, v := range s {
+		m[v] = struct{}{}
+	}
+	return maps.Keys(m)
+}
 
 // GenWorkers generate workers
 func GenWorkers(num, wait int) chan<- func() {
@@ -49,14 +59,8 @@ func TrimSpaceNewline(str string) string {
 }
 
 // FetchURL returns HTTP response body
-func FetchURL(url, apikey string) ([]byte, error) {
-	httpProxy := viper.GetString("http-proxy")
-
-	req := gorequest.New().Proxy(httpProxy).Get(url)
-	if apikey != "" {
-		req.Header["api-key"] = []string{apikey}
-	}
-	resp, body, err := req.Type("text").EndBytes()
+func FetchURL(url string) ([]byte, error) {
+	resp, body, err := gorequest.New().Proxy(viper.GetString("http-proxy")).Get(url).Type("text").EndBytes()
 	if len(err) > 0 || resp == nil || resp.StatusCode != 200 {
 		return nil, xerrors.Errorf("HTTP error. url: %s, err: %w", url, err)
 	}
@@ -86,7 +90,7 @@ func FetchConcurrently(urls []string, concurrency, wait int) (responses [][]byte
 			var err error
 			for i := 1; i <= 3; i++ {
 				var res []byte
-				res, err = FetchURL(url, "")
+				res, err = FetchURL(url)
 				if err == nil {
 					resChan <- res
 					return
@@ -231,16 +235,6 @@ func Exists(path string) (bool, error) {
 		return false, nil
 	}
 	return true, err
-}
-
-// StringInSlice search within Slice by String
-func StringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
 }
 
 // Exec run the command
