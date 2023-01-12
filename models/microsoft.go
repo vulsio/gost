@@ -21,7 +21,6 @@ type MicrosoftVulnerability struct {
 	Products      []struct {
 		ProductID string `json:"ProductID"`
 		Name      string `json:"Name"`
-		Category  string `json:"Category"`
 		Impact    string `json:"Impact"`
 		Severity  string `json:"Severity"`
 		ScoreSet  struct {
@@ -87,7 +86,6 @@ type MicrosoftProduct struct {
 	MicrosoftCVEID int64             `json:"-" gorm:"index:idx_microsoft_product_microsoft_cve_id"`
 	ProductID      string            `json:"product_id" gorm:"type:varchar(255)"`
 	Name           string            `json:"name" gorm:"type:varchar(255)"`
-	Category       string            `json:"category" gorm:"type:varchar(255)"`
 	Impact         string            `json:"impact" gorm:"type:varchar(255)"`
 	Severity       string            `json:"severity" gorm:"type:varchar(255)"`
 	ScoreSet       MicrosoftScoreSet `json:"score_set"`
@@ -150,7 +148,6 @@ func ConvertMicrosoft(vulns []MicrosoftVulnerability, supercedences []MicrosoftS
 			product := MicrosoftProduct{
 				ProductID: p.ProductID,
 				Name:      p.Name,
-				Category:  p.Category,
 				Impact:    p.Impact,
 				Severity:  p.Severity,
 				KBs:       []MicrosoftKB{},

@@ -1,35 +1,26 @@
 package fetcher
 
 import (
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"os"
 
 	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 )
 
-// Until the data source is published, the path to the data source is received as an args
-// const (
-// 	vulnerabilityURL = "http://0.0.0.0:8000/vulnerability/vulnerability.json.gz"
-// 	supercedenceURL  = "http://0.0.0.0:8000/supercedence/supercedence.json.gz"
-// )
+const (
+	vulnerabilityURL = "http://0.0.0.0:8000/vulnerability/vulnerability.json.gz"
+	supercedenceURL  = "http://0.0.0.0:8000/supercedence/supercedence.json.gz"
+)
 
 // RetrieveMicrosoftCveDetails :
-func RetrieveMicrosoftCveDetails(vulnerabilityPath, supercedencePath string) ([]models.MicrosoftVulnerability, []models.MicrosoftSupercedence, error) {
-	// bs, err := util.FetchURL(vulnerabilityURL)
-	// if err != nil {
-	// 	return nil, nil, err
-	// }
-	// gz, err := gzip.NewReader(bytes.NewReader(bs))
-	// if err != nil {
-	// 	return nil, nil, err
-	// }
-	f, err := os.Open(vulnerabilityPath)
+func RetrieveMicrosoftCveDetails() ([]models.MicrosoftVulnerability, []models.MicrosoftSupercedence, error) {
+	bs, err := util.FetchURL("https://raw.githubusercontent.com/vulsio/windows-vuln-feed/main/dist/vulnerability/vulnerability.json.gz")
 	if err != nil {
 		return nil, nil, err
 	}
-	defer f.Close()
-	gz, err := gzip.NewReader(f)
+	gz, err := gzip.NewReader(bytes.NewReader(bs))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -39,19 +30,11 @@ func RetrieveMicrosoftCveDetails(vulnerabilityPath, supercedencePath string) ([]
 		return nil, nil, err
 	}
 
-	// bs, err = util.FetchURL(supercedenceURL)
-	// if err != nil {
-	// 	return nil, nil, err
-	// }
-	// gz, err = gzip.NewReader(bytes.NewReader(bs))
-	// if err != nil {
-	// 	return nil, nil, err
-	// }
-	f, err = os.Open(supercedencePath)
+	bs, err = util.FetchURL("https://raw.githubusercontent.com/vulsio/windows-vuln-feed/main/dist/supercedence/supercedence.json.gz")
 	if err != nil {
 		return nil, nil, err
 	}
-	gz, err = gzip.NewReader(f)
+	gz, err = gzip.NewReader(bytes.NewReader(bs))
 	if err != nil {
 		return nil, nil, err
 	}
