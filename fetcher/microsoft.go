@@ -10,13 +10,13 @@ import (
 )
 
 const (
-	vulnerabilityURL = "http://0.0.0.0:8000/vulnerability/vulnerability.json.gz"
-	supercedenceURL  = "http://0.0.0.0:8000/supercedence/supercedence.json.gz"
+	vulnerabilityURL = "https://raw.githubusercontent.com/vulsio/windows-vuln-feed/main/dist/vulnerability/vulnerability.json.gz"
+	supercedenceURL  = "https://raw.githubusercontent.com/vulsio/windows-vuln-feed/main/dist/supercedence/supercedence.json.gz"
 )
 
 // RetrieveMicrosoftCveDetails :
 func RetrieveMicrosoftCveDetails() ([]models.MicrosoftVulnerability, []models.MicrosoftSupercedence, error) {
-	bs, err := util.FetchURL("https://raw.githubusercontent.com/vulsio/windows-vuln-feed/main/dist/vulnerability/vulnerability.json.gz")
+	bs, err := util.FetchURL(vulnerabilityURL)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -30,7 +30,7 @@ func RetrieveMicrosoftCveDetails() ([]models.MicrosoftVulnerability, []models.Mi
 		return nil, nil, err
 	}
 
-	bs, err = util.FetchURL("https://raw.githubusercontent.com/vulsio/windows-vuln-feed/main/dist/supercedence/supercedence.json.gz")
+	bs, err = util.FetchURL(supercedenceURL)
 	if err != nil {
 		return nil, nil, err
 	}
