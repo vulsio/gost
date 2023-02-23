@@ -51,7 +51,9 @@ func Start(logToFile bool, logDir string, driver db.DB) error {
 	e.GET("/debian/:release/pkgs/:name/fixed-cves", getFixedCvesDebian(driver))
 	e.GET("/ubuntu/:release/pkgs/:name/unfixed-cves", getUnfixedCvesUbuntu(driver))
 	e.GET("/ubuntu/:release/pkgs/:name/fixed-cves", getFixedCvesUbuntu(driver))
-	e.POST("/microsoft/kbids", getCveIDsByMicrosoftKBID(driver))
+	e.POST("/microsoft/kbs", getExpandKB(driver))
+	e.POST("/microsoft/products", getRelatedProducts(driver))
+	e.POST("/microsoft/filtered-cves", getFilteredCvesMicrosoft(driver))
 
 	bindURL := fmt.Sprintf("%s:%s", viper.GetString("bind"), viper.GetString("port"))
 	log15.Info("Listening", "URL", bindURL)
@@ -256,25 +258,62 @@ func getFixedCvesUbuntu(driver db.DB) echo.HandlerFunc {
 	}
 }
 
-type msBody struct {
-	OSName            string   `json:"osName"`
-	InstalledProducts []string `json:"installedProducts"`
-	Applied           []string `json:"applied"`
-	Unapplied         []string `json:"unapplied"`
-}
-
 // Handler
-func getCveIDsByMicrosoftKBID(driver db.DB) echo.HandlerFunc {
+func getExpandKB(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		b := msBody{}
+		var b struct {
+			Applied   []string `json:"applied"`
+			Unapplied []string `json:"unapplied"`
+		}
 		if err := c.Bind(&b); err != nil {
 			return err
 		}
-		cveIDs, err := driver.GetCvesByMicrosoftKBID(b.OSName, b.InstalledProducts, b.Applied, b.Unapplied)
+		applied, unapplied, err := driver.GetExpandKB(b.Applied, b.Unapplied)
 		if err != nil {
-			log15.Error("Failed to get CVEIDs By KBID", "err", err)
+			log15.Error("Failed to expand KB", "err", err)
 			return err
 		}
-		return c.JSON(http.StatusOK, &cveIDs)
+		return c.JSON(http.StatusOK, struct {
+			Applied   []string `json:"applied"`
+			Unapplied []string `json:"unapplied"`
+		}{Applied: applied, Unapplied: unapplied})
+	}
+}
+
+// Handler
+func getRelatedProducts(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var b struct {
+			Release string   `json:"release"`
+			KBs     []string `json:"kbs"`
+		}
+		if err := c.Bind(&b); err != nil {
+			return err
+		}
+		products, err := driver.GetRelatedProducts(b.Release, b.KBs)
+		if err != nil {
+			log15.Error("Failed to get related products", "err", err)
+			return err
+		}
+		return c.JSON(http.StatusOK, products)
+	}
+}
+
+// Handler
+func getFilteredCvesMicrosoft(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var b struct {
+			Products []string `json:"products"`
+			KBs      []string `json:"kbs"`
+		}
+		if err := c.Bind(&b); err != nil {
+			return err
+		}
+		cves, err := driver.GetFilteredCvesMicrosoft(b.Products, b.KBs)
+		if err != nil {
+			log15.Error("Failed to get cves", "err", err)
+			return err
+		}
+		return c.JSON(http.StatusOK, &cves)
 	}
 }
