@@ -108,14 +108,16 @@ INFO[05-23|06:28:18] Insert Ubuntu into DB                    db=sqlite3
 ## Fetch vulnerability infomation 
 
 ```
-$ gost fetch microsoft --apikey xxxxxxxx
+$ gost fetch microsoft
 
-INFO[07-27|15:30:49] Initialize Database
-INFO[07-27|15:30:49] Opening DB.                              db=sqlite3
-INFO[07-27|15:30:49] Migrating DB.                            db=sqlite3
-INFO[07-27|15:30:49] Fetched all CVEs from Microsoft
-INFO[07-27|15:31:09] Insert Microsoft CVEs into DB               db=sqlite3
- 21428 / 21428 [================] 100.00% 5s
+INFO[02-24|02:13:41] Initialize Database 
+INFO[02-24|02:13:41] Fetched all CVEs from Microsoft 
+INFO[02-24|02:13:43] Insert Microsoft CVEs into DB            db=sqlite3
+INFO[02-24|02:13:43] Inserting cves                           cves=11609
+11609 / 11609 [----------------] 100.00% 3281 p/s
+INFO[02-24|02:13:47] Insert KB Relation                       relations=6016
+6016 / 6016 [----------------] 100.00% 5462 p/s
+
 ```
 
 # Server mode
