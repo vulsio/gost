@@ -3,7 +3,7 @@ package db
 import (
 	"errors"
 	"fmt"
-	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/cheggaaa/pb/v3"
@@ -15,79 +15,48 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/vulsio/gost/models"
-	"github.com/vulsio/gost/util"
 )
 
-// GetCvesByMicrosoftKBID :
-func (r *RDBDriver) GetCvesByMicrosoftKBID(osName string, installedProducts []string, applied []string, unapplied []string) (map[string]models.MicrosoftCVE, error) {
-	applied, unapplied, err := r.extractKBIDs(applied, unapplied)
-	if err != nil {
-		return nil, xerrors.Errorf("Failed to extract KBIDs. err: %w", err)
-	}
-
-	var productsFromKBID []string
-	if kbids := append(applied, unapplied...); len(kbids) > 0 {
-		if err := r.conn.
-			Model(&models.MicrosoftProduct{}).
-			Distinct("microsoft_products.name").
-			Joins("JOIN microsoft_kbs ON microsoft_kbs.microsoft_product_id = microsoft_products.id AND microsoft_kbs.article IN ?", kbids).
-			Find(&productsFromKBID).Error; err != nil {
-			return nil, xerrors.Errorf("Failed to detect Products. err: %w", err)
-		}
-	}
-
-	products := getProductLists(osName, append(installedProducts, productsFromKBID...))
-
-	detected := map[string]models.MicrosoftCVE{}
-
-	var q *gorm.DB
-	if len(products) > 0 {
-		q = r.conn.Preload("Products", "name IN ?", products)
-	} else {
-		q = r.conn.Preload("Products")
-	}
-	cs := []models.MicrosoftCVE{}
-	if err := q.
+// GetMicrosoft :
+func (r *RDBDriver) GetMicrosoft(cveID string) (*models.MicrosoftCVE, error) {
+	c := models.MicrosoftCVE{}
+	if err := r.conn.
+		Preload("Products").
 		Preload("Products.ScoreSet").
 		Preload("Products.KBs").
-		FindInBatches(&cs, 500, func(tx *gorm.DB, batch int) error {
-			for _, c := range cs {
-				ps := []models.MicrosoftProduct{}
-				for _, p := range c.Products {
-					if len(p.KBs) == 0 {
-						ps = append(ps, p)
-						continue
-					}
+		Where(&models.MicrosoftCVE{CveID: cveID}).
+		Take(&c).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		log15.Error("Failed to get Microsoft", "err", err)
+		return nil, err
+	}
+	return &c, nil
+}
 
-					kbs := []models.MicrosoftKB{}
-					for _, kb := range p.KBs {
-						if slices.Contains(applied, kb.Article) {
-							kbs = []models.MicrosoftKB{}
-							break
-						}
-						if slices.Contains(unapplied, kb.Article) {
-							kbs = append(kbs, kb)
-						}
-					}
-					if len(kbs) > 0 {
-						p.KBs = kbs
-						ps = append(ps, p)
-					}
-				}
-				if len(ps) > 0 {
-					c.Products = ps
-					detected[c.CveID] = c
-				}
-			}
-			return nil
-		}).Error; err != nil {
+// GetMicrosoftMulti :
+func (r *RDBDriver) GetMicrosoftMulti(cveIDs []string) (map[string]models.MicrosoftCVE, error) {
+	cs := []models.MicrosoftCVE{}
+	if err := r.conn.
+		Preload("Products").
+		Preload("Products.ScoreSet").
+		Preload("Products.KBs").
+		Where("cve_id IN ?", cveIDs).
+		Find(&cs).Error; err != nil {
+		log15.Error("Failed to get Microsoft", "err", err)
 		return nil, err
 	}
 
-	return detected, nil
+	m := map[string]models.MicrosoftCVE{}
+	for _, c := range cs {
+		m[c.CveID] = c
+	}
+	return m, nil
 }
 
-func (r *RDBDriver) extractKBIDs(applied []string, unapplied []string) ([]string, []string, error) {
+// GetExpandKB :
+func (r *RDBDriver) GetExpandKB(applied []string, unapplied []string) ([]string, []string, error) {
 	uniqAppliedKBIDs := map[string]struct{}{}
 	uniqUnappliedKBIDs := map[string]struct{}{}
 	for _, kbID := range applied {
@@ -145,87 +114,101 @@ func (r *RDBDriver) extractKBIDs(applied []string, unapplied []string) ([]string
 	return applied, maps.Keys(uniqUnappliedKBIDs), nil
 }
 
-var (
-	winDesktopPattern = regexp.MustCompile(`(.+ on )?(Microsoft )?Windows (NT|98|20(00|03)|Millennium|XP|Vista|7|RT|8|10|11)`)
-	winServerPattern  = regexp.MustCompile(`(.+ on )?(Microsoft )?Windows Server,? (20(03|08|12|16|19|22)|Version)`)
-)
-
-func getProductLists(osName string, products []string) []string {
-	var ps []string
-	if osName == "" {
-		return util.Unique(products)
+// GetRelatedProducts :
+func (r *RDBDriver) GetRelatedProducts(release string, kbs []string) ([]string, error) {
+	if len(kbs) == 0 {
+		return []string{}, nil
 	}
 
-	ps = append(ps, osName)
-
-	isR2 := false
-	isServerCore := false
-	if winServerPattern.MatchString(osName) {
-		if strings.Contains(osName, "R2") {
-			isR2 = true
-		}
-		if strings.Contains(osName, "(Server Core installation)") {
-			isServerCore = true
-		}
+	var products []string
+	if err := r.conn.
+		Model(&models.MicrosoftProduct{}).
+		Distinct("microsoft_products.name").
+		Joins("JOIN microsoft_kbs ON microsoft_kbs.microsoft_product_id = microsoft_products.id AND microsoft_kbs.article IN ?", kbs).
+		Find(&products).Error; err != nil {
+		return nil, xerrors.Errorf("Failed to detect Products. err: %w", err)
 	}
+
+	if release == "" {
+		return products, nil
+	}
+	var filtered []string
 	for _, p := range products {
-		if winDesktopPattern.MatchString(p) {
-			if strings.Contains(p, osName) {
-				ps = append(ps, p)
+		switch {
+		case strings.Contains(p, "Microsoft Windows 2000"), // Microsoft Windows 2000; Microsoft Windows 2000 Server
+			strings.Contains(p, "Microsoft Windows XP"),          // Microsoft Windows XP
+			strings.Contains(p, "Microsoft Windows Server 2003"), // Microsoft Windows Server 2003; Microsoft Windows Server 2003 R2
+			strings.Contains(p, "Windows Vista"),                 // Windows Vista
+			strings.Contains(p, "Windows Server 2008"),           // Windows Server 2008; Windows Server 2008 R2
+			strings.Contains(p, "Windows 7"),                     // Windows 7
+			strings.Contains(p, "Windows 8"),                     // Windows 8
+			strings.Contains(p, "Windows Server 2012"),           // Windows Server 2012; Windows Server 2012 R2
+			strings.Contains(p, "Windows 8.1"),                   // Windows 8.1
+			strings.Contains(p, "Windows RT 8.1"),                // Windows RT 8.1
+			strings.Contains(p, "Windows 10"),                    // Windows 10
+			strings.Contains(p, "Windows 11"),                    // Windows 11
+			strings.Contains(p, "Windows Server 2016"),           // Windows Server 2016
+			strings.Contains(p, "Windows Server 2019"),           // Windows Server 2019
+			strings.Contains(p, "Windows Server, Version"),       // Windows Server, Version
+			strings.Contains(p, "Windows Server 2022"):           // Windows Server 2022
+			if strings.HasSuffix(p, release) {
+				filtered = append(filtered, p)
 			}
-		} else if winServerPattern.MatchString(p) {
-			if strings.Contains(p, osName) {
-				if !isR2 && strings.Contains(p, "R2") {
-					continue
-				}
-				if !isServerCore && strings.Contains(p, "(Server Core installation)") {
-					continue
-				}
-				ps = append(ps, p)
-			}
-		} else {
-			ps = append(ps, p)
+		default:
+			filtered = append(filtered, p)
 		}
 	}
-	return util.Unique(ps)
+	return filtered, nil
 }
 
-// GetMicrosoft :
-func (r *RDBDriver) GetMicrosoft(cveID string) (*models.MicrosoftCVE, error) {
-	c := models.MicrosoftCVE{}
-	if err := r.conn.
-		Preload("Products").
+// GetFilteredCvesMicrosoft :
+func (r *RDBDriver) GetFilteredCvesMicrosoft(products []string, kbs []string) (map[string]models.MicrosoftCVE, error) {
+	var q *gorm.DB
+	if len(products) > 0 {
+		q = r.conn.Preload("Products", "name IN ?", products)
+	} else {
+		q = r.conn.Preload("Products")
+	}
+
+	cves, cs := []models.MicrosoftCVE{}, []models.MicrosoftCVE{}
+	if err := q.
 		Preload("Products.ScoreSet").
 		Preload("Products.KBs").
-		Where(&models.MicrosoftCVE{CveID: cveID}).
-		Take(&c).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+		FindInBatches(&cs, 998, func(_ *gorm.DB, _ int) error {
+			cves = append(cves, cs...)
+			return nil
+		}).Error; err != nil {
+		return nil, xerrors.Errorf("Failed to get Microsoft. err: %w", err)
+	}
+
+	detected := map[string]models.MicrosoftCVE{}
+	for _, c := range cves {
+		ps := []models.MicrosoftProduct{}
+		for _, p := range c.Products {
+			if len(kbs) == 0 || len(p.KBs) == 0 {
+				ps = append(ps, p)
+				continue
+			}
+
+			filtered := []models.MicrosoftKB{}
+			for _, kb := range p.KBs {
+				if _, err := strconv.Atoi(kb.Article); err != nil {
+					filtered = append(filtered, kb)
+				} else if slices.Contains(kbs, kb.Article) {
+					filtered = append(filtered, kb)
+				}
+			}
+			if len(filtered) > 0 {
+				p.KBs = filtered
+				ps = append(ps, p)
+			}
 		}
-		log15.Error("Failed to get Microsoft", "err", err)
-		return nil, err
+		if len(ps) > 0 {
+			c.Products = ps
+			detected[c.CveID] = c
+		}
 	}
-	return &c, nil
-}
-
-// GetMicrosoftMulti :
-func (r *RDBDriver) GetMicrosoftMulti(cveIDs []string) (map[string]models.MicrosoftCVE, error) {
-	cs := []models.MicrosoftCVE{}
-	if err := r.conn.
-		Preload("Products").
-		Preload("Products.ScoreSet").
-		Preload("Products.KBs").
-		Where("cve_id IN ?", cveIDs).
-		Find(&cs).Error; err != nil {
-		log15.Error("Failed to get Microsoft", "err", err)
-		return nil, err
-	}
-
-	m := map[string]models.MicrosoftCVE{}
-	for _, c := range cs {
-		m[c.CveID] = c
-	}
-	return m, nil
+	return detected, nil
 }
 
 // InsertMicrosoft :

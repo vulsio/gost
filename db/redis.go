@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cheggaaa/pb/v3"
@@ -496,68 +497,52 @@ func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuC
 	return results, nil
 }
 
-// GetCvesByMicrosoftKBID :
-func (r *RedisDriver) GetCvesByMicrosoftKBID(osName string, installedProducts []string, applied []string, unapplied []string) (map[string]models.MicrosoftCVE, error) {
-	applied, unapplied, err := r.extractKBIDs(applied, unapplied)
+// GetMicrosoft :
+func (r *RedisDriver) GetMicrosoft(cveID string) (*models.MicrosoftCVE, error) {
+	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, microsoftName), cveID).Result()
 	if err != nil {
-		return nil, xerrors.Errorf("Failed to extract KBIDs. err: %w", err)
-	}
-
-	productsFromKBID, err := r.getProductsByKBIDs(append(applied, unapplied...))
-	if err != nil {
-		return nil, xerrors.Errorf("Failed to get Products by KBIDs. err: %w", err)
-	}
-
-	products := getProductLists(osName, append(installedProducts, productsFromKBID...))
-
-	cveIDs, err := r.getCVEIDByProducts(products)
-	if err != nil {
-		return nil, xerrors.Errorf("Failed to get CVE-IDs by products. err: %w", err)
-	}
-
-	m, err := r.GetMicrosoftMulti(cveIDs)
-	if err != nil {
-		return nil, xerrors.Errorf("Failed to GetMicrosoftMulti. err: %w", err)
-	}
-
-	detected := map[string]models.MicrosoftCVE{}
-	for _, c := range m {
-		ps := []models.MicrosoftProduct{}
-		for _, p := range c.Products {
-			if len(products) > 0 && !slices.Contains(products, p.Name) {
-				continue
-			}
-
-			if len(p.KBs) == 0 {
-				ps = append(ps, p)
-				continue
-			}
-
-			kbs := []models.MicrosoftKB{}
-			for _, kb := range p.KBs {
-				if slices.Contains(applied, kb.Article) {
-					kbs = []models.MicrosoftKB{}
-					break
-				}
-				if slices.Contains(unapplied, kb.Article) {
-					kbs = append(kbs, kb)
-				}
-			}
-			if len(kbs) > 0 {
-				p.KBs = kbs
-				ps = append(ps, p)
-			}
+		if errors.Is(err, redis.Nil) {
+			return nil, nil
 		}
-		if len(ps) > 0 {
-			c.Products = ps
-			detected[c.CveID] = c
-		}
+		return nil, xerrors.Errorf("Failed to HGet. err: %w", err)
 	}
 
-	return detected, nil
+	var ms models.MicrosoftCVE
+	if err := json.Unmarshal([]byte(cve), &ms); err != nil {
+		return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
+	}
+	return &ms, nil
 }
 
-func (r *RedisDriver) extractKBIDs(applied []string, unapplied []string) ([]string, []string, error) {
+// GetMicrosoftMulti :
+func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) (map[string]models.MicrosoftCVE, error) {
+	if len(cveIDs) == 0 {
+		return map[string]models.MicrosoftCVE{}, nil
+	}
+
+	cves, err := r.conn.HMGet(context.Background(), fmt.Sprintf(cveKeyFormat, microsoftName), cveIDs...).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to HMGet. err: %w", err)
+	}
+
+	results := map[string]models.MicrosoftCVE{}
+	for _, cve := range cves {
+		if cve == nil {
+			continue
+		}
+
+		var ms models.MicrosoftCVE
+		if err := json.Unmarshal([]byte(cve.(string)), &ms); err != nil {
+			return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
+		}
+		results[ms.CveID] = ms
+	}
+
+	return results, nil
+}
+
+// GetExpandKB :
+func (r *RedisDriver) GetExpandKB(applied []string, unapplied []string) ([]string, []string, error) {
 	ctx := context.Background()
 
 	uniqAppliedKBIDs := map[string]struct{}{}
@@ -620,43 +605,17 @@ func (r *RedisDriver) extractKBIDs(applied []string, unapplied []string) ([]stri
 	return applied, maps.Keys(uniqUnappliedKBIDs), nil
 }
 
-func (r *RedisDriver) getCVEIDByProducts(products []string) ([]string, error) {
-	ctx := context.Background()
-
-	if len(products) == 0 {
-		cves, err := r.conn.HKeys(ctx, fmt.Sprintf(cveKeyFormat, microsoftName)).Result()
-		if err != nil {
-			return nil, xerrors.Errorf("Failed to HKeys. err: %w", err)
-		}
-		return cves, nil
+// GetRelatedProducts :
+func (r *RedisDriver) GetRelatedProducts(release string, kbs []string) ([]string, error) {
+	if len(kbs) == 0 {
+		return []string{}, nil
 	}
 
-	pipe := r.conn.Pipeline()
-	for _, product := range products {
-		_ = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("C#%s", product)))
-	}
-	cmders, err := pipe.Exec(ctx)
-	if err != nil {
-		return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
-	}
-
-	cves := []string{}
-	for _, cmder := range cmders {
-		cs, err := cmder.(*redis.StringSliceCmd).Result()
-		if err != nil {
-			return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
-		}
-		cves = append(cves, cs...)
-	}
-	return util.Unique(cves), nil
-}
-
-func (r *RedisDriver) getProductsByKBIDs(kbids []string) ([]string, error) {
 	ctx := context.Background()
 
 	pipe := r.conn.Pipeline()
-	for _, kbid := range kbids {
-		_ = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", kbid)))
+	for _, kb := range kbs {
+		_ = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", kb)))
 	}
 	cmders, err := pipe.Exec(ctx)
 	if err != nil {
@@ -671,51 +630,109 @@ func (r *RedisDriver) getProductsByKBIDs(kbids []string) ([]string, error) {
 		}
 		products = append(products, ps...)
 	}
-	return util.Unique(products), nil
+	products = util.Unique(products)
+
+	if release == "" {
+		return products, nil
+	}
+	var filtered []string
+	for _, p := range products {
+		switch {
+		case strings.Contains(p, "Microsoft Windows 2000"), // Microsoft Windows 2000; Microsoft Windows 2000 Server
+			strings.Contains(p, "Microsoft Windows XP"),          // Microsoft Windows XP
+			strings.Contains(p, "Microsoft Windows Server 2003"), // Microsoft Windows Server 2003; Microsoft Windows Server 2003 R2
+			strings.Contains(p, "Windows Vista"),                 // Windows Vista
+			strings.Contains(p, "Windows Server 2008"),           // Windows Server 2008; Windows Server 2008 R2
+			strings.Contains(p, "Windows 7"),                     // Windows 7
+			strings.Contains(p, "Windows 8"),                     // Windows 8
+			strings.Contains(p, "Windows Server 2012"),           // Windows Server 2012; Windows Server 2012 R2
+			strings.Contains(p, "Windows 8.1"),                   // Windows 8.1
+			strings.Contains(p, "Windows RT 8.1"),                // Windows RT 8.1
+			strings.Contains(p, "Windows 10"),                    // Windows 10
+			strings.Contains(p, "Windows 11"),                    // Windows 11
+			strings.Contains(p, "Windows Server 2016"),           // Windows Server 2016
+			strings.Contains(p, "Windows Server 2019"),           // Windows Server 2019
+			strings.Contains(p, "Windows Server, Version"),       // Windows Server, Version
+			strings.Contains(p, "Windows Server 2022"):           // Windows Server 2022
+			if strings.HasSuffix(p, release) {
+				filtered = append(filtered, p)
+			}
+		default:
+			filtered = append(filtered, p)
+		}
+	}
+	return filtered, nil
 }
 
-// GetMicrosoft :
-func (r *RedisDriver) GetMicrosoft(cveID string) (*models.MicrosoftCVE, error) {
-	cve, err := r.conn.HGet(context.Background(), fmt.Sprintf(cveKeyFormat, microsoftName), cveID).Result()
+// GetFilteredCvesMicrosoft :
+func (r *RedisDriver) GetFilteredCvesMicrosoft(products []string, kbs []string) (map[string]models.MicrosoftCVE, error) {
+	ctx := context.Background()
+
+	var cves []string
+	if len(products) == 0 {
+		cs, err := r.conn.HKeys(ctx, fmt.Sprintf(cveKeyFormat, microsoftName)).Result()
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to HKeys. err: %w", err)
+		}
+		cves = cs
+	} else {
+		pipe := r.conn.Pipeline()
+		for _, product := range products {
+			_ = pipe.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("C#%s", product)))
+		}
+		cmders, err := pipe.Exec(ctx)
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+		}
+
+		for _, cmder := range cmders {
+			cs, err := cmder.(*redis.StringSliceCmd).Result()
+			if err != nil {
+				return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+			}
+			cves = append(cves, cs...)
+		}
+		cves = util.Unique(cves)
+	}
+
+	m, err := r.GetMicrosoftMulti(cves)
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			return nil, nil
+		return nil, xerrors.Errorf("Failed to GetMicrosoftMulti. err: %w", err)
+	}
+
+	detected := map[string]models.MicrosoftCVE{}
+	for _, c := range m {
+		ps := []models.MicrosoftProduct{}
+		for _, p := range c.Products {
+			if len(products) > 0 && !slices.Contains(products, p.Name) {
+				continue
+			}
+
+			if len(kbs) == 0 || len(p.KBs) == 0 {
+				ps = append(ps, p)
+				continue
+			}
+
+			filtered := []models.MicrosoftKB{}
+			for _, kb := range p.KBs {
+				if _, err := strconv.Atoi(kb.Article); err != nil {
+					filtered = append(filtered, kb)
+				} else if slices.Contains(kbs, kb.Article) {
+					filtered = append(filtered, kb)
+				}
+			}
+			if len(filtered) > 0 {
+				p.KBs = filtered
+				ps = append(ps, p)
+			}
 		}
-		return nil, xerrors.Errorf("Failed to HGet. err: %w", err)
-	}
-
-	var ms models.MicrosoftCVE
-	if err := json.Unmarshal([]byte(cve), &ms); err != nil {
-		return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
-	}
-	return &ms, nil
-}
-
-// GetMicrosoftMulti :
-func (r *RedisDriver) GetMicrosoftMulti(cveIDs []string) (map[string]models.MicrosoftCVE, error) {
-	if len(cveIDs) == 0 {
-		return map[string]models.MicrosoftCVE{}, nil
-	}
-
-	cves, err := r.conn.HMGet(context.Background(), fmt.Sprintf(cveKeyFormat, microsoftName), cveIDs...).Result()
-	if err != nil {
-		return nil, xerrors.Errorf("Failed to HMGet. err: %w", err)
-	}
-
-	results := map[string]models.MicrosoftCVE{}
-	for _, cve := range cves {
-		if cve == nil {
-			continue
+		if len(ps) > 0 {
+			c.Products = ps
+			detected[c.CveID] = c
 		}
-
-		var ms models.MicrosoftCVE
-		if err := json.Unmarshal([]byte(cve.(string)), &ms); err != nil {
-			return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
-		}
-		results[ms.CveID] = ms
 	}
 
-	return results, nil
+	return detected, nil
 }
 
 // InsertRedhat :
