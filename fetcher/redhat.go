@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"path/filepath"
 
 	"github.com/inconshreveable/log15"
@@ -46,7 +45,7 @@ func FetchRedHatVulnList() (entries []models.RedhatCVEJSON, err error) {
 
 	var cves []RedhatCVE
 	err = util.FileWalk(rootDir, targets, func(r io.Reader, _ string) error {
-		content, err := ioutil.ReadAll(r)
+		content, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}

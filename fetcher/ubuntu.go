@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"path/filepath"
 
 	"github.com/inconshreveable/log15"
@@ -44,7 +43,7 @@ func FetchUbuntuVulnList() (entries []models.UbuntuCVEJSON, err error) {
 	log15.Debug(fmt.Sprintf("Ubuntu updated files: %d", len(targets)))
 
 	err = util.FileWalk(rootDir, targets, func(r io.Reader, _ string) error {
-		content, err := ioutil.ReadAll(r)
+		content, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
