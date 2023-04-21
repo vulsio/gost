@@ -235,7 +235,7 @@ func getUnfixedCvesUbuntu(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		release := util.Major(c.Param("release"))
 		pkgName := c.Param("name")
-		cveDetail, err := driver.GetUnfixedCvesUbuntu(release, pkgName)
+		cveDetail, err := driver.GetUnfixedCvesUbuntu(release, pkgName, false)
 		if err != nil {
 			log15.Error("Failed to get Unfixed CVEs in Ubuntu", "err", err)
 			return err

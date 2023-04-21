@@ -411,12 +411,16 @@ func (r *RedisDriver) GetDebianMulti(cveIDs []string) (map[string]models.DebianC
 	return results, nil
 }
 
-// GetUnfixedCvesUbuntu :
-func (r *RedisDriver) GetUnfixedCvesUbuntu(major, pkgName string) (map[string]models.UbuntuCVE, error) {
-	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"needed", "deferred", "pending"})
+// GetUnfixedCvesUbuntu gets the CVEs related to ubuntu_release_patches.status IN ('needed', 'deferred', 'pending', 'active', 'ignored'), ver, pkgName.
+func (r *RedisDriver) GetUnfixedCvesUbuntu(major, pkgName string, strict bool) (map[string]models.UbuntuCVE, error) {
+	states := []string{"needed", "deferred", "pending", "active"}
+	if !strict {
+		states = append(states, "ignored")
+	}
+	return r.getCvesUbuntuWithFixStatus(major, pkgName, states)
 }
 
-// GetFixedCvesUbuntu :
+// GetFixedCvesUbuntu gets the CVEs related to ubuntu_release_patches.status IN ('released'), ver, pkgName.
 func (r *RedisDriver) GetFixedCvesUbuntu(major, pkgName string) (map[string]models.UbuntuCVE, error) {
 	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"released"})
 }

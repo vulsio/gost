@@ -32,7 +32,7 @@ type DB interface {
 	GetUbuntu(string) (*models.UbuntuCVE, error)
 	GetUbuntuMulti([]string) (map[string]models.UbuntuCVE, error)
 	GetFixedCvesUbuntu(string, string) (map[string]models.UbuntuCVE, error)
-	GetUnfixedCvesUbuntu(string, string) (map[string]models.UbuntuCVE, error)
+	GetUnfixedCvesUbuntu(string, string, bool) (map[string]models.UbuntuCVE, error)
 	GetMicrosoft(string) (*models.MicrosoftCVE, error)
 	GetMicrosoftMulti([]string) (map[string]models.MicrosoftCVE, error)
 	GetExpandKB([]string, []string) ([]string, []string, error)

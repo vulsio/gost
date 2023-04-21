@@ -5,6 +5,7 @@ import (
 
 	pb "github.com/cheggaaa/pb/v3"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/slices"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
 
@@ -153,9 +154,13 @@ var ubuntuVerCodename = map[string]string{
 	"2304": "lunar",
 }
 
-// GetUnfixedCvesUbuntu gets the CVEs related to ubuntu_release_patches.status IN ('needed', 'deferred', 'pending'), ver, pkgName.
-func (r *RDBDriver) GetUnfixedCvesUbuntu(ver, pkgName string) (map[string]models.UbuntuCVE, error) {
-	return r.getCvesUbuntuWithFixStatus(ver, pkgName, []string{"needed", "deferred", "pending"})
+// GetUnfixedCvesUbuntu gets the CVEs related to ubuntu_release_patches.status IN ('needed', 'deferred', 'pending', 'active', 'ignored'), ver, pkgName.
+func (r *RDBDriver) GetUnfixedCvesUbuntu(ver, pkgName string, strict bool) (map[string]models.UbuntuCVE, error) {
+	states := []string{"needed", "deferred", "pending", "active"}
+	if !strict {
+		states = append(states, "ignored")
+	}
+	return r.getCvesUbuntuWithFixStatus(ver, pkgName, states)
 }
 
 // GetFixedCvesUbuntu gets the CVEs related to ubuntu_release_patches.status IN ('released'), ver, pkgName.
@@ -181,7 +186,7 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []
 		Scan(&results).Error
 
 	if err != nil {
-		if fixStatus[0] == "released" {
+		if slices.Contains(fixStatus, "released") {
 			return nil, xerrors.Errorf("Failed to get fixed cves of Ubuntu. err: %w", err)
 		}
 		return nil, xerrors.Errorf("Failed to get unfixed cves of Ubuntu. err: %w", err)
