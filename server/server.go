@@ -207,7 +207,7 @@ func getUnfixedCvesDebian(driver db.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		release := util.Major(c.Param("release"))
 		pkgName := c.Param("name")
-		cveDetail, err := driver.GetUnfixedCvesDebian(release, pkgName)
+		cveDetail, err := driver.GetUnfixedCvesDebian(release, pkgName, false)
 		if err != nil {
 			log15.Error("Failed to get Unfixed CVEs in Debian", "err", err)
 			return err

@@ -309,17 +309,21 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(version, pkgName string, strict bool)
 	return m, nil
 }
 
-// GetUnfixedCvesDebian : get the CVEs related to debian_release.status = 'open', major, pkgName
-func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (map[string]models.DebianCVE, error) {
-	return r.getCvesDebianWithFixStatus(major, pkgName, "open")
+// GetUnfixedCvesDebian gets the CVEs related to debian_release.status IN ('open', 'undetermined'), major, pkgName.
+func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string, strict bool) (map[string]models.DebianCVE, error) {
+	states := []string{"open"}
+	if !strict {
+		states = append(states, "undetermined")
+	}
+	return r.getCvesDebianWithFixStatus(major, pkgName, states)
 }
 
-// GetFixedCvesDebian : get the CVEs related to debian_release.status = 'resolved', major, pkgName
+// GetFixedCvesDebian gets the CVEs related to debian_release.status IN ('resolved'), major, pkgName.
 func (r *RedisDriver) GetFixedCvesDebian(major, pkgName string) (map[string]models.DebianCVE, error) {
-	return r.getCvesDebianWithFixStatus(major, pkgName, "resolved")
+	return r.getCvesDebianWithFixStatus(major, pkgName, []string{"resolved"})
 }
 
-func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string) (map[string]models.DebianCVE, error) {
+func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName string, fixStatus []string) (map[string]models.DebianCVE, error) {
 	codeName, ok := debVerCodename[major]
 	if !ok {
 		return nil, xerrors.Errorf("Failed to convert from major version to codename. err: Debian %s is not supported yet", major)
@@ -344,7 +348,7 @@ func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus strin
 			}
 			rels := []models.DebianRelease{}
 			for _, rel := range pkg.Release {
-				if rel.ProductName == codeName && rel.Status == fixStatus {
+				if rel.ProductName == codeName && slices.Contains(fixStatus, rel.Status) {
 					rels = append(rels, rel)
 				}
 			}

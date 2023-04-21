@@ -6,6 +6,7 @@ import (
 
 	pb "github.com/cheggaaa/pb/v3"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/slices"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
 
@@ -103,17 +104,21 @@ var debVerCodename = map[string]string{
 	"13": "trixie",
 }
 
-// GetUnfixedCvesDebian gets the CVEs related to debian_release.status = 'open', major, pkgName.
-func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string) (map[string]models.DebianCVE, error) {
-	return r.getCvesDebianWithFixStatus(major, pkgName, "open")
+// GetUnfixedCvesDebian gets the CVEs related to debian_release.status IN ('open', 'undetermined'), major, pkgName.
+func (r *RDBDriver) GetUnfixedCvesDebian(major, pkgName string, strict bool) (map[string]models.DebianCVE, error) {
+	states := []string{"open"}
+	if !strict {
+		states = append(states, "undetermined")
+	}
+	return r.getCvesDebianWithFixStatus(major, pkgName, states)
 }
 
-// GetFixedCvesDebian gets the CVEs related to debian_release.status = 'resolved', major, pkgName.
+// GetFixedCvesDebian gets the CVEs related to debian_release.status IN ('resolved'), major, pkgName.
 func (r *RDBDriver) GetFixedCvesDebian(major, pkgName string) (map[string]models.DebianCVE, error) {
-	return r.getCvesDebianWithFixStatus(major, pkgName, "resolved")
+	return r.getCvesDebianWithFixStatus(major, pkgName, []string{"resolved"})
 }
 
-func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string) (map[string]models.DebianCVE, error) {
+func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName string, fixStatus []string) (map[string]models.DebianCVE, error) {
 	codeName, ok := debVerCodename[major]
 	if !ok {
 		return nil, xerrors.Errorf("Failed to convert from major version to codename. err: Debian %s is not supported yet", major)
@@ -131,17 +136,17 @@ func (r *RDBDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string)
 		Scan(&results).Error
 
 	if err != nil {
-		if fixStatus == "open" {
-			return nil, xerrors.Errorf("Failed to get unfixed cves of Debian: %w", err)
+		if slices.Contains(fixStatus, "resolved") {
+			return nil, xerrors.Errorf("Failed to get fixed cves of Debian. err: %w", err)
 		}
-		return nil, xerrors.Errorf("Failed to get fixed cves of Debian. err: %w", err)
+		return nil, xerrors.Errorf("Failed to get unfixed cves of Debian: %w", err)
 	}
 
 	m := map[string]models.DebianCVE{}
 	for _, res := range results {
 		debcve := models.DebianCVE{}
 		if err := r.conn.
-			Preload("Package.Release", "status = ? AND product_name = ?", fixStatus, codeName).
+			Preload("Package.Release", "status IN ? AND product_name = ?", fixStatus, codeName).
 			Preload("Package", "package_name = ?", pkgName).
 			Where(&models.DebianCVE{ID: res.DebianCveID}).
 			First(&debcve).Error; err != nil {

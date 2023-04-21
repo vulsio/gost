@@ -28,7 +28,7 @@ type DB interface {
 	GetDebian(string) (*models.DebianCVE, error)
 	GetDebianMulti([]string) (map[string]models.DebianCVE, error)
 	GetFixedCvesDebian(string, string) (map[string]models.DebianCVE, error)
-	GetUnfixedCvesDebian(string, string) (map[string]models.DebianCVE, error)
+	GetUnfixedCvesDebian(string, string, bool) (map[string]models.DebianCVE, error)
 	GetUbuntu(string) (*models.UbuntuCVE, error)
 	GetUbuntuMulti([]string) (map[string]models.UbuntuCVE, error)
 	GetFixedCvesUbuntu(string, string) (map[string]models.UbuntuCVE, error)
