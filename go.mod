@@ -8,7 +8,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cheggaaa/pb/v3 v3.0.8
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/hashicorp/go-version v1.5.0
+	github.com/hashicorp/go-version v1.6.0
 	github.com/inconshreveable/log15 v3.0.0-testing.5+incompatible
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/mattn/go-runewidth v0.0.14
