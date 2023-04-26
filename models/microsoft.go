@@ -76,8 +76,8 @@ type MicrosoftCVE struct {
 	Products        []MicrosoftProduct `json:"products"`
 	URL             string             `json:"url" gorm:"type:varchar(255)"`
 	Acknowledgments string             `json:"acknowledgments" gorm:"type:text"`
-	PublishDate     time.Time          `json:"publish_date" gorm:"type:time"`
-	LastUpdateDate  time.Time          `json:"last_update_date" gorm:"type:time"`
+	PublishDate     time.Time          `json:"publish_date"`
+	LastUpdateDate  time.Time          `json:"last_update_date"`
 }
 
 // MicrosoftProduct :

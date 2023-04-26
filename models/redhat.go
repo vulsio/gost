@@ -73,8 +73,8 @@ type RedhatCVE struct {
 	ID int64 `json:"-"`
 
 	// gorm can't handle embedded struct
-	ThreatSeverity       string    `gorm:"type:varchar(255)"`
-	PublicDate           time.Time `gorm:"type:time"`
+	ThreatSeverity       string `gorm:"type:varchar(255)"`
+	PublicDate           time.Time
 	Bugzilla             RedhatBugzilla
 	Cvss                 RedhatCvss
 	Cvss3                RedhatCvss3
