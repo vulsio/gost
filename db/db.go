@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/inconshreveable/log15"
 	"golang.org/x/xerrors"
 
 	"github.com/vulsio/gost/models"
@@ -13,7 +12,7 @@ import (
 // DB is interface for a database driver
 type DB interface {
 	Name() string
-	OpenDB(string, string, bool, Option) (bool, error)
+	OpenDB(string, string, bool, Option) error
 	CloseDB() error
 	MigrateDB() error
 
@@ -51,34 +50,27 @@ type Option struct {
 }
 
 // NewDB returns db driver
-func NewDB(dbType, dbPath string, debugSQL bool, option Option) (driver DB, locked bool, err error) {
+func NewDB(dbType, dbPath string, debugSQL bool, option Option) (driver DB, err error) {
 	if driver, err = newDB(dbType); err != nil {
-		log15.Error("Failed to new db.", "err", err)
-		return driver, false, err
+		return driver, xerrors.Errorf("Failed to new db. err: %w", err)
 	}
 
-	if locked, err := driver.OpenDB(dbType, dbPath, debugSQL, option); err != nil {
-		if locked {
-			return nil, true, err
-		}
-		return nil, false, err
+	if err := driver.OpenDB(dbType, dbPath, debugSQL, option); err != nil {
+		return nil, xerrors.Errorf("Failed to open db. err: %w", err)
 	}
 
 	isV1, err := driver.IsGostModelV1()
 	if err != nil {
-		log15.Error("Failed to IsGostModelV1.", "err", err)
-		return nil, false, err
+		return nil, xerrors.Errorf("Failed to IsGostModelV1. err: %w", err)
 	}
 	if isV1 {
-		log15.Error("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again")
-		return nil, false, xerrors.New("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again.")
+		return nil, xerrors.New("Failed to NewDB. Since SchemaVersion is incompatible, delete Database and fetch again.")
 	}
 
 	if err := driver.MigrateDB(); err != nil {
-		log15.Error("Failed to migrate db.", "err", err)
-		return driver, false, err
+		return driver, xerrors.Errorf("Failed to migrate db. err: %w", err)
 	}
-	return driver, false, nil
+	return driver, nil
 }
 
 func newDB(dbType string) (DB, error) {
