@@ -413,6 +413,13 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 	if !ok {
 		return nil, xerrors.Errorf("Failed to convert from major version to codename. err: Ubuntu %s is not supported yet", major)
 	}
+	esmCodeNames := []string{
+		codeName,
+		fmt.Sprintf("esm-apps/%s", codeName),
+		fmt.Sprintf("esm-infra/%s", codeName),
+		fmt.Sprintf("%s/esm", codeName),
+		fmt.Sprintf("ros-esm/%s", codeName),
+	}
 
 	ctx := context.Background()
 	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, ubuntuName, pkgName)).Result()
@@ -433,11 +440,18 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 			}
 			relPatches := []models.UbuntuReleasePatch{}
 			for _, relPatch := range p.ReleasePatches {
-				if relPatch.ReleaseName == codeName {
-					for _, s := range fixStatus {
-						if s == relPatch.Status {
-							relPatches = append(relPatches, relPatch)
-						}
+				found := false
+				for _, codeName := range esmCodeNames {
+					if relPatch.ReleaseName == codeName {
+						found = true
+					}
+				}
+				if !found {
+					continue
+				}
+				for _, s := range fixStatus {
+					if s == relPatch.Status {
+						relPatches = append(relPatches, relPatch)
 					}
 				}
 			}
