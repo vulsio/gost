@@ -2,6 +2,7 @@ package db
 
 import (
 	"errors"
+	"fmt"
 
 	pb "github.com/cheggaaa/pb/v3"
 	"github.com/spf13/viper"
@@ -168,6 +169,13 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []
 	if !ok {
 		return nil, xerrors.Errorf("Failed to convert from major version to codename. err: Ubuntu %s is not supported yet", ver)
 	}
+	esmCodeNames := []string{
+		codeName,
+		fmt.Sprintf("esm-apps/%s", codeName),
+		fmt.Sprintf("esm-infra/%s", codeName),
+		fmt.Sprintf("%s/esm", codeName),
+		fmt.Sprintf("ros-esm/%s", codeName),
+	}
 
 	type Result struct {
 		UbuntuCveID int64
@@ -191,7 +199,7 @@ func (r *RDBDriver) getCvesUbuntuWithFixStatus(ver, pkgName string, fixStatus []
 	for _, res := range results {
 		cve := models.UbuntuCVE{}
 		if err := r.conn.
-			Preload("Patches.ReleasePatches", "release_name = ? AND status IN (?)", codeName, fixStatus).
+			Preload("Patches.ReleasePatches", "release_name IN (?) AND status IN (?)", esmCodeNames, fixStatus).
 			Preload("Patches", "package_name = ?", pkgName).
 			Where(&models.UbuntuCVE{ID: res.UbuntuCveID}).
 			First(&cve).Error; err != nil {
