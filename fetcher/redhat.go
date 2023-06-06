@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	repoURL   = "https://github.com/aquasecurity/vuln-list.git"
+	repoURL   = "https://github.com/aquasecurity/vuln-list-update.git"
 	redhatDir = "redhat"
 )
 
