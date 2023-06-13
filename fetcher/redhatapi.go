@@ -94,6 +94,23 @@ func RetrieveRedhatCveDetails(urls []string) (cves []models.RedhatCVEJSON, err e
 		default:
 			return nil, errors.New("Unknown package_state type")
 		}
+
+		switch cve.TempMitigation.(type) {
+		case string:
+			cve.Mitigation = cve.TempMitigation.(string)
+		case map[string]interface{}:
+			var m struct {
+				Mitigation models.RedhatCVEJSONMitigationObject `json:"mitigation"`
+			}
+			if err := json.Unmarshal(cveJSON, &m); err != nil {
+				return nil, xerrors.Errorf("unknown mitigation type err: %w", err)
+			}
+			cve.Mitigation = m.Mitigation.Value
+		case nil:
+		default:
+			return nil, errors.New("Unknown mitigation type")
+		}
+
 		cves = append(cves, cve)
 	}
 
