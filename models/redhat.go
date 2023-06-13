@@ -36,8 +36,9 @@ type RedhatCVEJSON struct {
 	Cwe                  string         `json:"cwe"`
 	Statement            string         `json:"statement"`
 	Acknowledgement      string         `json:"acknowledgement"`
-	Mitigation           string         `json:"mitigation"`
-	TempAffectedRelease  interface{}    `json:"affected_release"` // affected_release is array or object
+	TempMitigation       interface{}    `json:"mitigation"`
+	Mitigation           string
+	TempAffectedRelease  interface{} `json:"affected_release"` // affected_release is array or object
 	AffectedRelease      []RedhatAffectedRelease
 	TempPackageState     interface{} `json:"package_state"` // package_state is array or object
 	PackageState         []RedhatPackageState
@@ -66,6 +67,11 @@ type RedhatCVEJSONPackageStateArray struct {
 // RedhatCVEJSONPackageStateObject :
 type RedhatCVEJSONPackageStateObject struct {
 	PackageState RedhatPackageState `json:"package_state"`
+}
+
+type RedhatCVEJSONMitigationObject struct {
+	Value string `json:"value"`
+	Lang  string `json:"lang"`
 }
 
 // RedhatCVE :
