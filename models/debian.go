@@ -1,5 +1,7 @@
 package models
 
+import "golang.org/x/exp/maps"
+
 // DebianJSON :
 type DebianJSON map[string]DebianCveMap
 
@@ -51,7 +53,7 @@ type DebianRelease struct {
 }
 
 // ConvertDebian :
-func ConvertDebian(cveJSONs DebianJSON) (cves []DebianCVE) {
+func ConvertDebian(cveJSONs DebianJSON) []DebianCVE {
 	uniqCve := map[string]DebianCVE{}
 	for pkgName, cveMap := range cveJSONs {
 		for cveID, cve := range cveMap {
@@ -85,8 +87,5 @@ func ConvertDebian(cveJSONs DebianJSON) (cves []DebianCVE) {
 			}
 		}
 	}
-	for _, c := range uniqCve {
-		cves = append(cves, c)
-	}
-	return cves
+	return maps.Values(uniqCve)
 }
