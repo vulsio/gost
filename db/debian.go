@@ -95,6 +95,7 @@ func (r *RDBDriver) deleteAndInsertDebian(cves []models.DebianCVE) (err error) {
 }
 
 var debVerCodename = map[string]string{
+	"7":  "wheezy",
 	"8":  "jessie",
 	"9":  "stretch",
 	"10": "buster",
