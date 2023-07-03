@@ -25,7 +25,7 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gorm.io/driver/mysql v1.5.0
 	gorm.io/driver/postgres v1.5.0
-	gorm.io/gorm v1.25.0
+	gorm.io/gorm v1.25.2
 	oras.land/oras-go/v2 v2.2.0
 )
 
