@@ -8,7 +8,7 @@ require (
 	github.com/briandowns/spinner v1.23.0
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cheggaaa/pb/v3 v3.1.2
-	github.com/glebarez/sqlite v1.8.1-0.20230417114740-1accfe103bf2
+	github.com/glebarez/sqlite v1.9.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/hashicorp/go-version v1.6.0
 	github.com/inconshreveable/log15 v3.0.0-testing.5+incompatible
@@ -23,8 +23,8 @@ require (
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
 	gopkg.in/src-d/go-git.v4 v4.13.1
-	gorm.io/driver/mysql v1.5.0
-	gorm.io/driver/postgres v1.5.0
+	gorm.io/driver/mysql v1.5.1
+	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.2
 	oras.land/oras-go/v2 v2.2.0
 )
@@ -39,7 +39,7 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fatih/color v1.14.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
-	github.com/glebarez/go-sqlite v1.21.1 // indirect
+	github.com/glebarez/go-sqlite v1.21.2 // indirect
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
@@ -90,6 +90,6 @@ require (
 	modernc.org/libc v1.22.5 // indirect
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.5.0 // indirect
-	modernc.org/sqlite v1.22.0 // indirect
+	modernc.org/sqlite v1.23.1 // indirect
 	moul.io/http2curl v1.0.0 // indirect
 )
