@@ -15,7 +15,7 @@ require (
 	github.com/labstack/echo/v4 v4.10.2
 	github.com/mattn/go-runewidth v0.0.14
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/opencontainers/image-spec v1.1.0-rc3
+	github.com/opencontainers/image-spec v1.1.0-rc4
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.15.0
@@ -26,7 +26,7 @@ require (
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.2
-	oras.land/oras-go/v2 v2.2.0
+	oras.land/oras-go/v2 v2.2.1
 )
 
 require (
