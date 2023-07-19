@@ -3,7 +3,7 @@ module github.com/vulsio/gost
 go 1.20
 
 require (
-	github.com/BurntSushi/toml v1.3.0
+	github.com/BurntSushi/toml v1.3.2
 	github.com/aquasecurity/trivy-db v0.0.0-20230622083554-a5a9b0a72b48
 	github.com/briandowns/spinner v1.23.0
 	github.com/cenkalti/backoff v2.2.1+incompatible
