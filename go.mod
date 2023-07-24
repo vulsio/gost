@@ -13,7 +13,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0
 	github.com/inconshreveable/log15 v3.0.0-testing.5+incompatible
 	github.com/labstack/echo/v4 v4.11.1
-	github.com/mattn/go-runewidth v0.0.14
+	github.com/mattn/go-runewidth v0.0.15
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/opencontainers/image-spec v1.1.0-rc4
 	github.com/parnurzeal/gorequest v0.2.16
