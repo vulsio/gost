@@ -15,15 +15,15 @@ import (
 )
 
 const (
-	repoURL   = "https://github.com/aquasecurity/vuln-list.git"
-	redhatDir = "redhat"
+	redhatRepoURL = "https://github.com/aquasecurity/vuln-list-redhat.git"
+	redhatDir     = "api"
 )
 
 // FetchRedHatVulnList clones vuln-list and returns CVE JSONs
 func FetchRedHatVulnList() (entries []models.RedhatCVEJSON, err error) {
 	// Clone vuln-list repository
-	dir := filepath.Join(util.CacheDir(), "vuln-list")
-	updatedFiles, err := git.CloneOrPull(repoURL, dir, redhatDir)
+	dir := filepath.Join(util.CacheDir(), "vuln-list-redhat")
+	updatedFiles, err := git.CloneOrPull(redhatRepoURL, dir, redhatDir)
 	if err != nil {
 		return nil, xerrors.Errorf("error in vulnsrc clone or pull: %w", err)
 	}
