@@ -15,14 +15,14 @@ import (
 )
 
 const (
-	ubuntuRepoURL = "https://github.com/aquasecurity/vuln-list-reserve.git"
+	ubuntuRepoURL = "https://github.com/aquasecurity/vuln-list.git"
 	ubuntuDir     = "ubuntu"
 )
 
 // FetchUbuntuVulnList clones vuln-list and returns CVE JSONs
 func FetchUbuntuVulnList() (entries []models.UbuntuCVEJSON, err error) {
 	// Clone vuln-list repository
-	dir := filepath.Join(util.CacheDir(), "vuln-list-reserve")
+	dir := filepath.Join(util.CacheDir(), "vuln-list")
 	updatedFiles, err := git.CloneOrPull(ubuntuRepoURL, dir, ubuntuDir)
 	if err != nil {
 		return nil, xerrors.Errorf("error in vulnsrc clone or pull: %w", err)
