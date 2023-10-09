@@ -69,6 +69,7 @@ type RedhatCVEJSONPackageStateObject struct {
 	PackageState RedhatPackageState `json:"package_state"`
 }
 
+// RedhatCVEJSONMitigationObject :
 type RedhatCVEJSONMitigationObject struct {
 	Value string `json:"value"`
 	Lang  string `json:"lang"`
