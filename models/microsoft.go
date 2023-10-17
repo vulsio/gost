@@ -185,8 +185,14 @@ func ConvertMicrosoft(vulns []MicrosoftVulnerability, supercedences []MicrosoftS
 				revs = append(revs, t)
 			}
 		}
-		slices.SortFunc(revs, func(i, j time.Time) bool {
-			return i.Before(j)
+		slices.SortFunc(revs, func(i, j time.Time) int {
+			if i.Before(j) {
+				return -1
+			}
+			if i.After(j) {
+				return +1
+			}
+			return 0
 		})
 		if len(revs) > 0 {
 			cve.PublishDate = revs[0]
