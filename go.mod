@@ -15,7 +15,7 @@ require (
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/mattn/go-runewidth v0.0.15
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/opencontainers/image-spec v1.1.0-rc4
+	github.com/opencontainers/image-spec v1.1.0-rc5
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.17.0
