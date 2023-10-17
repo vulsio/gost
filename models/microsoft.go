@@ -1,10 +1,9 @@
 package models
 
 import (
+	"sort"
 	"strings"
 	"time"
-
-	"golang.org/x/exp/slices"
 )
 
 // MicrosoftVulnerability :
@@ -185,8 +184,8 @@ func ConvertMicrosoft(vulns []MicrosoftVulnerability, supercedences []MicrosoftS
 				revs = append(revs, t)
 			}
 		}
-		slices.SortFunc(revs, func(i, j time.Time) bool {
-			return i.Before(j)
+		sort.Slice(revs, func(i, j int) bool {
+			return revs[i].Before(revs[j])
 		})
 		if len(revs) > 0 {
 			cve.PublishDate = revs[0]
