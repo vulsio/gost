@@ -29,7 +29,7 @@ type DebianCVE struct {
 	ID          int64  `json:"-"`
 	CveID       string `gorm:"index:idx_debian_cves_cveid;type:varchar(255);"`
 	Scope       string `gorm:"type:varchar(255)"`
-	Description string `gorm:"type:text"`
+	Description string
 	Package     []DebianPackage
 }
 
