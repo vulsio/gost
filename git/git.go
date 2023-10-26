@@ -20,8 +20,15 @@ func getGitVersion() (string, error) {
 	if err != nil {
 		return "", xerrors.Errorf("error in git --version: %w", err)
 	}
-	version := strings.TrimSpace(strings.TrimPrefix(output, "git version"))
-	return version, nil
+
+	// Parse the output of "git --version"
+	// e.g. "git version 2.34.1"
+	//      "git version 2.39.3 (Apple Git-145)"
+	ss := strings.Fields(output)
+	if len(ss) < 3 {
+		return "", xerrors.Errorf("unexpected output")
+	}
+	return ss[2], nil
 }
 
 // CloneOrPull clone/pull aquasecurity/vuln-list
