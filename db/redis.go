@@ -427,34 +427,35 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 		return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
 	}
 
-	m, err := r.GetUbuntuMulti(cveIDs)
-	if err != nil {
-		return nil, xerrors.Errorf("Failed to GetUbuntuMulti. err: %w", err)
-	}
-
-	for cveID, cve := range m {
-		patches := []models.UbuntuPatch{}
-		for _, p := range cve.Patches {
-			if p.PackageName != pkgName {
-				continue
-			}
-			relPatches := []models.UbuntuReleasePatch{}
-			for _, relPatch := range p.ReleasePatches {
-				if slices.Contains(esmCodeNames, relPatch.ReleaseName) && slices.Contains(fixStatus, relPatch.Status) {
-					relPatches = append(relPatches, relPatch)
-				}
-			}
-			if len(relPatches) == 0 {
-				continue
-			}
-			p.ReleasePatches = relPatches
-			patches = append(patches, p)
+	m := map[string]models.UbuntuCVE{}
+	for idx := range chunkSlice(len(cveIDs), 20) {
+		res, err := r.GetUbuntuMulti(cveIDs[idx.From:idx.To])
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to GetUbuntuMulti. err: %w", err)
 		}
-		if len(patches) > 0 {
-			cve.Patches = patches
-			m[cveID] = cve
-		} else {
-			delete(m, cveID)
+
+		for cveID, cve := range res {
+			patches := []models.UbuntuPatch{}
+			for _, p := range cve.Patches {
+				if p.PackageName != pkgName {
+					continue
+				}
+				relPatches := []models.UbuntuReleasePatch{}
+				for _, relPatch := range p.ReleasePatches {
+					if slices.Contains(esmCodeNames, relPatch.ReleaseName) && slices.Contains(fixStatus, relPatch.Status) {
+						relPatches = append(relPatches, relPatch)
+					}
+				}
+				if len(relPatches) == 0 {
+					continue
+				}
+				p.ReleasePatches = relPatches
+				patches = append(patches, p)
+			}
+			if len(patches) > 0 {
+				cve.Patches = patches
+				m[cveID] = cve
+			}
 		}
 	}
 	return m, nil
@@ -483,21 +484,12 @@ func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuC
 		return map[string]models.UbuntuCVE{}, nil
 	}
 
-	results := make(map[string]models.UbuntuCVE, len(cveIDs))
-	for _, chunkedIDs := range chunkStringSlice(cveIDs, 20) {
-		if err := r.getUbuntuMulti(results, chunkedIDs); err != nil {
-			return nil, xerrors.Errorf("ubuntu redis error: %w", err)
-		}
-	}
-	return results, nil
-}
-
-func (r *RedisDriver) getUbuntuMulti(results map[string]models.UbuntuCVE, cveIDs []string) error {
 	cves, err := r.conn.HMGet(context.Background(), fmt.Sprintf(cveKeyFormat, ubuntuName), cveIDs...).Result()
 	if err != nil {
-		return xerrors.Errorf("Failed to HMGet. err: %w", err)
+		return nil, xerrors.Errorf("Failed to HMGet. err: %w", err)
 	}
 
+	results := map[string]models.UbuntuCVE{}
 	for _, cve := range cves {
 		if cve == nil {
 			continue
@@ -505,11 +497,11 @@ func (r *RedisDriver) getUbuntuMulti(results map[string]models.UbuntuCVE, cveIDs
 
 		var ubuntu models.UbuntuCVE
 		if err := json.Unmarshal([]byte(cve.(string)), &ubuntu); err != nil {
-			return xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
+			return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
 		}
 		results[ubuntu.Candidate] = ubuntu
 	}
-	return nil
+	return results, nil
 }
 
 // GetMicrosoft :
@@ -1120,22 +1112,4 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 	}
 
 	return nil
-}
-
-func chunkStringSlice(slice []string, chunkSize int) [][]string {
-	var chunks [][]string
-	for {
-		if len(slice) == 0 {
-			break
-		}
-
-		if len(slice) < chunkSize {
-			chunkSize = len(slice)
-		}
-
-		chunks = append(chunks, slice[0:chunkSize])
-		slice = slice[chunkSize:]
-	}
-
-	return chunks
 }
