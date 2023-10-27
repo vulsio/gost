@@ -483,12 +483,21 @@ func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuC
 		return map[string]models.UbuntuCVE{}, nil
 	}
 
+	results := make(map[string]models.UbuntuCVE, len(cveIDs))
+	for _, chunkedIDs := range chunkStringSlice(cveIDs, 20) {
+		if err := r.getUbuntuMulti(results, chunkedIDs); err != nil {
+			return nil, xerrors.Errorf("ubuntu redis error: %w", err)
+		}
+	}
+	return results, nil
+}
+
+func (r *RedisDriver) getUbuntuMulti(results map[string]models.UbuntuCVE, cveIDs []string) error {
 	cves, err := r.conn.HMGet(context.Background(), fmt.Sprintf(cveKeyFormat, ubuntuName), cveIDs...).Result()
 	if err != nil {
-		return nil, xerrors.Errorf("Failed to HMGet. err: %w", err)
+		return xerrors.Errorf("Failed to HMGet. err: %w", err)
 	}
 
-	results := map[string]models.UbuntuCVE{}
 	for _, cve := range cves {
 		if cve == nil {
 			continue
@@ -496,11 +505,11 @@ func (r *RedisDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuC
 
 		var ubuntu models.UbuntuCVE
 		if err := json.Unmarshal([]byte(cve.(string)), &ubuntu); err != nil {
-			return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
+			return xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
 		}
 		results[ubuntu.Candidate] = ubuntu
 	}
-	return results, nil
+	return nil
 }
 
 // GetMicrosoft :
@@ -1111,4 +1120,22 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 	}
 
 	return nil
+}
+
+func chunkStringSlice(slice []string, chunkSize int) [][]string {
+	var chunks [][]string
+	for {
+		if len(slice) == 0 {
+			break
+		}
+
+		if len(slice) < chunkSize {
+			chunkSize = len(slice)
+		}
+
+		chunks = append(chunks, slice[0:chunkSize])
+		slice = slice[chunkSize:]
+	}
+
+	return chunks
 }
