@@ -427,34 +427,35 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 		return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
 	}
 
-	m, err := r.GetUbuntuMulti(cveIDs)
-	if err != nil {
-		return nil, xerrors.Errorf("Failed to GetUbuntuMulti. err: %w", err)
-	}
-
-	for cveID, cve := range m {
-		patches := []models.UbuntuPatch{}
-		for _, p := range cve.Patches {
-			if p.PackageName != pkgName {
-				continue
-			}
-			relPatches := []models.UbuntuReleasePatch{}
-			for _, relPatch := range p.ReleasePatches {
-				if slices.Contains(esmCodeNames, relPatch.ReleaseName) && slices.Contains(fixStatus, relPatch.Status) {
-					relPatches = append(relPatches, relPatch)
-				}
-			}
-			if len(relPatches) == 0 {
-				continue
-			}
-			p.ReleasePatches = relPatches
-			patches = append(patches, p)
+	m := map[string]models.UbuntuCVE{}
+	for idx := range chunkSlice(len(cveIDs), 20) {
+		res, err := r.GetUbuntuMulti(cveIDs[idx.From:idx.To])
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to GetUbuntuMulti. err: %w", err)
 		}
-		if len(patches) > 0 {
-			cve.Patches = patches
-			m[cveID] = cve
-		} else {
-			delete(m, cveID)
+
+		for cveID, cve := range res {
+			patches := []models.UbuntuPatch{}
+			for _, p := range cve.Patches {
+				if p.PackageName != pkgName {
+					continue
+				}
+				relPatches := []models.UbuntuReleasePatch{}
+				for _, relPatch := range p.ReleasePatches {
+					if slices.Contains(esmCodeNames, relPatch.ReleaseName) && slices.Contains(fixStatus, relPatch.Status) {
+						relPatches = append(relPatches, relPatch)
+					}
+				}
+				if len(relPatches) == 0 {
+					continue
+				}
+				p.ReleasePatches = relPatches
+				patches = append(patches, p)
+			}
+			if len(patches) > 0 {
+				cve.Patches = patches
+				m[cveID] = cve
+			}
 		}
 	}
 	return m, nil
