@@ -89,43 +89,51 @@ func (r *RDBDriver) GetRedhatMulti(cveIDs []string) (map[string]models.RedhatCVE
 }
 
 // GetUnfixedCvesRedhat gets the unfixed CVEs.
-func (r *RDBDriver) GetUnfixedCvesRedhat(version, pkgName string, ignoreWillNotFix bool) (map[string]models.RedhatCVE, error) {
+func (r *RDBDriver) GetUnfixedCvesRedhat(version, pkgName string, strict bool) (map[string]models.RedhatCVE, error) {
 	m := map[string]models.RedhatCVE{}
 	var cpe string
-	if strings.HasSuffix(version, "-eus") {
+	switch {
+	case strings.HasSuffix(version, "-eus"):
 		cpe = fmt.Sprintf("cpe:/o:redhat:rhel_eus:%s", strings.TrimSuffix(version, "-eus"))
-	} else if strings.HasSuffix(version, "-aus") {
+	case strings.HasSuffix(version, "-aus"):
 		cpe = fmt.Sprintf("cpe:/o:redhat:rhel_aus:%s", strings.TrimSuffix(version, "-aus"))
-	} else {
+	case strings.HasSuffix(version, "-tus"):
+		cpe = fmt.Sprintf("cpe:/o:redhat:rhel_tus:%s", strings.TrimSuffix(version, "-tus"))
+	case strings.HasSuffix(version, "-els"):
+		cpe = fmt.Sprintf("cpe:/o:redhat:rhel_els:%s", strings.TrimSuffix(version, "-els"))
+	default:
 		cpe = fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", util.Major(version))
 	}
 
-	pkgStats := []models.RedhatPackageState{}
-
 	// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format
-	err := r.conn.
-		Not(map[string]interface{}{"fix_state": []string{"Not affected", "New"}}).
+	states := []string{"Affected", "Fix deferred", "Will not fix"}
+	if !strict {
+		states = append(states, "Out of support scope")
+	}
+
+	pkgStats := []models.RedhatPackageState{}
+	if err := r.conn.
+		Where(map[string]interface{}{"fix_state": states}).
 		Where(&models.RedhatPackageState{
 			Cpe:         cpe,
 			PackageName: pkgName,
-		}).Find(&pkgStats).Error
-	if err != nil {
+		}).Find(&pkgStats).Error; err != nil {
 		return nil, xerrors.Errorf("Failed to get unfixed cves of Redhat. err: %w", err)
 	}
 
-	redhatCVEIDs := map[int64]bool{}
+	redhatCVEIDs := map[int64]struct{}{}
 	for _, p := range pkgStats {
-		redhatCVEIDs[p.RedhatCVEID] = true
+		redhatCVEIDs[p.RedhatCVEID] = struct{}{}
 	}
 
 	for id := range redhatCVEIDs {
 		rhcve := models.RedhatCVE{}
-		if err = r.conn.
+		if err := r.conn.
 			Preload("Bugzilla").
 			Preload("Cvss").
 			Preload("Cvss3").
 			Preload("AffectedRelease").
-			Preload("PackageState").
+			Preload("PackageState", "cpe = ? AND package_name = ? AND fix_state IN ?", cpe, pkgName, states).
 			Preload("Details").
 			Preload("References").
 			Where(&models.RedhatCVE{ID: id}).First(&rhcve).Error; err != nil {
@@ -134,24 +142,9 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(version, pkgName string, ignoreWillNotF
 			}
 			return nil, xerrors.Errorf("Failed to get unfixed cves of Redhat. err: %w", err)
 		}
-
-		pkgStats := []models.RedhatPackageState{}
-		for _, pkgstat := range rhcve.PackageState {
-			if pkgstat.Cpe != cpe ||
-				pkgstat.PackageName != pkgName ||
-				pkgstat.FixState == "Not affected" ||
-				pkgstat.FixState == "New" {
-				continue
-
-			} else if ignoreWillNotFix && pkgstat.FixState == "Will not fix" {
-				continue
-			}
-			pkgStats = append(pkgStats, pkgstat)
-		}
-		if len(pkgStats) == 0 {
+		if len(rhcve.PackageState) == 0 {
 			continue
 		}
-		rhcve.PackageState = pkgStats
 		m[rhcve.Name] = rhcve
 	}
 	return m, nil

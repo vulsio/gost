@@ -262,7 +262,7 @@ func (r *RedisDriver) GetRedhatMulti(cveIDs []string) (map[string]models.RedhatC
 }
 
 // GetUnfixedCvesRedhat :
-func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotFix bool) (map[string]models.RedhatCVE, error) {
+func (r *RedisDriver) GetUnfixedCvesRedhat(version, pkgName string, strict bool) (map[string]models.RedhatCVE, error) {
 	ctx := context.Background()
 	cveIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, redhatName, pkgName)).Result()
 	if err != nil {
@@ -274,18 +274,30 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotF
 		return nil, xerrors.Errorf("Failed to GetRedhatMulti. err: %w", err)
 	}
 
-	cpe := fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", major)
+	var cpe string
+	switch {
+	case strings.HasSuffix(version, "-eus"):
+		cpe = fmt.Sprintf("cpe:/o:redhat:rhel_eus:%s", strings.TrimSuffix(version, "-eus"))
+	case strings.HasSuffix(version, "-aus"):
+		cpe = fmt.Sprintf("cpe:/o:redhat:rhel_aus:%s", strings.TrimSuffix(version, "-aus"))
+	case strings.HasSuffix(version, "-tus"):
+		cpe = fmt.Sprintf("cpe:/o:redhat:rhel_tus:%s", strings.TrimSuffix(version, "-tus"))
+	case strings.HasSuffix(version, "-els"):
+		cpe = fmt.Sprintf("cpe:/o:redhat:rhel_els:%s", strings.TrimSuffix(version, "-els"))
+	default:
+		cpe = fmt.Sprintf("cpe:/o:redhat:enterprise_linux:%s", util.Major(version))
+	}
+
+	// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format
+	states := []string{"Affected", "Fix deferred", "Will not fix"}
+	if !strict {
+		states = append(states, "Out of support scope")
+	}
+
 	for cveID, cve := range m {
-		// https://access.redhat.com/documentation/en-us/red_hat_security_data_api/0.1/html-single/red_hat_security_data_api/index#cve_format
 		pkgStats := []models.RedhatPackageState{}
 		for _, pkgstat := range cve.PackageState {
-			if pkgstat.Cpe != cpe ||
-				pkgstat.PackageName != pkgName ||
-				pkgstat.FixState == "Not affected" ||
-				pkgstat.FixState == "New" {
-				continue
-
-			} else if ignoreWillNotFix && pkgstat.FixState == "Will not fix" {
+			if !(pkgstat.Cpe == cpe && pkgstat.PackageName == pkgName && slices.Contains(states, pkgstat.FixState)) {
 				continue
 			}
 			pkgStats = append(pkgStats, pkgstat)
@@ -300,17 +312,21 @@ func (r *RedisDriver) GetUnfixedCvesRedhat(major, pkgName string, ignoreWillNotF
 	return m, nil
 }
 
-// GetUnfixedCvesDebian : get the CVEs related to debian_release.status = 'open', major, pkgName
-func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string) (map[string]models.DebianCVE, error) {
-	return r.getCvesDebianWithFixStatus(major, pkgName, "open")
+// GetUnfixedCvesDebian gets the CVEs related to debian_release.status IN ('open', 'undetermined'), major, pkgName.
+func (r *RedisDriver) GetUnfixedCvesDebian(major, pkgName string, strict bool) (map[string]models.DebianCVE, error) {
+	states := []string{"open"}
+	if !strict {
+		states = append(states, "undetermined")
+	}
+	return r.getCvesDebianWithFixStatus(major, pkgName, states)
 }
 
-// GetFixedCvesDebian : get the CVEs related to debian_release.status = 'resolved', major, pkgName
+// GetFixedCvesDebian gets the CVEs related to debian_release.status IN ('resolved'), major, pkgName.
 func (r *RedisDriver) GetFixedCvesDebian(major, pkgName string) (map[string]models.DebianCVE, error) {
-	return r.getCvesDebianWithFixStatus(major, pkgName, "resolved")
+	return r.getCvesDebianWithFixStatus(major, pkgName, []string{"resolved"})
 }
 
-func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus string) (map[string]models.DebianCVE, error) {
+func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName string, fixStatus []string) (map[string]models.DebianCVE, error) {
 	codeName, ok := debVerCodename[major]
 	if !ok {
 		return nil, xerrors.Errorf("Failed to convert from major version to codename. err: Debian %s is not supported yet", major)
@@ -335,7 +351,7 @@ func (r *RedisDriver) getCvesDebianWithFixStatus(major, pkgName, fixStatus strin
 			}
 			rels := []models.DebianRelease{}
 			for _, rel := range pkg.Release {
-				if rel.ProductName == codeName && rel.Status == fixStatus {
+				if rel.ProductName == codeName && slices.Contains(fixStatus, rel.Status) {
 					rels = append(rels, rel)
 				}
 			}
@@ -398,12 +414,16 @@ func (r *RedisDriver) GetDebianMulti(cveIDs []string) (map[string]models.DebianC
 	return results, nil
 }
 
-// GetUnfixedCvesUbuntu :
-func (r *RedisDriver) GetUnfixedCvesUbuntu(major, pkgName string) (map[string]models.UbuntuCVE, error) {
-	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"needed", "deferred", "pending"})
+// GetUnfixedCvesUbuntu gets the CVEs related to ubuntu_release_patches.status IN ('needed', 'deferred', 'pending', 'active', 'ignored'), ver, pkgName.
+func (r *RedisDriver) GetUnfixedCvesUbuntu(major, pkgName string, strict bool) (map[string]models.UbuntuCVE, error) {
+	states := []string{"needed", "deferred", "pending", "active"}
+	if !strict {
+		states = append(states, "ignored")
+	}
+	return r.getCvesUbuntuWithFixStatus(major, pkgName, states)
 }
 
-// GetFixedCvesUbuntu :
+// GetFixedCvesUbuntu gets the CVEs related to ubuntu_release_patches.status IN ('released'), ver, pkgName.
 func (r *RedisDriver) GetFixedCvesUbuntu(major, pkgName string) (map[string]models.UbuntuCVE, error) {
 	return r.getCvesUbuntuWithFixStatus(major, pkgName, []string{"released"})
 }
