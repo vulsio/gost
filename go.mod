@@ -8,7 +8,7 @@ require (
 	github.com/briandowns/spinner v1.23.0
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cheggaaa/pb/v3 v3.1.5
-	github.com/glebarez/sqlite v1.10.0
+	github.com/glebarez/sqlite v1.11.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/hashicorp/go-version v1.6.0
 	github.com/inconshreveable/log15 v3.0.0-testing.5+incompatible
@@ -25,7 +25,7 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/driver/postgres v1.5.4
-	gorm.io/gorm v1.25.5
+	gorm.io/gorm v1.25.7
 	oras.land/oras-go/v2 v2.4.0
 )
 
