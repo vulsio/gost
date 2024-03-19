@@ -153,6 +153,7 @@ var ubuntuVerCodename = map[string]string{
 	"2210": "kinetic",
 	"2304": "lunar",
 	"2310": "mantic",
+	"2404": "noble",
 }
 
 // GetUnfixedCvesUbuntu gets the CVEs related to ubuntu_release_patches.status IN ('needed', 'deferred', 'pending'), ver, pkgName.
