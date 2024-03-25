@@ -23,7 +23,7 @@ require (
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
 	gopkg.in/src-d/go-git.v4 v4.13.1
-	gorm.io/driver/mysql v1.5.5
+	gorm.io/driver/mysql v1.5.6
 	gorm.io/driver/postgres v1.5.7
 	gorm.io/gorm v1.25.7
 	oras.land/oras-go/v2 v2.4.0
