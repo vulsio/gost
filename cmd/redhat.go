@@ -33,7 +33,7 @@ func fetchRedHat(_ *cobra.Command, _ []string) (err error) {
 
 	cveJSONs, err := fetcher.FetchRedHatVulnList()
 	if err != nil {
-		return xerrors.Errorf("Failed to initialize vulnerability DB . err: %w", err)
+		return xerrors.Errorf("Failed to initialize vulnerability DB. err: %w", err)
 	}
 	cves, err := models.ConvertRedhat(cveJSONs)
 	if err != nil {

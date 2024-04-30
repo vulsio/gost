@@ -33,7 +33,7 @@ func fetchUbuntu(_ *cobra.Command, _ []string) (err error) {
 
 	cveJSONs, err := fetcher.FetchUbuntuVulnList()
 	if err != nil {
-		return xerrors.Errorf("Failed to initialize vulnerability DB . err: %w", err)
+		return xerrors.Errorf("Failed to initialize vulnerability DB. err: %w", err)
 	}
 	cves := models.ConvertUbuntu(cveJSONs)
 
