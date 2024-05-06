@@ -19,7 +19,7 @@ require (
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
-	go.etcd.io/bbolt v1.3.9
+	go.etcd.io/bbolt v1.3.10
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
 	gopkg.in/src-d/go-git.v4 v4.13.1
