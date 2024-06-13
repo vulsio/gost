@@ -5,12 +5,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/hashicorp/go-version"
 	"github.com/inconshreveable/log15"
 	"golang.org/x/xerrors"
-	git "gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 
 	"github.com/vulsio/gost/util"
 )
