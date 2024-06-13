@@ -10,7 +10,7 @@ require (
 	github.com/cheggaaa/pb/v3 v3.1.5
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/hashicorp/go-version v1.6.0
+	github.com/hashicorp/go-version v1.7.0
 	github.com/inconshreveable/log15 v3.0.0-testing.5+incompatible
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/mattn/go-runewidth v0.0.15
