@@ -18,7 +18,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/parnurzeal/gorequest v0.2.16
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	go.etcd.io/bbolt v1.3.10
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
