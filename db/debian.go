@@ -3,6 +3,8 @@ package db
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/cheggaaa/pb/v3"
 	"github.com/spf13/viper"
@@ -60,12 +62,12 @@ func (r *RDBDriver) InsertDebian(cves []models.DebianCVE) (err error) {
 	return nil
 }
 func (r *RDBDriver) deleteAndInsertDebian(cves []models.DebianCVE) (err error) {
-	bar := pb.StartNew(len(cves)) .SetWriter(func() io.Writer {
-			if viper.GetBool("log-json") {
-				return io.Discard
-			}
-			return os.Stderr
-		}())
+	bar := pb.StartNew(len(cves)).SetWriter(func() io.Writer {
+		if viper.GetBool("log-json") {
+			return io.Discard
+		}
+		return os.Stderr
+	}())
 	tx := r.conn.Begin()
 
 	defer func() {

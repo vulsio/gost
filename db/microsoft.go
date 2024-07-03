@@ -3,6 +3,8 @@ package db
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 	"strings"
 
@@ -225,12 +227,12 @@ func (r *RDBDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mode
 }
 
 func (r *RDBDriver) deleteAndInsertMicrosoft(cves []models.MicrosoftCVE) (err error) {
-	bar := pb.StartNew(len(cves)) .SetWriter(func() io.Writer {
-			if viper.GetBool("log-json") {
-				return io.Discard
-			}
-			return os.Stderr
-		}())
+	bar := pb.StartNew(len(cves)).SetWriter(func() io.Writer {
+		if viper.GetBool("log-json") {
+			return io.Discard
+		}
+		return os.Stderr
+	}())
 	tx := r.conn.Begin()
 
 	defer func() {
@@ -265,12 +267,12 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(cves []models.MicrosoftCVE) (err er
 }
 
 func (r *RDBDriver) deleteAndInsertMicrosoftKBRelation(kbs []models.MicrosoftKBRelation) (err error) {
-	bar := pb.StartNew(len(kbs)) .SetWriter(func() io.Writer {
-			if viper.GetBool("log-json") {
-				return io.Discard
-			}
-			return os.Stderr
-		}())
+	bar := pb.StartNew(len(kbs)).SetWriter(func() io.Writer {
+		if viper.GetBool("log-json") {
+			return io.Discard
+		}
+		return os.Stderr
+	}())
 	tx := r.conn.Begin()
 
 	defer func() {

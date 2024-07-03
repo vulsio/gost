@@ -3,6 +3,8 @@ package db
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"time"
 
@@ -169,7 +171,7 @@ func (r *RDBDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 func (r *RDBDriver) deleteAndInsertRedhat(cves []models.RedhatCVE) (err error) {
 	log15.Info(fmt.Sprintf("Insert %d CVEs", len(cves)))
 
-	bar := pb.StartNew(len(cves)) .SetWriter(func() io.Writer {
+	bar := pb.StartNew(len(cves)).SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
 		}
