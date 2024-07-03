@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	pb "github.com/cheggaaa/pb/v3"
+	"github.com/cheggaaa/pb/v3"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
@@ -60,7 +60,12 @@ func (r *RDBDriver) InsertDebian(cves []models.DebianCVE) (err error) {
 	return nil
 }
 func (r *RDBDriver) deleteAndInsertDebian(cves []models.DebianCVE) (err error) {
-	bar := pb.StartNew(len(cves))
+	bar := pb.StartNew(len(cves)) .SetWriter(func() io.Writer {
+			if viper.GetBool("log-json") {
+				return io.Discard
+			}
+			return os.Stderr
+		}())
 	tx := r.conn.Begin()
 
 	defer func() {

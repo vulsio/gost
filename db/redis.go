@@ -764,7 +764,12 @@ func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
 	}
 
-	bar := pb.StartNew(len(cves))
+	bar := pb.StartNew(len(cves)) .SetWriter(func() io.Writer {
+			if viper.GetBool("log-json") {
+				return io.Discard
+			}
+			return os.Stderr
+		}())
 	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
 		cvekey := fmt.Sprintf(cveKeyFormat, redhatName)
@@ -842,7 +847,12 @@ func (r *RedisDriver) InsertDebian(cves []models.DebianCVE) error {
 		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
 	}
 
-	bar := pb.StartNew(len(cves))
+	bar := pb.StartNew(len(cves)) .SetWriter(func() io.Writer {
+			if viper.GetBool("log-json") {
+				return io.Discard
+			}
+			return os.Stderr
+		}())
 	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
 		cvekey := fmt.Sprintf(cveKeyFormat, debianName)
@@ -920,7 +930,12 @@ func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
 	}
 
-	bar := pb.StartNew(len(cves))
+	bar := pb.StartNew(len(cves)) .SetWriter(func() io.Writer {
+			if viper.GetBool("log-json") {
+				return io.Discard
+			}
+			return os.Stderr
+		}())
 	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
 		cvekey := fmt.Sprintf(cveKeyFormat, ubuntuName)
@@ -1007,7 +1022,12 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 	}
 
 	log15.Info("Inserting cves", "cves", len(cves))
-	bar := pb.StartNew(len(cves))
+	bar := pb.StartNew(len(cves)) .SetWriter(func() io.Writer {
+			if viper.GetBool("log-json") {
+				return io.Discard
+			}
+			return os.Stderr
+		}())
 	for idx := range chunkSlice(len(cves), batchSize) {
 		pipe := r.conn.Pipeline()
 		cvekey := fmt.Sprintf(cveKeyFormat, microsoftName)
@@ -1057,7 +1077,12 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 	bar.Finish()
 
 	log15.Info("Insert KB Relation", "relations", len(relations))
-	bar = pb.StartNew(len(relations))
+	bar = pb.StartNew(len(relations)) .SetWriter(func() io.Writer {
+			if viper.GetBool("log-json") {
+				return io.Discard
+			}
+			return os.Stderr
+		}())
 	for idx := range chunkSlice(len(relations), batchSize) {
 		pipe := r.conn.Pipeline()
 		for _, relation := range relations[idx.From:idx.To] {
