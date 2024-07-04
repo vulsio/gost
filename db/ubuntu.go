@@ -3,8 +3,10 @@ package db
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 
-	pb "github.com/cheggaaa/pb/v3"
+	"github.com/cheggaaa/pb/v3"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
@@ -82,7 +84,12 @@ func (r *RDBDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 }
 
 func (r *RDBDriver) deleteAndInsertUbuntu(cves []models.UbuntuCVE) (err error) {
-	bar := pb.StartNew(len(cves))
+	bar := pb.StartNew(len(cves)).SetWriter(func() io.Writer {
+		if viper.GetBool("log-json") {
+			return io.Discard
+		}
+		return os.Stderr
+	}())
 	tx := r.conn.Begin()
 
 	defer func() {

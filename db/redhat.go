@@ -3,10 +3,12 @@ package db
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"time"
 
-	pb "github.com/cheggaaa/pb/v3"
+	"github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
@@ -169,7 +171,12 @@ func (r *RDBDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 func (r *RDBDriver) deleteAndInsertRedhat(cves []models.RedhatCVE) (err error) {
 	log15.Info(fmt.Sprintf("Insert %d CVEs", len(cves)))
 
-	bar := pb.StartNew(len(cves))
+	bar := pb.StartNew(len(cves)).SetWriter(func() io.Writer {
+		if viper.GetBool("log-json") {
+			return io.Discard
+		}
+		return os.Stderr
+	}())
 	tx := r.conn.Begin()
 	defer func() {
 		if err != nil {

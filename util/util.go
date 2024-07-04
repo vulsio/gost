@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	pb "github.com/cheggaaa/pb/v3"
+	"github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
 	"github.com/parnurzeal/gorequest"
 	"github.com/spf13/viper"
@@ -82,7 +82,12 @@ func FetchConcurrently(urls []string, concurrency, wait int) (responses [][]byte
 		}
 	}()
 
-	bar := pb.StartNew(len(urls))
+	bar := pb.StartNew(len(urls)).SetWriter(func() io.Writer {
+		if viper.GetBool("log-json") {
+			return io.Discard
+		}
+		return os.Stderr
+	}())
 	tasks := GenWorkers(concurrency, wait)
 	for range urls {
 		tasks <- func() {
@@ -314,7 +319,12 @@ func PbStartNew(total int) *ProgressBar {
 	if Quiet {
 		return &ProgressBar{}
 	}
-	bar := pb.StartNew(total)
+	bar := pb.StartNew(total).SetWriter(func() io.Writer {
+		if viper.GetBool("log-json") {
+			return io.Discard
+		}
+		return os.Stderr
+	}())
 	return &ProgressBar{client: bar}
 }
 
