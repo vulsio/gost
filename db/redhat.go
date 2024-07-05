@@ -159,6 +159,30 @@ func (r *RDBDriver) GetUnfixedCvesRedhat(version, pkgName string, ignoreWillNotF
 	return m, nil
 }
 
+// GetAdvisoriesRedHat gets AdvisoryID: []CVE IDs
+func (r *RDBDriver) GetAdvisoriesRedHat() (map[string][]string, error) {
+	m := map[string][]string{}
+	var cs []models.RedhatCVE
+	// the maximum value of a host parameter number is SQLITE_MAX_VARIABLE_NUMBER, which defaults to 999 for SQLite versions prior to 3.32.0 (2020-05-22) or 32766 for SQLite versions after 3.32.0.
+	// https://www.sqlite.org/limits.html Maximum Number Of Host Parameters In A Single SQL Statement
+	if err := r.conn.Preload("AffectedRelease").FindInBatches(&cs, 999, func(_ *gorm.DB, _ int) error {
+		for _, c := range cs {
+			for _, r := range c.AffectedRelease {
+				m[r.Advisory] = append(m[r.Advisory], c.Name)
+			}
+		}
+		return nil
+	}).Error; err != nil {
+		return nil, xerrors.Errorf("Failed to get Redhat. err: %w", err)
+	}
+
+	for k := range m {
+		m[k] = util.Unique(m[k])
+	}
+
+	return m, nil
+}
+
 // InsertRedhat :
 func (r *RDBDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 	if err := r.deleteAndInsertRedhat(cves); err != nil {

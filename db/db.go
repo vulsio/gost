@@ -24,6 +24,7 @@ type DB interface {
 	GetRedhat(string) (*models.RedhatCVE, error)
 	GetRedhatMulti([]string) (map[string]models.RedhatCVE, error)
 	GetUnfixedCvesRedhat(string, string, bool) (map[string]models.RedhatCVE, error)
+	GetAdvisoriesRedHat() (map[string][]string, error)
 	GetDebian(string) (*models.DebianCVE, error)
 	GetDebianMulti([]string) (map[string]models.DebianCVE, error)
 	GetFixedCvesDebian(string, string) (map[string]models.DebianCVE, error)
@@ -32,11 +33,13 @@ type DB interface {
 	GetUbuntuMulti([]string) (map[string]models.UbuntuCVE, error)
 	GetFixedCvesUbuntu(string, string) (map[string]models.UbuntuCVE, error)
 	GetUnfixedCvesUbuntu(string, string) (map[string]models.UbuntuCVE, error)
+	GetAdvisoriesUbuntu() (map[string][]string, error)
 	GetMicrosoft(string) (*models.MicrosoftCVE, error)
 	GetMicrosoftMulti([]string) (map[string]models.MicrosoftCVE, error)
 	GetExpandKB([]string, []string) ([]string, []string, error)
 	GetRelatedProducts(string, []string) ([]string, error)
 	GetFilteredCvesMicrosoft([]string, []string) (map[string]models.MicrosoftCVE, error)
+	GetAdvisoriesMicrosoft() (map[string][]string, error)
 
 	InsertRedhat([]models.RedhatCVE) error
 	InsertDebian([]models.DebianCVE) error

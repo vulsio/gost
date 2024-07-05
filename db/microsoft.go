@@ -17,6 +17,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/vulsio/gost/models"
+	"github.com/vulsio/gost/util"
 )
 
 // GetMicrosoft :
@@ -211,6 +212,34 @@ func (r *RDBDriver) GetFilteredCvesMicrosoft(products []string, kbs []string) (m
 		}
 	}
 	return detected, nil
+}
+
+// GetAdvisoriesMicrosoft gets AdvisoryID: []CVE IDs
+func (r *RDBDriver) GetAdvisoriesMicrosoft() (map[string][]string, error) {
+	m := map[string][]string{}
+	var cs []models.MicrosoftCVE
+	// the maximum value of a host parameter number is SQLITE_MAX_VARIABLE_NUMBER, which defaults to 999 for SQLite versions prior to 3.32.0 (2020-05-22) or 32766 for SQLite versions after 3.32.0.
+	// https://www.sqlite.org/limits.html Maximum Number Of Host Parameters In A Single SQL Statement
+	if err := r.conn.Preload("Products").Preload("Products.KBs").FindInBatches(&cs, 999, func(_ *gorm.DB, _ int) error {
+		for _, c := range cs {
+			for _, p := range c.Products {
+				for _, kb := range p.KBs {
+					if _, err := strconv.Atoi(kb.Article); err == nil {
+						m[kb.Article] = append(m[kb.Article], c.CveID)
+					}
+				}
+			}
+		}
+		return nil
+	}).Error; err != nil {
+		return nil, xerrors.Errorf("Failed to get Microsoft. err: %w", err)
+	}
+
+	for k := range m {
+		m[k] = util.Unique(m[k])
+	}
+
+	return m, nil
 }
 
 // InsertMicrosoft :
