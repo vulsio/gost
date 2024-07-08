@@ -52,19 +52,25 @@ import (
   ┌───┬────────────────┬───────────────┬───────────┬────────────────────────────────────────────────┐
   │ 1 │ GOST#RH#CVE    │    $CVEID     │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
   ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 2 │ GOST#DEB#CVE   │    $CVEID     │ $CVEJSON  │ (Debian) TO GET CVEJSON BY CVEID               │
+  │ 2 │ GOST#RH#ADV    │ $AdvisoryID   │ []CVEID   │ (RedHat) TO GET CVEIDs BY ADVISORYID           │
   ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 3 │ GOST#UBU#CVE   │    $CVEID     │ $CVEJSON  │ (Ubuntu) TO GET CVEJSON BY CVEID               │
+  │ 3 │ GOST#DEB#CVE   │    $CVEID     │ $CVEJSON  │ (Debian) TO GET CVEJSON BY CVEID               │
   ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 4 │ GOST#MS#CVE    │    $CVEID     │ $CVEJSON  │ (Microsoft) TO GET CVEJSON BY CVEID            │
+  │ 4 │ GOST#UBU#CVE   │    $CVEID     │ $CVEJSON  │ (Ubuntu) TO GET CVEJSON BY CVEID               │
   ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 5 │ GOST#DEP       │ RH/DEB/UBU/MS │   JSON    │ TO DELETE OUTDATED AND UNNEEDED KEY AND MEMBER │
+  │ 5 │ GOST#UBU#ADV   │ $AdvisoryID   │ []CVEID   │ (Ubuntu) TO GET CVEIDs BY ADVISORYID           │
   ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 6 │ GOST#FETCHMETA │   Revision    │  string   │ GET Gost Binary Revision                       │
+  │ 6 │ GOST#MS#CVE    │    $CVEID     │ $CVEJSON  │ (Microsoft) TO GET CVEJSON BY CVEID            │
   ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 7 │ GOST#FETCHMETA │ SchemaVersion │   uint    │ GET Gost Schema Version                        │
+  │ 7 │ GOST#MS#ADV    │ $AdvisoryID   │ []CVEID   │ (Microsoft) TO GET CVEIDs BY ADVISORYID        │
   ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 8 │ GOST#FETCHMETA │ LastFetchedAt │ time.Time │ GET Gost Last Fetched Time                     │
+  │ 8 │ GOST#DEP       │ RH/DEB/UBU/MS │   JSON    │ TO DELETE OUTDATED AND UNNEEDED KEY AND MEMBER │
+  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 9 │ GOST#FETCHMETA │   Revision    │  string   │ GET Gost Binary Revision                       │
+  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 10│ GOST#FETCHMETA │ SchemaVersion │   uint    │ GET Gost Schema Version                        │
+  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 11│ GOST#FETCHMETA │ LastFetchedAt │ time.Time │ GET Gost Last Fetched Time                     │
   └───┴────────────────┴───────────────┴───────────┴────────────────────────────────────────────────┘
 
 **/
@@ -73,6 +79,7 @@ const (
 	dialectRedis  = "redis"
 	cveKeyFormat  = "GOST#%s#CVE"
 	pkgKeyFormat  = "GOST#%s#PKG#%s"
+	advKeyFormat  = "GOST#%s#ADV"
 	redhatName    = "RH"
 	debianName    = "DEB"
 	ubuntuName    = "UBU"
@@ -744,6 +751,39 @@ func (r *RedisDriver) GetFilteredCvesMicrosoft(products []string, kbs []string) 
 	return detected, nil
 }
 
+// GetAdvisoriesRedHat gets AdvisoryID: []CVE IDs
+func (r *RedisDriver) GetAdvisoriesRedHat() (map[string][]string, error) {
+	return r.getAdvisories(fmt.Sprintf(advKeyFormat, redhatName))
+}
+
+// GetAdvisoriesUbuntu gets AdvisoryID: []CVE IDs
+func (r *RedisDriver) GetAdvisoriesUbuntu() (map[string][]string, error) {
+	return r.getAdvisories(fmt.Sprintf(advKeyFormat, ubuntuName))
+}
+
+// GetAdvisoriesMicrosoft gets AdvisoryID: []CVE IDs
+func (r *RedisDriver) GetAdvisoriesMicrosoft() (map[string][]string, error) {
+	return r.getAdvisories(fmt.Sprintf(advKeyFormat, microsoftName))
+}
+
+func (r *RedisDriver) getAdvisories(key string) (map[string][]string, error) {
+	v, err := r.conn.HGetAll(context.Background(), key).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to HGetAll. err: %w", err)
+	}
+
+	m := map[string][]string{}
+	for adv, s := range v {
+		var cves []string
+		if err := json.Unmarshal([]byte(s), &cves); err != nil {
+			return nil, xerrors.Errorf("Failed to Unmarshal JSON. err: %w", err)
+		}
+		m[adv] = cves
+	}
+
+	return m, nil
+}
+
 // InsertRedhat :
 func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 	ctx := context.Background()
@@ -752,8 +792,18 @@ func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 		return xerrors.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
-	// newDeps, oldDeps: {"CVEID": {"PKGNAME": {}}}
-	newDeps := map[string]map[string]struct{}{}
+	advs := map[string][]string{}
+	for _, c := range cves {
+		for _, r := range c.AffectedRelease {
+			advs[r.Advisory] = append(advs[r.Advisory], c.Name)
+		}
+	}
+	for k := range advs {
+		advs[k] = util.Unique(advs[k])
+	}
+
+	// newDeps, oldDeps: {"CVEID": {"PKGNAME": {}}, "advisories": {"ADVISORYID": {}}}
+	newDeps := map[string]map[string]struct{}{"advisories": {}}
 	oldDepsStr, err := r.conn.HGet(ctx, depKey, redhatName).Result()
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
@@ -766,6 +816,7 @@ func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
 	}
 
+	log15.Info("Insert CVEs", "cves", len(cves))
 	bar := pb.StartNew(len(cves)).SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
@@ -806,13 +857,49 @@ func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 	}
 	bar.Finish()
 
-	pipe := r.conn.Pipeline()
-	for cveID, pkgs := range oldDeps {
-		for pkgName := range pkgs {
-			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, redhatName, pkgName), cveID)
+	log15.Info("Insert Advisories", "advisories", len(advs))
+	bar = pb.StartNew(len(advs)).SetWriter(func() io.Writer {
+		if viper.GetBool("log-json") {
+			return io.Discard
 		}
-		if _, ok := newDeps[cveID]; !ok {
-			_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, redhatName), cveID)
+		return os.Stderr
+	}())
+	keys := maps.Keys(advs)
+	for idx := range chunkSlice(len(keys), batchSize) {
+		pipe := r.conn.Pipeline()
+		for _, adv := range keys[idx.From:idx.To] {
+			var aj []byte
+			if aj, err = json.Marshal(advs[adv]); err != nil {
+				return xerrors.Errorf("Failed to marshal json. err: %w", err)
+			}
+
+			_ = pipe.HSet(ctx, fmt.Sprintf(advKeyFormat, redhatName), adv, string(aj))
+			newDeps["advisories"][adv] = struct{}{}
+			if _, ok := oldDeps["advisories"]; ok {
+				delete(oldDeps["advisories"], adv)
+			}
+		}
+		if _, err = pipe.Exec(ctx); err != nil {
+			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+		}
+		bar.Add(idx.To - idx.From)
+	}
+	bar.Finish()
+
+	pipe := r.conn.Pipeline()
+	for k, v := range oldDeps {
+		switch k {
+		case "advisories":
+			for advID := range v {
+				_ = pipe.HDel(ctx, fmt.Sprintf(advKeyFormat, redhatName), advID)
+			}
+		default:
+			for pkgName := range v {
+				_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, redhatName, pkgName), k)
+			}
+			if _, ok := newDeps[k]; !ok {
+				_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, redhatName), k)
+			}
 		}
 	}
 	newDepsJSON, err := json.Marshal(newDeps)
@@ -849,6 +936,7 @@ func (r *RedisDriver) InsertDebian(cves []models.DebianCVE) error {
 		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
 	}
 
+	log15.Info("Insert CVEs", "cves", len(cves))
 	bar := pb.StartNew(len(cves)).SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
@@ -918,8 +1006,20 @@ func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 		return xerrors.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
-	// newDeps, oldDeps: {"CVEID": {"PKGNAME": {}}}
-	newDeps := map[string]map[string]struct{}{}
+	advs := map[string][]string{}
+	for _, c := range cves {
+		for _, r := range c.References {
+			if strings.HasPrefix(r.Reference, "https://ubuntu.com/security/notices/USN-") {
+				advs[strings.TrimPrefix(r.Reference, "https://ubuntu.com/security/notices/")] = append(advs[strings.TrimPrefix(r.Reference, "https://ubuntu.com/security/notices/")], c.Candidate)
+			}
+		}
+	}
+	for k := range advs {
+		advs[k] = util.Unique(advs[k])
+	}
+
+	// newDeps, oldDeps: {"CVEID": {"PKGNAME": {}}, "advisories": {"ADVISORYID": {}}}
+	newDeps := map[string]map[string]struct{}{"advisories": {}}
 	oldDepsStr, err := r.conn.HGet(ctx, depKey, ubuntuName).Result()
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
@@ -932,6 +1032,7 @@ func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
 	}
 
+	log15.Info("Insert CVEs", "cves", len(cves))
 	bar := pb.StartNew(len(cves)).SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
@@ -972,13 +1073,49 @@ func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 	}
 	bar.Finish()
 
-	pipe := r.conn.Pipeline()
-	for cveID, pkgs := range oldDeps {
-		for pkgName := range pkgs {
-			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, ubuntuName, pkgName), cveID)
+	log15.Info("Insert Advisories", "advisories", len(advs))
+	bar = pb.StartNew(len(advs)).SetWriter(func() io.Writer {
+		if viper.GetBool("log-json") {
+			return io.Discard
 		}
-		if _, ok := newDeps[cveID]; !ok {
-			_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, ubuntuName), cveID)
+		return os.Stderr
+	}())
+	keys := maps.Keys(advs)
+	for idx := range chunkSlice(len(keys), batchSize) {
+		pipe := r.conn.Pipeline()
+		for _, adv := range keys[idx.From:idx.To] {
+			var aj []byte
+			if aj, err = json.Marshal(advs[adv]); err != nil {
+				return xerrors.Errorf("Failed to marshal json. err: %w", err)
+			}
+
+			_ = pipe.HSet(ctx, fmt.Sprintf(advKeyFormat, ubuntuName), adv, string(aj))
+			newDeps["advisories"][adv] = struct{}{}
+			if _, ok := oldDeps["advisories"]; ok {
+				delete(oldDeps["advisories"], adv)
+			}
+		}
+		if _, err = pipe.Exec(ctx); err != nil {
+			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+		}
+		bar.Add(idx.To - idx.From)
+	}
+	bar.Finish()
+
+	pipe := r.conn.Pipeline()
+	for k, v := range oldDeps {
+		switch k {
+		case "advisories":
+			for advID := range v {
+				_ = pipe.HDel(ctx, fmt.Sprintf(advKeyFormat, ubuntuName), advID)
+			}
+		default:
+			for pkgName := range v {
+				_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, ubuntuName, pkgName), k)
+			}
+			if _, ok := newDeps[k]; !ok {
+				_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, ubuntuName), k)
+			}
 		}
 	}
 	newDepsJSON, err := json.Marshal(newDeps)
@@ -1001,11 +1138,26 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 		return xerrors.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
-	// newDeps, oldDeps: {"cves": {"CVEID": {"ProductName": {}}}, "products": {"KBID": {"ProductName": {}}}, "relations": {"KBID": {"SUPERSEDEDBY": {}}}}
+	advs := map[string][]string{}
+	for _, c := range cves {
+		for _, p := range c.Products {
+			for _, kb := range p.KBs {
+				if _, err := strconv.Atoi(kb.Article); err == nil {
+					advs[kb.Article] = append(advs[kb.Article], c.CveID)
+				}
+			}
+		}
+	}
+	for k := range advs {
+		advs[k] = util.Unique(advs[k])
+	}
+
+	// newDeps, oldDeps: {"cves": {"CVEID": {"ProductName": {}}}, "advisories": {"ADVISORYID": {}}}, "products": {"KBID": {"ProductName": {}}}, "relations": {"KBID": {"SUPERSEDEDBY": {}}}}
 	newDeps := map[string]map[string]map[string]struct{}{
-		"cves":      {},
-		"products":  {},
-		"relations": {},
+		"cves":       {},
+		"advisories": {},
+		"products":   {},
+		"relations":  {},
 	}
 	oldDepsStr, err := r.conn.HGet(ctx, depKey, microsoftName).Result()
 	if err != nil {
@@ -1014,6 +1166,7 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 		}
 		oldDepsStr = `{
 			"cves": {},
+			"advisories": {},
 			"products": {},
 			"relations": {}
 		}`
@@ -1023,7 +1176,7 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
 	}
 
-	log15.Info("Inserting cves", "cves", len(cves))
+	log15.Info("Inserting CVEs", "cves", len(cves))
 	bar := pb.StartNew(len(cves)).SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
@@ -1078,6 +1231,35 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 	}
 	bar.Finish()
 
+	log15.Info("Insert Advisories...")
+	bar = pb.StartNew(len(advs)).SetWriter(func() io.Writer {
+		if viper.GetBool("log-json") {
+			return io.Discard
+		}
+		return os.Stderr
+	}())
+	keys := maps.Keys(advs)
+	for idx := range chunkSlice(len(keys), batchSize) {
+		pipe := r.conn.Pipeline()
+		for _, adv := range keys[idx.From:idx.To] {
+			var aj []byte
+			if aj, err = json.Marshal(advs[adv]); err != nil {
+				return xerrors.Errorf("Failed to marshal json. err: %w", err)
+			}
+
+			_ = pipe.HSet(ctx, fmt.Sprintf(advKeyFormat, microsoftName), adv, string(aj))
+			newDeps["advisories"][adv] = map[string]struct{}{}
+			if _, ok := oldDeps["advisories"]; ok {
+				delete(oldDeps["advisories"], adv)
+			}
+		}
+		if _, err = pipe.Exec(ctx); err != nil {
+			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+		}
+		bar.Add(idx.To - idx.From)
+	}
+	bar.Finish()
+
 	log15.Info("Insert KB Relation", "relations", len(relations))
 	bar = pb.StartNew(len(relations)).SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
@@ -1111,22 +1293,34 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 	bar.Finish()
 
 	pipe := r.conn.Pipeline()
-	for cveID, products := range oldDeps["cves"] {
-		for product := range products {
-			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("C#%s", product)), cveID)
-		}
-		if _, ok := newDeps[cveID]; !ok {
-			_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, microsoftName), cveID)
-		}
-	}
-	for kbid, products := range oldDeps["products"] {
-		for product := range products {
-			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", kbid)), product)
-		}
-	}
-	for rootKBID, supersededby := range oldDeps["relations"] {
-		for kbid := range supersededby {
-			_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", rootKBID)), kbid)
+	for k, v := range oldDeps {
+		switch k {
+		case "cves":
+			for cveID, products := range v {
+				for product := range products {
+					_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("C#%s", product)), cveID)
+				}
+				if _, ok := newDeps[cveID]; !ok {
+					_ = pipe.HDel(ctx, fmt.Sprintf(cveKeyFormat, microsoftName), cveID)
+				}
+			}
+		case "advisories":
+			for advID := range v {
+				_ = pipe.HDel(ctx, fmt.Sprintf(advKeyFormat, microsoftName), advID)
+			}
+		case "products":
+			for kbid, products := range v {
+				for product := range products {
+					_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("P#%s", kbid)), product)
+				}
+			}
+		case "relations":
+			for rootKBID, supersededby := range v {
+				for kbid := range supersededby {
+					_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", rootKBID)), kbid)
+				}
+			}
+		default:
 		}
 	}
 	newDepsJSON, err := json.Marshal(newDeps)

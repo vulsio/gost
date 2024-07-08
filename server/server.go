@@ -51,6 +51,9 @@ func Start(logToFile bool, logDir string, driver db.DB) error {
 	e.GET("/debian/:release/pkgs/:name/fixed-cves", getFixedCvesDebian(driver))
 	e.GET("/ubuntu/:release/pkgs/:name/unfixed-cves", getUnfixedCvesUbuntu(driver))
 	e.GET("/ubuntu/:release/pkgs/:name/fixed-cves", getFixedCvesUbuntu(driver))
+	e.GET("/redhat/advisories", getRedhatAdvisories(driver))
+	e.GET("/ubuntu/advisories", getUbuntuAdvisories(driver))
+	e.GET("/microsoft/advisories", getMicrosoftAdvisories(driver))
 	e.POST("/microsoft/kbs", getExpandKB(driver))
 	e.POST("/microsoft/products", getRelatedProducts(driver))
 	e.POST("/microsoft/filtered-cves", getFilteredCvesMicrosoft(driver))
@@ -315,5 +318,41 @@ func getFilteredCvesMicrosoft(driver db.DB) echo.HandlerFunc {
 			return err
 		}
 		return c.JSON(http.StatusOK, &cves)
+	}
+}
+
+// Handler
+func getRedhatAdvisories(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		m, err := driver.GetAdvisoriesRedHat()
+		if err != nil {
+			log15.Error("Failed to get RedHat Advisories.", "err", err)
+			return err
+		}
+		return c.JSON(http.StatusOK, &m)
+	}
+}
+
+// Handler
+func getUbuntuAdvisories(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		m, err := driver.GetAdvisoriesUbuntu()
+		if err != nil {
+			log15.Error("Failed to get Ubuntu Advisories.", "err", err)
+			return err
+		}
+		return c.JSON(http.StatusOK, &m)
+	}
+}
+
+// Handler
+func getMicrosoftAdvisories(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		m, err := driver.GetAdvisoriesMicrosoft()
+		if err != nil {
+			log15.Error("Failed to get Microsoft Advisories.", "err", err)
+			return err
+		}
+		return c.JSON(http.StatusOK, &m)
 	}
 }
