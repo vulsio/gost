@@ -42,10 +42,12 @@ func Start(logToFile bool, logDir string, driver db.DB) error {
 	e.GET("/debian/cves/:id", getDebianCve(driver))
 	e.GET("/ubuntu/cves/:id", getUbuntuCve(driver))
 	e.GET("/microsoft/cves/:id", getMicrosoftCve(driver))
+	e.GET("/arch/advs/:id", getArchAdv(driver))
 	e.POST("/redhat/multi-cves", getRedhatMultiCve(driver))
 	e.POST("/debian/multi-cves", getDebianMultiCve(driver))
 	e.POST("/ubuntu/multi-cves", getUbuntuMultiCve(driver))
 	e.POST("/microsoft/multi-cves", getMicrosoftMultiCve(driver))
+	e.POST("/arch/multi-advs", getArchMultiAdv(driver))
 	e.GET("/redhat/:release/pkgs/:name/unfixed-cves", getUnfixedCvesRedhat(driver))
 	e.GET("/debian/:release/pkgs/:name/unfixed-cves", getUnfixedCvesDebian(driver))
 	e.GET("/debian/:release/pkgs/:name/fixed-cves", getFixedCvesDebian(driver))
@@ -54,9 +56,12 @@ func Start(logToFile bool, logDir string, driver db.DB) error {
 	e.GET("/redhat/advisories", getRedhatAdvisories(driver))
 	e.GET("/ubuntu/advisories", getUbuntuAdvisories(driver))
 	e.GET("/microsoft/advisories", getMicrosoftAdvisories(driver))
+	e.GET("/arch/advisories", getArchAdvisories(driver))
 	e.POST("/microsoft/kbs", getExpandKB(driver))
 	e.POST("/microsoft/products", getRelatedProducts(driver))
 	e.POST("/microsoft/filtered-cves", getFilteredCvesMicrosoft(driver))
+	e.GET("/arch/pkgs/:name/unfixed-advs", getUnfixedAdvsArch(driver))
+	e.GET("/arch/pkgs/:name/fixed-advs", getFixedAdvsArch(driver))
 
 	bindURL := fmt.Sprintf("%s:%s", viper.GetString("bind"), viper.GetString("port"))
 	log15.Info("Listening", "URL", bindURL)
@@ -117,6 +122,19 @@ func getMicrosoftCve(driver db.DB) echo.HandlerFunc {
 		cveDetail, err := driver.GetMicrosoft(cveid)
 		if err != nil {
 			log15.Error("Failed to get Microsoft by CVEID.", "err", err)
+			return err
+		}
+		return c.JSON(http.StatusOK, &cveDetail)
+	}
+}
+
+// Handler
+func getArchAdv(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		cveid := c.Param("id")
+		cveDetail, err := driver.GetArch(cveid)
+		if err != nil {
+			log15.Error("Failed to get Arch by Advisory ID.", "err", err)
 			return err
 		}
 		return c.JSON(http.StatusOK, &cveDetail)
@@ -185,6 +203,26 @@ func getMicrosoftMultiCve(driver db.DB) echo.HandlerFunc {
 		cveDetails, err := driver.GetMicrosoftMulti(cveIDs.CveIDs)
 		if err != nil {
 			log15.Error("Failed to get Microsoft by CVEIDs.", "err", err)
+			return err
+		}
+		return c.JSON(http.StatusOK, &cveDetails)
+	}
+}
+
+// Handler
+func getArchMultiAdv(driver db.DB) echo.HandlerFunc {
+	type advIDs struct {
+		AdvIDs []string `json:"advIDs"`
+	}
+
+	return func(c echo.Context) error {
+		var advIDs advIDs
+		if err := c.Bind(&advIDs); err != nil {
+			return err
+		}
+		cveDetails, err := driver.GetArchMulti(advIDs.AdvIDs)
+		if err != nil {
+			log15.Error("Failed to get Arch by Advisory IDs.", "err", err)
 			return err
 		}
 		return c.JSON(http.StatusOK, &cveDetails)
@@ -354,5 +392,43 @@ func getMicrosoftAdvisories(driver db.DB) echo.HandlerFunc {
 			return err
 		}
 		return c.JSON(http.StatusOK, &m)
+	}
+}
+
+// Handler
+func getArchAdvisories(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		m, err := driver.GetAdvisoriesArch()
+		if err != nil {
+			log15.Error("Failed to get Arch Advisories.", "err", err)
+			return err
+		}
+		return c.JSON(http.StatusOK, &m)
+	}
+}
+
+// Handler
+func getUnfixedAdvsArch(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		pkgName := c.Param("name")
+		cveDetail, err := driver.GetUnfixedAdvsArch(pkgName)
+		if err != nil {
+			log15.Error("Failed to get Unfixed Advisories in Arch", "err", err)
+			return err
+		}
+		return c.JSON(http.StatusOK, &cveDetail)
+	}
+}
+
+// Handler
+func getFixedAdvsArch(driver db.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		pkgName := c.Param("name")
+		cveDetail, err := driver.GetFixedAdvsArch(pkgName)
+		if err != nil {
+			log15.Error("Failed to get Fixed Advisories in Arch", "err", err)
+			return err
+		}
+		return c.JSON(http.StatusOK, &cveDetail)
 	}
 }

@@ -40,11 +40,17 @@ type DB interface {
 	GetRelatedProducts(string, []string) ([]string, error)
 	GetFilteredCvesMicrosoft([]string, []string) (map[string]models.MicrosoftCVE, error)
 	GetAdvisoriesMicrosoft() (map[string][]string, error)
+	GetArch(string) (*models.ArchADV, error)
+	GetArchMulti([]string) (map[string]models.ArchADV, error)
+	GetFixedAdvsArch(string) (map[string]models.ArchADV, error)
+	GetUnfixedAdvsArch(string) (map[string]models.ArchADV, error)
+	GetAdvisoriesArch() (map[string][]string, error)
 
 	InsertRedhat([]models.RedhatCVE) error
 	InsertDebian([]models.DebianCVE) error
 	InsertUbuntu([]models.UbuntuCVE) error
 	InsertMicrosoft([]models.MicrosoftCVE, []models.MicrosoftKBRelation) error
+	InsertArch([]models.ArchADV) error
 }
 
 // Option :
