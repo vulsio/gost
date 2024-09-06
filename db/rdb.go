@@ -159,6 +159,11 @@ func (r *RDBDriver) MigrateDB() error {
 		&models.MicrosoftKB{},
 		&models.MicrosoftKBRelation{},
 		&models.MicrosoftSupersededBy{},
+
+		&models.ArchADV{},
+		&models.ArchPackage{},
+		&models.ArchIssue{},
+		&models.ArchAdvisory{},
 	); err != nil {
 		switch r.name {
 		case dialectSqlite3:

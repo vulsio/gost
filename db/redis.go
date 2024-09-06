@@ -43,49 +43,57 @@ import (
   │ 5 │ GOST#MS#PKG#P#$KBID      │  $PRODUCT    │ (Microsoft) GET []PRODUCT NAME BY KBID      │
   ├───┼──────────────────────────┼──────────────┼─────────────────────────────────────────────┤
   │ 6 │ GOST#MS#PKG#K#$KBID      │  $KBID       │ (Microsoft) GET SUPERSEDEDBY []KBID BY KBID │
+  ├───┼──────────────────────────┼──────────────┼─────────────────────────────────────────────┤
+  │ 7 │ GOST#ARCH#PKG#K#$PKGNAME │  $ADVID      │ (Arch) GET RELATED []ADVID BY PKGNAME       │
   └───┴──────────────────────────┴──────────────┴─────────────────────────────────────────────┘
 
 - Hash
-  ┌───┬────────────────┬───────────────┬───────────┬────────────────────────────────────────────────┐
-  │NO │    KEY         │     FIELD     │   VALUE   │                  PURPOSE                       │
-  └───┴────────────────┴───────────────┴───────────┴────────────────────────────────────────────────┘
-  ┌───┬────────────────┬───────────────┬───────────┬────────────────────────────────────────────────┐
-  │ 1 │ GOST#RH#CVE    │    $CVEID     │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
-  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 2 │ GOST#RH#ADV    │ $AdvisoryID   │ []CVEID   │ (RedHat) TO GET CVEIDs BY ADVISORYID           │
-  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 3 │ GOST#DEB#CVE   │    $CVEID     │ $CVEJSON  │ (Debian) TO GET CVEJSON BY CVEID               │
-  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 4 │ GOST#UBU#CVE   │    $CVEID     │ $CVEJSON  │ (Ubuntu) TO GET CVEJSON BY CVEID               │
-  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 5 │ GOST#UBU#ADV   │ $AdvisoryID   │ []CVEID   │ (Ubuntu) TO GET CVEIDs BY ADVISORYID           │
-  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 6 │ GOST#MS#CVE    │    $CVEID     │ $CVEJSON  │ (Microsoft) TO GET CVEJSON BY CVEID            │
-  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 7 │ GOST#MS#ADV    │ $AdvisoryID   │ []CVEID   │ (Microsoft) TO GET CVEIDs BY ADVISORYID        │
-  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 8 │ GOST#DEP       │ RH/DEB/UBU/MS │   JSON    │ TO DELETE OUTDATED AND UNNEEDED KEY AND MEMBER │
-  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 9 │ GOST#FETCHMETA │   Revision    │  string   │ GET Gost Binary Revision                       │
-  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 10│ GOST#FETCHMETA │ SchemaVersion │   uint    │ GET Gost Schema Version                        │
-  ├───┼────────────────┼───────────────┼───────────┼────────────────────────────────────────────────┤
-  │ 11│ GOST#FETCHMETA │ LastFetchedAt │ time.Time │ GET Gost Last Fetched Time                     │
-  └───┴────────────────┴───────────────┴───────────┴────────────────────────────────────────────────┘
+  ┌───┬────────────────┬────────────────────┬───────────┬────────────────────────────────────────────────┐
+  │NO │    KEY         │         FIELD      │   VALUE   │                  PURPOSE                       │
+  └───┴────────────────┴────────────────────┴───────────┴────────────────────────────────────────────────┘
+  ┌───┬────────────────┬────────────────────┬───────────┬────────────────────────────────────────────────┐
+  │ 1 │ GOST#RH#CVE    │        $CVEID      │ $CVEJSON  │ (RedHat) TO GET CVEJSON BY CVEID               │
+  ├───┼────────────────┼────────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 2 │ GOST#RH#ADV    │    $AdvisoryID     │ []CVEID   │ (RedHat) TO GET CVEIDs BY ADVISORYID           │
+  ├───┼────────────────┼────────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 3 │ GOST#DEB#CVE   │       $CVEID       │ $CVEJSON  │ (Debian) TO GET CVEJSON BY CVEID               │
+  ├───┼────────────────┼────────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 4 │ GOST#UBU#CVE   │       $CVEID       │ $CVEJSON  │ (Ubuntu) TO GET CVEJSON BY CVEID               │
+  ├───┼────────────────┼────────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 5 │ GOST#UBU#ADV   │    $AdvisoryID     │ []CVEID   │ (Ubuntu) TO GET CVEIDs BY ADVISORYID           │
+  ├───┼────────────────┼────────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 6 │ GOST#MS#CVE    │       $CVEID       │ $CVEJSON  │ (Microsoft) TO GET CVEJSON BY CVEID            │
+  ├───┼────────────────┼────────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 7 │ GOST#MS#ADV    │    $AdvisoryID     │ []CVEID   │ (Microsoft) TO GET CVEIDs BY ADVISORYID        │
+  ├───┼────────────────┼────────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 8 │ GOST#ARCH#DATA │    $AdvisoryID     │ $ADVJSON  │ (Arch) TO GET ADVJSON BY ADVISORYID            │
+  ├───┼────────────────┼────────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 9 │ GOST#ARCH#ADV  │    $AdvisoryID     │ []CVEID   │ (Arch) TO GET CVEIDs BY ADVISORYID             │
+  ├───┼────────────────┼────────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 10│ GOST#DEP       │ RH/DEB/UBU/MS/ARCH │   JSON    │ TO DELETE OUTDATED AND UNNEEDED KEY AND MEMBER │
+  ├───┼────────────────┼────────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 11│ GOST#FETCHMETA │     Revision       │  string   │ GET Gost Binary Revision                       │
+  ├───┼────────────────┼────────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 12│ GOST#FETCHMETA │   SchemaVersion    │   uint    │ GET Gost Schema Version                        │
+  ├───┼────────────────┼────────────────────┼───────────┼────────────────────────────────────────────────┤
+  │ 13│ GOST#FETCHMETA │   LastFetchedAt    │ time.Time │ GET Gost Last Fetched Time                     │
+  └───┴────────────────┴────────────────────┴───────────┴────────────────────────────────────────────────┘
 
 **/
 
 const (
-	dialectRedis  = "redis"
-	cveKeyFormat  = "GOST#%s#CVE"
-	pkgKeyFormat  = "GOST#%s#PKG#%s"
-	advKeyFormat  = "GOST#%s#ADV"
-	redhatName    = "RH"
-	debianName    = "DEB"
-	ubuntuName    = "UBU"
-	microsoftName = "MS"
-	depKey        = "GOST#DEP"
-	fetchMetaKey  = "GOST#FETCHMETA"
+	dialectRedis      = "redis"
+	cveKeyFormat      = "GOST#%s#CVE"
+	pkgKeyFormat      = "GOST#%s#PKG#%s"
+	archDataKeyFormat = "GOST#ARCH#DATA"
+	advKeyFormat      = "GOST#%s#ADV"
+	redhatName        = "RH"
+	debianName        = "DEB"
+	ubuntuName        = "UBU"
+	microsoftName     = "MS"
+	archName          = "ARCH"
+	depKey            = "GOST#DEP"
+	fetchMetaKey      = "GOST#FETCHMETA"
 )
 
 // RedisDriver is Driver for Redis
@@ -751,6 +759,90 @@ func (r *RedisDriver) GetFilteredCvesMicrosoft(products []string, kbs []string) 
 	return detected, nil
 }
 
+// GetArch :
+func (r *RedisDriver) GetArch(advID string) (*models.ArchADV, error) {
+	s, err := r.conn.HGet(context.TODO(), archDataKeyFormat, advID).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, nil
+		}
+		return nil, xerrors.Errorf("Failed to HGet. err: %w", err)
+	}
+
+	var a models.ArchADV
+	if err := json.Unmarshal([]byte(s), &a); err != nil {
+		return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
+	}
+	return &a, nil
+}
+
+// GetArchMulti :
+func (r *RedisDriver) GetArchMulti(advIDs []string) (map[string]models.ArchADV, error) {
+	if len(advIDs) == 0 {
+		return map[string]models.ArchADV{}, nil
+	}
+
+	ss, err := r.conn.HMGet(context.TODO(), archDataKeyFormat, advIDs...).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to HMGet. err: %w", err)
+	}
+
+	m := make(map[string]models.ArchADV)
+	for _, s := range ss {
+		if s == nil {
+			continue
+		}
+
+		var a models.ArchADV
+		if err := json.Unmarshal([]byte(s.(string)), &a); err != nil {
+			return nil, xerrors.Errorf("Failed to Unmarshal json. err: %w", err)
+		}
+		m[a.Name] = a
+	}
+	return m, nil
+}
+
+// GetUnfixedAdvsArch :
+func (r *RedisDriver) GetUnfixedAdvsArch(pkgName string) (map[string]models.ArchADV, error) {
+	return r.getAdvsArchWithFixStatus(pkgName, "Vulnerable")
+}
+
+// GetFixedAdvsArch :
+func (r *RedisDriver) GetFixedAdvsArch(pkgName string) (map[string]models.ArchADV, error) {
+	return r.getAdvsArchWithFixStatus(pkgName, "Fixed")
+}
+
+func (r *RedisDriver) getAdvsArchWithFixStatus(pkgName, fixStatus string) (map[string]models.ArchADV, error) {
+	ctx := context.TODO()
+	advIDs, err := r.conn.SMembers(ctx, fmt.Sprintf(pkgKeyFormat, archName, pkgName)).Result()
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to SMembers. err: %w", err)
+	}
+
+	m, err := r.GetArchMulti(advIDs)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to GetArchMulti. err: %w", err)
+	}
+
+	m2 := make(map[string]models.ArchADV)
+	for advID, adv := range m {
+		if adv.Status != fixStatus {
+			continue
+		}
+
+		var pkgs []models.ArchPackage
+		for _, p := range adv.Packages {
+			if p.Name == pkgName {
+				pkgs = append(pkgs, p)
+			}
+		}
+		adv.Packages = pkgs
+
+		m2[advID] = adv
+	}
+	return m2, nil
+}
+
 // GetAdvisoriesRedHat gets AdvisoryID: []CVE IDs
 func (r *RedisDriver) GetAdvisoriesRedHat() (map[string][]string, error) {
 	return r.getAdvisories(fmt.Sprintf(advKeyFormat, redhatName))
@@ -764,6 +856,11 @@ func (r *RedisDriver) GetAdvisoriesUbuntu() (map[string][]string, error) {
 // GetAdvisoriesMicrosoft gets AdvisoryID: []CVE IDs
 func (r *RedisDriver) GetAdvisoriesMicrosoft() (map[string][]string, error) {
 	return r.getAdvisories(fmt.Sprintf(advKeyFormat, microsoftName))
+}
+
+// GetAdvisoriesArch gets AdvisoryID: []CVE IDs
+func (r *RedisDriver) GetAdvisoriesArch() (map[string][]string, error) {
+	return r.getAdvisories(fmt.Sprintf(advKeyFormat, archName))
 }
 
 func (r *RedisDriver) getAdvisories(key string) (map[string][]string, error) {
@@ -1328,6 +1425,117 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 		return xerrors.Errorf("Failed to Marshal JSON. err: %w", err)
 	}
 	_ = pipe.HSet(ctx, depKey, microsoftName, string(newDepsJSON))
+	if _, err = pipe.Exec(ctx); err != nil {
+		return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+	}
+
+	return nil
+}
+
+// InsertArch :
+func (r *RedisDriver) InsertArch(advs []models.ArchADV) error {
+	ctx := context.TODO()
+	batchSize := viper.GetInt("batch-size")
+	if batchSize < 1 {
+		return xerrors.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
+	}
+
+	// newDeps, oldDeps: {"ADVID": {"PKGNAME": {}}, "advisories": {"ADVID": {}}}
+	newDeps := map[string]map[string]struct{}{"advisories": {}}
+	oldDepsStr, err := r.conn.HGet(ctx, depKey, archName).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			return xerrors.Errorf("Failed to Get key: %s. err: %w", depKey, err)
+		}
+		oldDepsStr = "{}"
+	}
+	var oldDeps map[string]map[string]struct{}
+	if err := json.Unmarshal([]byte(oldDepsStr), &oldDeps); err != nil {
+		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
+	}
+
+	log15.Info("Insert Advisories", "advs", len(advs))
+	bar := pb.StartNew(len(advs)).SetWriter(func() io.Writer {
+		if viper.GetBool("log-json") {
+			return io.Discard
+		}
+		return os.Stderr
+	}())
+	for idx := range chunkSlice(len(advs), batchSize) {
+		pipe := r.conn.Pipeline()
+		for _, adv := range advs[idx.From:idx.To] {
+			j, err := json.Marshal(adv)
+			if err != nil {
+				return xerrors.Errorf("Failed to marshal json. err: %w", err)
+			}
+
+			_ = pipe.HSet(ctx, archDataKeyFormat, adv.Name, string(j))
+			if _, ok := newDeps[adv.Name]; !ok {
+				newDeps[adv.Name] = make(map[string]struct{})
+			}
+
+			for _, pkg := range adv.Packages {
+				_ = pipe.SAdd(ctx, fmt.Sprintf(pkgKeyFormat, archName, pkg.Name), adv.Name)
+				newDeps[adv.Name][pkg.Name] = struct{}{}
+				if _, ok := oldDeps[adv.Name]; ok {
+					delete(oldDeps[adv.Name], pkg.Name)
+				}
+			}
+			if _, ok := oldDeps[adv.Name]; ok {
+				if len(oldDeps[adv.Name]) == 0 {
+					delete(oldDeps, adv.Name)
+				}
+			}
+
+			j, err = json.Marshal(func() []string {
+				is := make([]string, 0, len(adv.Issues))
+				for _, i := range adv.Issues {
+					is = append(is, i.Issue)
+				}
+				return is
+			}())
+			if err != nil {
+				return xerrors.Errorf("Failed to marshal json. err: %w", err)
+			}
+			_ = pipe.HSet(ctx, fmt.Sprintf(advKeyFormat, archName), adv.Name, string(j))
+			newDeps["advisories"][adv.Name] = struct{}{}
+			if _, ok := oldDeps["advisories"]; ok {
+				delete(oldDeps["advisories"], adv.Name)
+			}
+			if _, ok := oldDeps["advisories"]; ok {
+				if len(oldDeps["advisories"]) == 0 {
+					delete(oldDeps, "advisories")
+				}
+			}
+		}
+		if _, err := pipe.Exec(ctx); err != nil {
+			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
+		}
+		bar.Add(idx.To - idx.From)
+	}
+	bar.Finish()
+
+	pipe := r.conn.Pipeline()
+	for k, v := range oldDeps {
+		switch k {
+		case "advisories":
+			for advID := range v {
+				_ = pipe.HDel(ctx, fmt.Sprintf(advKeyFormat, archName), advID)
+			}
+		default:
+			for pkgName := range v {
+				_ = pipe.SRem(ctx, fmt.Sprintf(pkgKeyFormat, archName, pkgName), k)
+			}
+			if _, ok := newDeps[k]; !ok {
+				_ = pipe.HDel(ctx, archDataKeyFormat, k)
+			}
+		}
+	}
+	newDepsJSON, err := json.Marshal(newDeps)
+	if err != nil {
+		return xerrors.Errorf("Failed to Marshal JSON. err: %w", err)
+	}
+	_ = pipe.HSet(ctx, depKey, archName, string(newDepsJSON))
 	if _, err = pipe.Exec(ctx); err != nil {
 		return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 	}
