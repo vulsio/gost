@@ -132,16 +132,18 @@ func ConvertMicrosoft(vulns []MicrosoftVulnerability, supercedences []MicrosoftS
 	cves := []MicrosoftCVE{}
 	for _, v := range vulns {
 		cve := MicrosoftCVE{
-			CveID:         v.CveID,
-			Title:         v.Title,
-			Description:   v.Description,
-			FAQ:           strings.Join(v.FAQs, "\n"),
-			Tag:           v.Tag,
-			CNA:           v.CNA,
-			ExploitStatus: v.ExploitStatus,
-			Mitigation:    v.Mitigation,
-			Workaround:    v.Workaround,
-			URL:           v.URL,
+			CveID:          v.CveID,
+			Title:          v.Title,
+			Description:    v.Description,
+			FAQ:            strings.Join(v.FAQs, "\n"),
+			Tag:            v.Tag,
+			CNA:            v.CNA,
+			ExploitStatus:  v.ExploitStatus,
+			Mitigation:     v.Mitigation,
+			Workaround:     v.Workaround,
+			URL:            v.URL,
+			PublishDate:    time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
+			LastUpdateDate: time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC),
 		}
 
 		for _, p := range v.Products {
