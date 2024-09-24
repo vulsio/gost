@@ -20,7 +20,7 @@ require (
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
-	go.etcd.io/bbolt v1.3.10
+	go.etcd.io/bbolt v1.3.11
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
 	gorm.io/driver/mysql v1.5.5
