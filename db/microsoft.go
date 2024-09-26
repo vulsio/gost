@@ -4,15 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
 
@@ -69,7 +69,7 @@ func (r *RDBDriver) GetExpandKB(applied []string, unapplied []string) ([]string,
 		uniqUnappliedKBIDs[kbID] = struct{}{}
 		delete(uniqAppliedKBIDs, kbID)
 	}
-	applied = maps.Keys(uniqAppliedKBIDs)
+	applied = slices.Collect(maps.Keys(uniqAppliedKBIDs))
 
 	if len(applied) > 0 {
 		relations := []models.MicrosoftKBRelation{}
@@ -102,7 +102,7 @@ func (r *RDBDriver) GetExpandKB(applied []string, unapplied []string) ([]string,
 
 		if err := r.conn.
 			Preload("SupersededBy").
-			Where("kb_id IN ?", maps.Keys(uniqUnappliedKBIDs)).
+			Where("kb_id IN ?", slices.Collect(maps.Keys(uniqUnappliedKBIDs))).
 			Find(&relations).Error; err != nil {
 			return nil, nil, xerrors.Errorf("Failed to get KB Relation by unapplied KBID: %q. err: %w", unapplied, err)
 		}
@@ -114,7 +114,7 @@ func (r *RDBDriver) GetExpandKB(applied []string, unapplied []string) ([]string,
 		}
 	}
 
-	return applied, maps.Keys(uniqUnappliedKBIDs), nil
+	return applied, slices.Collect(maps.Keys(uniqUnappliedKBIDs)), nil
 }
 
 // GetRelatedProducts :
@@ -284,11 +284,11 @@ func (r *RDBDriver) deleteAndInsertMicrosoft(cves []models.MicrosoftCVE) (err er
 		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
-	for idx := range chunkSlice(len(cves), batchSize) {
-		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
+	for chunk := range slices.Chunk(cves, batchSize) {
+		if err = tx.Create(chunk).Error; err != nil {
 			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 
@@ -324,11 +324,11 @@ func (r *RDBDriver) deleteAndInsertMicrosoftKBRelation(kbs []models.MicrosoftKBR
 		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
-	for idx := range chunkSlice(len(kbs), batchSize) {
-		if err = tx.Create(kbs[idx.From:idx.To]).Error; err != nil {
+	for chunk := range slices.Chunk(kbs, batchSize) {
+		if err = tx.Create(chunk).Error; err != nil {
 			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 	return nil

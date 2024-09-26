@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -15,8 +17,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 	"golang.org/x/xerrors"
 
 	"github.com/vulsio/gost/config"
@@ -445,8 +445,8 @@ func (r *RedisDriver) getCvesUbuntuWithFixStatus(major, pkgName string, fixStatu
 	}
 
 	m := map[string]models.UbuntuCVE{}
-	for idx := range chunkSlice(len(cveIDs), 20) {
-		res, err := r.GetUbuntuMulti(cveIDs[idx.From:idx.To])
+	for chunk := range slices.Chunk(cveIDs, 20) {
+		res, err := r.GetUbuntuMulti(chunk)
 		if err != nil {
 			return nil, xerrors.Errorf("Failed to GetUbuntuMulti. err: %w", err)
 		}
@@ -578,7 +578,7 @@ func (r *RedisDriver) GetExpandKB(applied []string, unapplied []string) ([]strin
 		uniqUnappliedKBIDs[kbID] = struct{}{}
 		delete(uniqAppliedKBIDs, kbID)
 	}
-	applied = maps.Keys(uniqAppliedKBIDs)
+	applied = slices.Collect(maps.Keys(uniqAppliedKBIDs))
 
 	pipe := r.conn.Pipeline()
 	for _, kbID := range applied {
@@ -626,7 +626,7 @@ func (r *RedisDriver) GetExpandKB(applied []string, unapplied []string) ([]strin
 		}
 	}
 
-	return applied, maps.Keys(uniqUnappliedKBIDs), nil
+	return applied, slices.Collect(maps.Keys(uniqUnappliedKBIDs)), nil
 }
 
 // GetRelatedProducts :
@@ -920,10 +920,10 @@ func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 		}
 		return os.Stderr
 	}())
-	for idx := range chunkSlice(len(cves), batchSize) {
+	for chunk := range slices.Chunk(cves, batchSize) {
 		pipe := r.conn.Pipeline()
 		cvekey := fmt.Sprintf(cveKeyFormat, redhatName)
-		for _, cve := range cves[idx.From:idx.To] {
+		for _, cve := range chunk {
 			j, err := json.Marshal(cve)
 			if err != nil {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
@@ -950,7 +950,7 @@ func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 		if _, err := pipe.Exec(ctx); err != nil {
 			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 
@@ -961,10 +961,10 @@ func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 		}
 		return os.Stderr
 	}())
-	keys := maps.Keys(advs)
-	for idx := range chunkSlice(len(keys), batchSize) {
+	keys := slices.Collect(maps.Keys(advs))
+	for chunk := range slices.Chunk(keys, batchSize) {
 		pipe := r.conn.Pipeline()
-		for _, adv := range keys[idx.From:idx.To] {
+		for _, adv := range chunk {
 			var aj []byte
 			if aj, err = json.Marshal(advs[adv]); err != nil {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
@@ -979,7 +979,7 @@ func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 		if _, err = pipe.Exec(ctx); err != nil {
 			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 
@@ -1040,10 +1040,10 @@ func (r *RedisDriver) InsertDebian(cves []models.DebianCVE) error {
 		}
 		return os.Stderr
 	}())
-	for idx := range chunkSlice(len(cves), batchSize) {
+	for chunk := range slices.Chunk(cves, batchSize) {
 		pipe := r.conn.Pipeline()
 		cvekey := fmt.Sprintf(cveKeyFormat, debianName)
-		for _, cve := range cves[idx.From:idx.To] {
+		for _, cve := range chunk {
 			j, err := json.Marshal(cve)
 			if err != nil {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
@@ -1070,7 +1070,7 @@ func (r *RedisDriver) InsertDebian(cves []models.DebianCVE) error {
 		if _, err := pipe.Exec(ctx); err != nil {
 			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 
@@ -1136,10 +1136,10 @@ func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 		}
 		return os.Stderr
 	}())
-	for idx := range chunkSlice(len(cves), batchSize) {
+	for chunk := range slices.Chunk(cves, batchSize) {
 		pipe := r.conn.Pipeline()
 		cvekey := fmt.Sprintf(cveKeyFormat, ubuntuName)
-		for _, cve := range cves[idx.From:idx.To] {
+		for _, cve := range chunk {
 			j, err := json.Marshal(cve)
 			if err != nil {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
@@ -1166,7 +1166,7 @@ func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 		if _, err := pipe.Exec(ctx); err != nil {
 			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 
@@ -1177,10 +1177,10 @@ func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 		}
 		return os.Stderr
 	}())
-	keys := maps.Keys(advs)
-	for idx := range chunkSlice(len(keys), batchSize) {
+	keys := slices.Collect(maps.Keys(advs))
+	for chunk := range slices.Chunk(keys, batchSize) {
 		pipe := r.conn.Pipeline()
-		for _, adv := range keys[idx.From:idx.To] {
+		for _, adv := range chunk {
 			var aj []byte
 			if aj, err = json.Marshal(advs[adv]); err != nil {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
@@ -1195,7 +1195,7 @@ func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 		if _, err = pipe.Exec(ctx); err != nil {
 			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 
@@ -1280,10 +1280,10 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 		}
 		return os.Stderr
 	}())
-	for idx := range chunkSlice(len(cves), batchSize) {
+	for chunk := range slices.Chunk(cves, batchSize) {
 		pipe := r.conn.Pipeline()
 		cvekey := fmt.Sprintf(cveKeyFormat, microsoftName)
-		for _, cve := range cves[idx.From:idx.To] {
+		for _, cve := range chunk {
 			j, err := json.Marshal(cve)
 			if err != nil {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
@@ -1324,7 +1324,7 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 		if _, err := pipe.Exec(ctx); err != nil {
 			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 
@@ -1335,10 +1335,10 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 		}
 		return os.Stderr
 	}())
-	keys := maps.Keys(advs)
-	for idx := range chunkSlice(len(keys), batchSize) {
+	keys := slices.Collect(maps.Keys(advs))
+	for chunk := range slices.Chunk(keys, batchSize) {
 		pipe := r.conn.Pipeline()
-		for _, adv := range keys[idx.From:idx.To] {
+		for _, adv := range chunk {
 			var aj []byte
 			if aj, err = json.Marshal(advs[adv]); err != nil {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
@@ -1353,7 +1353,7 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 		if _, err = pipe.Exec(ctx); err != nil {
 			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 
@@ -1364,9 +1364,9 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 		}
 		return os.Stderr
 	}())
-	for idx := range chunkSlice(len(relations), batchSize) {
+	for chunk := range slices.Chunk(relations, batchSize) {
 		pipe := r.conn.Pipeline()
-		for _, relation := range relations[idx.From:idx.To] {
+		for _, relation := range chunk {
 			key := fmt.Sprintf(pkgKeyFormat, microsoftName, fmt.Sprintf("K#%s", relation.KBID))
 			if _, ok := newDeps["relations"][relation.KBID]; !ok {
 				newDeps["relations"][relation.KBID] = map[string]struct{}{}
@@ -1385,7 +1385,7 @@ func (r *RedisDriver) InsertMicrosoft(cves []models.MicrosoftCVE, relations []mo
 		if _, err := pipe.Exec(ctx); err != nil {
 			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 
@@ -1461,9 +1461,9 @@ func (r *RedisDriver) InsertArch(advs []models.ArchADV) error {
 		}
 		return os.Stderr
 	}())
-	for idx := range chunkSlice(len(advs), batchSize) {
+	for chunk := range slices.Chunk(advs, batchSize) {
 		pipe := r.conn.Pipeline()
-		for _, adv := range advs[idx.From:idx.To] {
+		for _, adv := range chunk {
 			j, err := json.Marshal(adv)
 			if err != nil {
 				return xerrors.Errorf("Failed to marshal json. err: %w", err)
@@ -1511,7 +1511,7 @@ func (r *RedisDriver) InsertArch(advs []models.ArchADV) error {
 		if _, err := pipe.Exec(ctx); err != nil {
 			return xerrors.Errorf("Failed to exec pipeline. err: %w", err)
 		}
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 

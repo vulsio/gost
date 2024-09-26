@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/cheggaaa/pb/v3"
@@ -114,11 +115,11 @@ func (r *RDBDriver) deleteAndInsertUbuntu(cves []models.UbuntuCVE) (err error) {
 		return xerrors.New("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
-	for idx := range chunkSlice(len(cves), batchSize) {
-		if err = tx.Create(cves[idx.From:idx.To]).Error; err != nil {
+	for chunk := range slices.Chunk(cves, batchSize) {
+		if err = tx.Create(chunk).Error; err != nil {
 			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}
-		bar.Add(idx.To - idx.From)
+		bar.Add(len(chunk))
 	}
 	bar.Finish()
 
