@@ -1,10 +1,9 @@
 package models
 
 import (
+	"slices"
 	"strings"
 	"time"
-
-	"golang.org/x/exp/slices"
 )
 
 // MicrosoftVulnerability :

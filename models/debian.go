@@ -1,6 +1,9 @@
 package models
 
-import "golang.org/x/exp/maps"
+import (
+	"maps"
+	"slices"
+)
 
 // DebianJSON :
 type DebianJSON map[string]DebianCveMap
@@ -87,5 +90,5 @@ func ConvertDebian(cveJSONs DebianJSON) []DebianCVE {
 			}
 		}
 	}
-	return maps.Values(uniqCve)
+	return slices.Collect(maps.Values(uniqCve))
 }
