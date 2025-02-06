@@ -1,6 +1,7 @@
 package models
 
 import (
+	"iter"
 	"strings"
 	"time"
 )
@@ -103,75 +104,80 @@ type UbuntuUpstreamLink struct {
 }
 
 // ConvertUbuntu :
-func ConvertUbuntu(cveJSONs []UbuntuCVEJSON) (cves []UbuntuCVE) {
-	for _, cve := range cveJSONs {
-		if strings.Contains(cve.Description, "** REJECT **") {
-			continue
-		}
-
-		if cve.PublicDateAtUSN == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
-			cve.PublicDateAtUSN = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
-		}
-
-		if cve.CRD == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
-			cve.CRD = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
-		}
-
-		if cve.PublicDate == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
-			cve.PublicDate = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
-		}
-
-		references := []UbuntuReference{}
-		for _, r := range cve.References {
-			references = append(references, UbuntuReference{Reference: r})
-		}
-
-		notes := []UbuntuNote{}
-		for _, n := range cve.Notes {
-			notes = append(notes, UbuntuNote{Note: n})
-		}
-
-		bugs := []UbuntuBug{}
-		for _, b := range cve.Bugs {
-			bugs = append(bugs, UbuntuBug{Bug: b})
-		}
-
-		patches := []UbuntuPatch{}
-		for pkgName, p := range cve.Patches {
-			var releasePatch []UbuntuReleasePatch
-			for release, patch := range p {
-				releasePatch = append(releasePatch, UbuntuReleasePatch{ReleaseName: release, Status: patch.Status, Note: patch.Note})
+func ConvertUbuntu(cveJSONs iter.Seq2[UbuntuCVEJSON, error]) iter.Seq2[UbuntuCVE, error] {
+	return func(yield func(UbuntuCVE, error) bool) {
+		for cve, err := range cveJSONs {
+			if err != nil && !yield(UbuntuCVE{}, err) {
+				return
 			}
-			patches = append(patches, UbuntuPatch{PackageName: pkgName, ReleasePatches: releasePatch})
-		}
-
-		upstreams := []UbuntuUpstream{}
-		for pkgName, u := range cve.UpstreamLinks {
-			links := []UbuntuUpstreamLink{}
-			for _, link := range u {
-				links = append(links, UbuntuUpstreamLink{Link: link})
+			if strings.Contains(cve.Description, "** REJECT **") {
+				continue
 			}
-			upstreams = append(upstreams, UbuntuUpstream{PackageName: pkgName, UpstreamLinks: links})
-		}
 
-		c := UbuntuCVE{
-			PublicDateAtUSN:   cve.PublicDateAtUSN,
-			CRD:               cve.CRD,
-			Candidate:         cve.Candidate,
-			PublicDate:        cve.PublicDate,
-			References:        references,
-			Description:       cve.Description,
-			UbuntuDescription: cve.UbuntuDescription,
-			Notes:             notes,
-			Bugs:              bugs,
-			Priority:          cve.Priority,
-			DiscoveredBy:      cve.DiscoveredBy,
-			AssignedTo:        cve.AssignedTo,
-			Patches:           patches,
-			Upstreams:         upstreams,
+			if cve.PublicDateAtUSN == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
+				cve.PublicDateAtUSN = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+			}
+
+			if cve.CRD == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
+				cve.CRD = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+			}
+
+			if cve.PublicDate == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
+				cve.PublicDate = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+			}
+
+			references := []UbuntuReference{}
+			for _, r := range cve.References {
+				references = append(references, UbuntuReference{Reference: r})
+			}
+
+			notes := []UbuntuNote{}
+			for _, n := range cve.Notes {
+				notes = append(notes, UbuntuNote{Note: n})
+			}
+
+			bugs := []UbuntuBug{}
+			for _, b := range cve.Bugs {
+				bugs = append(bugs, UbuntuBug{Bug: b})
+			}
+
+			patches := []UbuntuPatch{}
+			for pkgName, p := range cve.Patches {
+				var releasePatch []UbuntuReleasePatch
+				for release, patch := range p {
+					releasePatch = append(releasePatch, UbuntuReleasePatch{ReleaseName: release, Status: patch.Status, Note: patch.Note})
+				}
+				patches = append(patches, UbuntuPatch{PackageName: pkgName, ReleasePatches: releasePatch})
+			}
+
+			upstreams := []UbuntuUpstream{}
+			for pkgName, u := range cve.UpstreamLinks {
+				links := []UbuntuUpstreamLink{}
+				for _, link := range u {
+					links = append(links, UbuntuUpstreamLink{Link: link})
+				}
+				upstreams = append(upstreams, UbuntuUpstream{PackageName: pkgName, UpstreamLinks: links})
+			}
+
+			c := UbuntuCVE{
+				PublicDateAtUSN:   cve.PublicDateAtUSN,
+				CRD:               cve.CRD,
+				Candidate:         cve.Candidate,
+				PublicDate:        cve.PublicDate,
+				References:        references,
+				Description:       cve.Description,
+				UbuntuDescription: cve.UbuntuDescription,
+				Notes:             notes,
+				Bugs:              bugs,
+				Priority:          cve.Priority,
+				DiscoveredBy:      cve.DiscoveredBy,
+				AssignedTo:        cve.AssignedTo,
+				Patches:           patches,
+				Upstreams:         upstreams,
+			}
+			if !yield(c, nil) {
+				return
+			}
 		}
-		cves = append(cves, c)
 	}
-
-	return cves
 }

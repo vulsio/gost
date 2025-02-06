@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -31,7 +32,7 @@ func fetchUbuntu(_ *cobra.Command, _ []string) (err error) {
 		return xerrors.Errorf("Failed to SetLogger. err: %w", err)
 	}
 
-	cveJSONs, err := fetcher.FetchUbuntuVulnList()
+	cveJSONs, count, err := fetcher.FetchUbuntuVulnList()
 	if err != nil {
 		return xerrors.Errorf("Failed to initialize vulnerability DB. err: %w", err)
 	}
@@ -40,7 +41,7 @@ func fetchUbuntu(_ *cobra.Command, _ []string) (err error) {
 	log15.Info("Initialize Database")
 	driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
-		if xerrors.Is(err, db.ErrDBLocked) {
+		if errors.Is(err, db.ErrDBLocked) {
 			return xerrors.Errorf("Failed to open DB. Close DB connection before fetching. err: %w", err)
 		}
 		return xerrors.Errorf("Failed to open DB. err: %w", err)
@@ -58,9 +59,9 @@ func fetchUbuntu(_ *cobra.Command, _ []string) (err error) {
 		return xerrors.Errorf("Failed to upsert FetchMeta to DB. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 
-	log15.Info("Fetched", "CVEs", len(cves))
+	log15.Info("Fetched", "CVEs", count)
 	log15.Info("Insert Ubuntu into DB", "db", driver.Name())
-	if err := driver.InsertUbuntu(cves); err != nil {
+	if err := driver.InsertUbuntu(cves, count); err != nil {
 		return xerrors.Errorf("Failed to insert. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 
