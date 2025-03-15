@@ -7,7 +7,7 @@ require (
 	github.com/aquasecurity/trivy-db v0.0.0-20230622083554-a5a9b0a72b48
 	github.com/briandowns/spinner v1.23.2
 	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/cheggaaa/pb/v3 v3.1.6
+	github.com/cheggaaa/pb/v3 v3.1.7
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-git/go-git/v5 v5.14.0
 	github.com/go-redis/redis/v8 v8.11.5
@@ -68,7 +68,7 @@ require (
 	github.com/pjbgf/sha1cd v0.3.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
