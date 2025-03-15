@@ -47,38 +47,38 @@ func ClearIDRedhat(cve *models.RedhatCVE) {
 }
 
 // DiffRedhat returns the difference between the old and new CVE information
-func DiffRedhat(old, new *models.RedhatCVE, config config.RedhatWatchCve) (body string) {
+func DiffRedhat(before, after *models.RedhatCVE, config config.RedhatWatchCve) (body string) {
 	if config.ThreatSeverity {
-		if old.ThreatSeverity != new.ThreatSeverity {
+		if before.ThreatSeverity != after.ThreatSeverity {
 			body += fmt.Sprintf("\nThreat Secirity\n------------------\n[old]\n%v\n\n[new]\n%v\n",
-				old.ThreatSeverity, new.ThreatSeverity)
+				before.ThreatSeverity, after.ThreatSeverity)
 		}
 	}
 
 	if config.Statement {
-		if old.Statement != new.Statement {
+		if before.Statement != after.Statement {
 			body += fmt.Sprintf("\nStatement\n------------------\n[old]\n%v\n[new]\n\n%v\n\n",
-				old.Statement, new.Statement)
+				before.Statement, after.Statement)
 		}
 	}
 
 	if config.Acknowledgement {
-		if old.Acknowledgement != new.Acknowledgement {
+		if before.Acknowledgement != after.Acknowledgement {
 			body += fmt.Sprintf("\nAcknowledgement\n------------------\n[old]\n%v\n\n[new]\n%v\n\n",
-				old.Acknowledgement, new.Acknowledgement)
+				before.Acknowledgement, after.Acknowledgement)
 		}
 	}
 
 	if config.Mitigation {
-		if old.Mitigation != new.Mitigation {
+		if before.Mitigation != after.Mitigation {
 			body += fmt.Sprintf("\nMitigation\n------------------\n[old]\n%v\n\n[new]\n%v\n\n",
-				old.Mitigation, new.Mitigation)
+				before.Mitigation, after.Mitigation)
 			return
 		}
 	}
 
 	if config.Bugzilla {
-		if !reflect.DeepEqual(old.Bugzilla, new.Bugzilla) {
+		if !reflect.DeepEqual(before.Bugzilla, after.Bugzilla) {
 			body += fmt.Sprintf(`
 Bugzilla
 ------------------
@@ -92,13 +92,13 @@ BugzillaID: %s
 Descriptiion: %s
 URL: %s
 `,
-				old.Bugzilla.BugzillaID, old.Bugzilla.Description, old.Bugzilla.URL,
-				new.Bugzilla.BugzillaID, new.Bugzilla.Description, new.Bugzilla.URL)
+				before.Bugzilla.BugzillaID, before.Bugzilla.Description, before.Bugzilla.URL,
+				after.Bugzilla.BugzillaID, after.Bugzilla.Description, after.Bugzilla.URL)
 		}
 	}
 
 	if config.Cvss {
-		if !reflect.DeepEqual(old.Cvss, new.Cvss) {
+		if !reflect.DeepEqual(before.Cvss, after.Cvss) {
 			body += fmt.Sprintf(`
 CVSS
 ------------------
@@ -112,13 +112,13 @@ Base Score: %s
 Vector: %s
 Status: %s
 `,
-				old.Cvss.CvssBaseScore, old.Cvss.CvssScoringVector, old.Cvss.Status,
-				new.Cvss.CvssBaseScore, new.Cvss.CvssScoringVector, new.Cvss.Status)
+				before.Cvss.CvssBaseScore, before.Cvss.CvssScoringVector, before.Cvss.Status,
+				after.Cvss.CvssBaseScore, after.Cvss.CvssScoringVector, after.Cvss.Status)
 		}
 	}
 
 	if config.Cvss3 {
-		if !reflect.DeepEqual(old.Cvss3, new.Cvss3) {
+		if !reflect.DeepEqual(before.Cvss3, after.Cvss3) {
 			body += fmt.Sprintf(`
 CVSSv3
 ------------------
@@ -132,28 +132,28 @@ Base Score: %s
 Vector: %s
 Status: %s
 `,
-				old.Cvss3.Cvss3BaseScore, old.Cvss3.Cvss3ScoringVector, old.Cvss3.Status,
-				new.Cvss3.Cvss3BaseScore, new.Cvss3.Cvss3ScoringVector, new.Cvss3.Status)
+				before.Cvss3.Cvss3BaseScore, before.Cvss3.Cvss3ScoringVector, before.Cvss3.Status,
+				after.Cvss3.Cvss3BaseScore, after.Cvss3.Cvss3ScoringVector, after.Cvss3.Status)
 		}
 	}
 
-	if config.AffectedRelease && (len(old.AffectedRelease) > 0 || len(new.AffectedRelease) > 0) {
+	if config.AffectedRelease && (len(before.AffectedRelease) > 0 || len(after.AffectedRelease) > 0) {
 		oldAffectedRelease := map[string]models.RedhatAffectedRelease{}
-		for _, old := range old.AffectedRelease {
-			oldAffectedRelease[old.ProductName+"#"+old.Package] = old
+		for _, r := range before.AffectedRelease {
+			oldAffectedRelease[r.ProductName+"#"+r.Package] = r
 		}
 
 		newAffectedRelease := map[string]models.RedhatAffectedRelease{}
-		for _, new := range new.AffectedRelease {
-			newAffectedRelease[new.ProductName+"#"+new.Package] = new
+		for _, r := range after.AffectedRelease {
+			newAffectedRelease[r.ProductName+"#"+r.Package] = r
 		}
 
-		for key, new := range newAffectedRelease {
+		for key, nar := range newAffectedRelease {
 			isNew := false
 
-			old, ok := oldAffectedRelease[key]
+			oar, ok := oldAffectedRelease[key]
 			if ok {
-				if !reflect.DeepEqual(old, new) {
+				if !reflect.DeepEqual(oar, nar) {
 					isNew = true
 				}
 			} else {
@@ -181,28 +181,28 @@ Package: %s
 CPE: %s
 Release Date: %s
 `,
-				old.ProductName, old.Advisory, old.Package, old.Cpe, old.ReleaseDate,
-				new.ProductName, new.Advisory, new.Package, new.Cpe, new.ReleaseDate)
+				oar.ProductName, oar.Advisory, oar.Package, oar.Cpe, oar.ReleaseDate,
+				nar.ProductName, nar.Advisory, nar.Package, nar.Cpe, nar.ReleaseDate)
 		}
 	}
 
-	if config.PackageState && (len(old.PackageState) > 0 || len(new.PackageState) > 0) {
+	if config.PackageState && (len(before.PackageState) > 0 || len(after.PackageState) > 0) {
 		oldPackageState := map[string]models.RedhatPackageState{}
-		for _, old := range old.PackageState {
-			oldPackageState[old.ProductName+"#"+old.PackageName] = old
+		for _, s := range before.PackageState {
+			oldPackageState[s.ProductName+"#"+s.PackageName] = s
 		}
 
 		newPackageState := map[string]models.RedhatPackageState{}
-		for _, new := range new.PackageState {
-			newPackageState[new.ProductName+"#"+new.PackageName] = new
+		for _, s := range after.PackageState {
+			newPackageState[s.ProductName+"#"+s.PackageName] = s
 		}
 
-		for key, new := range newPackageState {
+		for key, nps := range newPackageState {
 			isNew := false
 
-			old, ok := oldPackageState[key]
+			ops, ok := oldPackageState[key]
 			if ok {
-				if !reflect.DeepEqual(old, new) {
+				if !reflect.DeepEqual(ops, nps) {
 					isNew = true
 				}
 			} else {
@@ -226,22 +226,22 @@ Product Name: %s
 Fix State: %s
 Package Name: %s
 `,
-				old.ProductName, old.FixState, old.PackageName,
-				new.ProductName, new.FixState, new.PackageName)
+				ops.ProductName, ops.FixState, ops.PackageName,
+				nps.ProductName, nps.FixState, nps.PackageName)
 		}
 
 	}
 
-	if config.Reference && (len(old.References) > 0 || len(new.References) > 0) {
-		if !reflect.DeepEqual(old.References, new.References) {
-			o := []string{}
-			for _, old := range old.References {
-				o = append(o, old.Reference)
+	if config.Reference && (len(before.References) > 0 || len(after.References) > 0) {
+		if !reflect.DeepEqual(before.References, after.References) {
+			ors := []string{}
+			for _, r := range before.References {
+				ors = append(ors, r.Reference)
 			}
 
-			n := []string{}
-			for _, new := range new.References {
-				n = append(o, new.Reference)
+			nrs := []string{}
+			for _, r := range after.References {
+				nrs = append(nrs, r.Reference)
 			}
 			body += fmt.Sprintf(`
 Reference
@@ -252,21 +252,21 @@ Reference
 [new]
 %s
 `,
-				strings.Join(o, "\n"), strings.Join(n, "\n"))
+				strings.Join(ors, "\n"), strings.Join(nrs, "\n"))
 			return
 		}
 	}
 
-	if config.Details && (len(old.Details) > 0 || len(new.Details) > 0) {
-		if !reflect.DeepEqual(old.Details, new.Details) {
-			o := []string{}
-			for _, old := range old.Details {
-				o = append(o, old.Detail)
+	if config.Details && (len(before.Details) > 0 || len(after.Details) > 0) {
+		if !reflect.DeepEqual(before.Details, after.Details) {
+			ods := []string{}
+			for _, d := range before.Details {
+				ods = append(ods, d.Detail)
 			}
 
-			n := []string{}
-			for _, new := range new.Details {
-				n = append(n, new.Detail)
+			nds := []string{}
+			for _, d := range after.Details {
+				nds = append(nds, d.Detail)
 			}
 
 			body += fmt.Sprintf(`
@@ -278,7 +278,7 @@ Detail
 [new]
 %s
 `,
-				strings.Join(o, "\n"), strings.Join(n, "\n"))
+				strings.Join(ods, "\n"), strings.Join(nds, "\n"))
 			return
 		}
 	}
