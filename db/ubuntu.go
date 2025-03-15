@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"os"
-	"slices"
 	"strings"
 
 	"github.com/cheggaaa/pb/v3"
@@ -78,16 +78,16 @@ func (r *RDBDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuCVE
 }
 
 // InsertUbuntu :
-func (r *RDBDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
-	if err = r.deleteAndInsertUbuntu(cves); err != nil {
+func (r *RDBDriver) InsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error], count int) (err error) {
+	if err = r.deleteAndInsertUbuntu(cves, count); err != nil {
 		return xerrors.Errorf("Failed to insert Ubuntu CVE data. err: %s", err)
 	}
 
 	return nil
 }
 
-func (r *RDBDriver) deleteAndInsertUbuntu(cves []models.UbuntuCVE) (err error) {
-	bar := pb.StartNew(len(cves)).SetWriter(func() io.Writer {
+func (r *RDBDriver) deleteAndInsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error], count int) (err error) {
+	bar := pb.StartNew(count).SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
 		}
@@ -115,7 +115,11 @@ func (r *RDBDriver) deleteAndInsertUbuntu(cves []models.UbuntuCVE) (err error) {
 		return xerrors.New("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
-	for chunk := range slices.Chunk(cves, batchSize) {
+	for chunk, err := range util.Chunk(cves, batchSize) {
+		if err != nil {
+			return xerrors.Errorf("failed to insert Ubuntu CVE data. err: %w", err)
+		}
+
 		if err = tx.Create(chunk).Error; err != nil {
 			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}
