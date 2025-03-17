@@ -352,7 +352,9 @@ func (p *ProgressBar) Finish() {
 func Chunk[T any](s iter.Seq2[T, error], n int) iter.Seq2[[]T, error] {
 	return func(yield func([]T, error) bool) {
 		if n < 1 {
-			panic("cannot be less than 1")
+			if !yield(nil, xerrors.New("cannot be less than 1")) {
+				return
+			}
 		}
 
 		chunk := make([]T, 0, n)
