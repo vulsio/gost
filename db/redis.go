@@ -1097,7 +1097,7 @@ func (r *RedisDriver) InsertDebian(cves []models.DebianCVE) error {
 }
 
 // InsertUbuntu :
-func (r *RedisDriver) InsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error], count int) (err error) {
+func (r *RedisDriver) InsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error]) (err error) {
 	ctx := context.Background()
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {
@@ -1118,8 +1118,8 @@ func (r *RedisDriver) InsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error], coun
 		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
 	}
 
-	log15.Info("Insert CVEs", "cves", count)
-	bar := pb.StartNew(count).SetWriter(func() io.Writer {
+	log15.Info("Insert CVEs")
+	bar := pb.ProgressBarTemplate("{{counters .}} files processed. ({{speed .}})").New(0).Start().SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
 		}
@@ -1170,11 +1170,10 @@ func (r *RedisDriver) InsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error], coun
 		}
 		bar.Add(len(chunk))
 	}
-	bar.SetCurrent(int64(count)) // The file number doesn't always match the number of CVEs that are actually inserted.
 	bar.Finish()
 
-	log15.Info("Insert Advisories", "advisories", len(advs))
-	bar = pb.StartNew(len(advs)).SetWriter(func() io.Writer {
+	log15.Info("Insert Advisories")
+	bar = pb.ProgressBarTemplate("{{counters .}} advisories processed. ({{speed .}})").New(0).Start().SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
 		}

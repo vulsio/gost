@@ -78,16 +78,16 @@ func (r *RDBDriver) GetUbuntuMulti(cveIDs []string) (map[string]models.UbuntuCVE
 }
 
 // InsertUbuntu :
-func (r *RDBDriver) InsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error], count int) (err error) {
-	if err = r.deleteAndInsertUbuntu(cves, count); err != nil {
+func (r *RDBDriver) InsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error]) (err error) {
+	if err = r.deleteAndInsertUbuntu(cves); err != nil {
 		return xerrors.Errorf("Failed to insert Ubuntu CVE data. err: %s", err)
 	}
 
 	return nil
 }
 
-func (r *RDBDriver) deleteAndInsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error], count int) (err error) {
-	bar := pb.StartNew(count).SetWriter(func() io.Writer {
+func (r *RDBDriver) deleteAndInsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error]) (err error) {
+	bar := pb.ProgressBarTemplate("{{counters .}} files processed. ({{speed .}})").New(0).Start().SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
 		}

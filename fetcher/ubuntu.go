@@ -21,36 +21,30 @@ const (
 )
 
 // FetchUbuntuVulnList clones vuln-list and returns CVE JSONs
-func FetchUbuntuVulnList() (iter.Seq2[models.UbuntuCVEJSON, error], int, error) {
+func FetchUbuntuVulnList() (iter.Seq2[models.UbuntuCVEJSON, error], error) {
 	// Clone vuln-list repository
 	dir := filepath.Join(util.CacheDir(), "vuln-list")
 	updatedFiles, err := git.CloneOrPull(ubuntuRepoURL, dir, ubuntuDir)
 	if err != nil {
-		return nil, 0, xerrors.Errorf("error in vulnsrc clone or pull: %w", err)
+		return nil, xerrors.Errorf("error in vulnsrc clone or pull: %w", err)
 	}
 
 	// Only last_updated.json
 	if len(updatedFiles) <= 1 {
-		return nil, 0, nil
+		return nil, nil
 	}
 
 	rootDir := filepath.Join(dir, ubuntuDir)
 	targets, err := util.FilterTargets(ubuntuDir, updatedFiles)
 	if err != nil {
-		return nil, 0, xerrors.Errorf("failed to filter target files: %w", err)
+		return nil, xerrors.Errorf("failed to filter target files: %w", err)
 	} else if len(targets) == 0 {
 		log15.Debug("Ubuntu: no update file")
-		return nil, 0, nil
+		return nil, nil
 	}
 	log15.Debug(fmt.Sprintf("Ubuntu updated files: %d", len(targets)))
 
-	count, err := countUbuntuCVEs(rootDir, targets)
-	if err != nil {
-		return nil, 0, xerrors.Errorf("failed to count Ubuntu CVEs: %w", err)
-	}
-
 	return func(yield func(models.UbuntuCVEJSON, error) bool) {
-
 		err = util.FileWalk(rootDir, targets, func(r io.Reader, _ string) error {
 			content, err := io.ReadAll(r)
 			if err != nil {
@@ -70,14 +64,5 @@ func FetchUbuntuVulnList() (iter.Seq2[models.UbuntuCVEJSON, error], int, error) 
 		if err != nil && !yield(models.UbuntuCVEJSON{}, xerrors.Errorf("error in Ubuntu walk: %w", err)) {
 			return
 		}
-	}, count, nil
-}
-
-func countUbuntuCVEs(rootDir string, targets map[string]struct{}) (int, error) {
-	count := 0
-	err := util.FileWalk(rootDir, targets, func(io.Reader, string) error {
-		count++
-		return nil
-	})
-	return count, err
+	}, nil
 }

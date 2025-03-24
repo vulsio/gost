@@ -49,7 +49,7 @@ type DB interface {
 
 	InsertRedhat([]models.RedhatCVE) error
 	InsertDebian([]models.DebianCVE) error
-	InsertUbuntu(iter.Seq2[models.UbuntuCVE, error], int) error
+	InsertUbuntu(iter.Seq2[models.UbuntuCVE, error]) error
 	InsertMicrosoft([]models.MicrosoftCVE, []models.MicrosoftKBRelation) error
 	InsertArch([]models.ArchADV) error
 }
