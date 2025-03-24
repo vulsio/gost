@@ -46,13 +46,8 @@ func FetchUbuntuVulnList() (iter.Seq2[models.UbuntuCVEJSON, error], error) {
 
 	return func(yield func(models.UbuntuCVEJSON, error) bool) {
 		err = util.FileWalk(rootDir, targets, func(r io.Reader, _ string) error {
-			content, err := io.ReadAll(r)
-			if err != nil {
-				return err
-			}
-
 			cve := models.UbuntuCVEJSON{}
-			if err = json.Unmarshal(content, &cve); err != nil {
+			if err = json.NewDecoder(r).Decode(&cve); err != nil {
 				return xerrors.Errorf("failed to decode Ubuntu JSON: %w", err)
 			}
 
