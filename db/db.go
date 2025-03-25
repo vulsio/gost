@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"iter"
 	"time"
 
 	"golang.org/x/xerrors"
@@ -48,7 +49,7 @@ type DB interface {
 
 	InsertRedhat([]models.RedhatCVE) error
 	InsertDebian([]models.DebianCVE) error
-	InsertUbuntu([]models.UbuntuCVE) error
+	InsertUbuntu(iter.Seq2[models.UbuntuCVE, error]) error
 	InsertMicrosoft([]models.MicrosoftCVE, []models.MicrosoftKBRelation) error
 	InsertArch([]models.ArchADV) error
 }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"maps"
 	"os"
 	"slices"
@@ -1096,23 +1097,11 @@ func (r *RedisDriver) InsertDebian(cves []models.DebianCVE) error {
 }
 
 // InsertUbuntu :
-func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
+func (r *RedisDriver) InsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error]) (err error) {
 	ctx := context.Background()
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {
 		return xerrors.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
-	}
-
-	advs := map[string][]string{}
-	for _, c := range cves {
-		for _, r := range c.References {
-			if strings.HasPrefix(r.Reference, "https://ubuntu.com/security/notices/USN-") {
-				advs[strings.TrimPrefix(r.Reference, "https://ubuntu.com/security/notices/")] = append(advs[strings.TrimPrefix(r.Reference, "https://ubuntu.com/security/notices/")], c.Candidate)
-			}
-		}
-	}
-	for k := range advs {
-		advs[k] = util.Unique(advs[k])
 	}
 
 	// newDeps, oldDeps: {"CVEID": {"PKGNAME": {}}, "advisories": {"ADVISORYID": {}}}
@@ -1129,14 +1118,27 @@ func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
 	}
 
-	log15.Info("Insert CVEs", "cves", len(cves))
-	bar := pb.StartNew(len(cves)).SetWriter(func() io.Writer {
+	log15.Info("Insert CVEs")
+	bar := pb.ProgressBarTemplate(`{{cycle . "[                    ]" "[=>                  ]" "[===>                ]" "[=====>              ]" "[======>             ]" "[========>           ]" "[==========>         ]" "[============>       ]" "[==============>     ]" "[================>   ]" "[==================> ]" "[===================>]"}} {{counters .}} files processed. ({{speed .}})`).New(0).Start().SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
 		}
 		return os.Stderr
 	}())
-	for chunk := range slices.Chunk(cves, batchSize) {
+	advs := map[string][]string{}
+
+	for chunk, err := range util.Chunk(cves, batchSize) {
+		if err != nil {
+			return xerrors.Errorf("Failed to chunk cves. err: %w", err)
+		}
+		for _, c := range chunk {
+			for _, r := range c.References {
+				if strings.HasPrefix(r.Reference, "https://ubuntu.com/security/notices/USN-") {
+					advs[strings.TrimPrefix(r.Reference, "https://ubuntu.com/security/notices/")] = slices.Compact(append(advs[strings.TrimPrefix(r.Reference, "https://ubuntu.com/security/notices/")], c.Candidate))
+				}
+			}
+		}
+
 		pipe := r.conn.Pipeline()
 		cvekey := fmt.Sprintf(cveKeyFormat, ubuntuName)
 		for _, cve := range chunk {
@@ -1170,8 +1172,8 @@ func (r *RedisDriver) InsertUbuntu(cves []models.UbuntuCVE) (err error) {
 	}
 	bar.Finish()
 
-	log15.Info("Insert Advisories", "advisories", len(advs))
-	bar = pb.StartNew(len(advs)).SetWriter(func() io.Writer {
+	log15.Info("Insert Advisories")
+	bar = pb.ProgressBarTemplate(`{{cycle . "[                    ]" "[=>                  ]" "[===>                ]" "[=====>              ]" "[======>             ]" "[========>           ]" "[==========>         ]" "[============>       ]" "[==============>     ]" "[================>   ]" "[==================> ]" "[===================>]"}} {{counters .}} advisories processed. ({{speed .}})`).New(0).Start().SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
 		}

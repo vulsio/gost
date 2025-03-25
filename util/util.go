@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"iter"
 	"maps"
 	"os"
 	"os/exec"
@@ -343,4 +344,39 @@ func (p *ProgressBar) Finish() {
 		return
 	}
 	p.client.Finish()
+}
+
+// Chunk chunks the sequence into n-sized chunks
+// Note: slices.Chunk doesn't support iterators as of Go 1.23.
+// https://pkg.go.dev/slices#Chunk
+func Chunk[T any](s iter.Seq2[T, error], n int) iter.Seq2[[]T, error] {
+	return func(yield func([]T, error) bool) {
+		if n < 1 {
+			if !yield(nil, xerrors.New("cannot be less than 1")) {
+				return
+			}
+		}
+
+		chunk := make([]T, 0, n)
+		for t, err := range s {
+			if err != nil && !yield(nil, err) {
+				return
+			}
+			chunk = append(chunk, t)
+			if len(chunk) != n {
+				continue
+			}
+
+			if !yield(chunk, nil) {
+				return
+			}
+			chunk = chunk[:0]
+		}
+
+		if len(chunk) > 0 {
+			if !yield(chunk, nil) {
+				return
+			}
+		}
+	}
 }
