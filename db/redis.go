@@ -1119,7 +1119,7 @@ func (r *RedisDriver) InsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error]) (err
 	}
 
 	log15.Info("Insert CVEs")
-	bar := pb.ProgressBarTemplate("{{counters .}} files processed. ({{speed .}})").New(0).Start().SetWriter(func() io.Writer {
+	bar := pb.ProgressBarTemplate(`{{cycle . "[                    ]" "[=>                  ]" "[===>                ]" "[=====>              ]" "[======>             ]" "[========>           ]" "[==========>         ]" "[============>       ]" "[==============>     ]" "[================>   ]" "[==================> ]" "[===================>]"}} {{counters .}} files processed. ({{speed .}})`).New(0).Start().SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
 		}
@@ -1173,7 +1173,7 @@ func (r *RedisDriver) InsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error]) (err
 	bar.Finish()
 
 	log15.Info("Insert Advisories")
-	bar = pb.ProgressBarTemplate("{{counters .}} advisories processed. ({{speed .}})").New(0).Start().SetWriter(func() io.Writer {
+	bar = pb.ProgressBarTemplate(`{{cycle . "[                    ]" "[=>                  ]" "[===>                ]" "[=====>              ]" "[======>             ]" "[========>           ]" "[==========>         ]" "[============>       ]" "[==============>     ]" "[================>   ]" "[==================> ]" "[===================>]"}} {{counters .}} advisories processed. ({{speed .}})`).New(0).Start().SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
 		}

@@ -87,7 +87,7 @@ func (r *RDBDriver) InsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error]) (err e
 }
 
 func (r *RDBDriver) deleteAndInsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error]) (err error) {
-	bar := pb.ProgressBarTemplate("{{counters .}} files processed. ({{speed .}})").New(0).Start().SetWriter(func() io.Writer {
+	bar := pb.ProgressBarTemplate(`{{cycle . "[                    ]" "[=>                  ]" "[===>                ]" "[=====>              ]" "[======>             ]" "[========>           ]" "[==========>         ]" "[============>       ]" "[==============>     ]" "[================>   ]" "[==================> ]" "[===================>]"}} {{counters .}} files processed. ({{speed .}})`).New(0).Start().SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
 		}

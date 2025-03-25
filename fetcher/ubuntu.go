@@ -58,10 +58,13 @@ func FetchUbuntuVulnList() (iter.Seq2[models.UbuntuCVEJSON, error], error) {
 			}
 			return nil
 		})
-		if errors.Is(err, yeildErr) { // No need to call yield with error
-			return
-		} else if err != nil && !yield(models.UbuntuCVEJSON{}, xerrors.Errorf("error in Ubuntu walk: %w", err)) {
-			return
+		if err != nil {
+			if errors.Is(err, yeildErr) { // No need to call yield with error
+				return
+			}
+			if !yield(models.UbuntuCVEJSON{}, xerrors.Errorf("error in Ubuntu walk: %w", err)) {
+				return
+			}
 		}
 	}, nil
 }
