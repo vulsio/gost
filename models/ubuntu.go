@@ -114,15 +114,15 @@ func ConvertUbuntu(cveJSONs iter.Seq2[UbuntuCVEJSON, error]) iter.Seq2[UbuntuCVE
 				continue
 			}
 
-			if cve.PublicDateAtUSN == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
+			if cve.PublicDateAtUSN.Equal(time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)) {
 				cve.PublicDateAtUSN = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
 			}
 
-			if cve.CRD == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
+			if cve.CRD.Equal(time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)) {
 				cve.CRD = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
 			}
 
-			if cve.PublicDate == time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC) {
+			if cve.PublicDate.Equal(time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)) {
 				cve.PublicDate = time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
 			}
 
