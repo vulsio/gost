@@ -2,9 +2,9 @@ package fetcher
 
 import (
 	"archive/tar"
-	"bytes"
 	"compress/gzip"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,17 +16,22 @@ import (
 
 func fetchGitArchive(url, fetchDir, targetDirPrefix string) error {
 	if err := os.RemoveAll(fetchDir); err != nil {
-		return xerrors.Errorf("Failed to remove directory: %w", err)
+		return xerrors.Errorf("Failed to remove directory. err: %w", err)
 	}
 
-	bs, err := util.FetchURL(url)
+	resp, err := util.FetchURL(url)
 	if err != nil {
-		return xerrors.Errorf("Failed to fetch git archive: %w", err)
+		return xerrors.Errorf("Failed to fetch git archive. err: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return xerrors.Errorf("Failed to fetch git archive. err: status code: %d", resp.StatusCode)
 	}
 
-	gr, err := gzip.NewReader(bytes.NewReader(bs))
+	gr, err := gzip.NewReader(resp.Body)
 	if err != nil {
-		return xerrors.Errorf("Failed to create gzip reader: %w", err)
+		return xerrors.Errorf("Failed to create gzip reader. err: %w", err)
 	}
 	defer gr.Close()
 
@@ -37,7 +42,7 @@ func fetchGitArchive(url, fetchDir, targetDirPrefix string) error {
 			break
 		}
 		if err != nil {
-			return xerrors.Errorf("Failed to read tar header: %w", err)
+			return xerrors.Errorf("Failed to read tar header. err: %w", err)
 		}
 
 		switch hdr.Typeflag {
@@ -49,23 +54,23 @@ func fetchGitArchive(url, fetchDir, targetDirPrefix string) error {
 			filePath := filepath.Join(fetchDir, hdr.Name)
 
 			if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-				return xerrors.Errorf("Failed to create directory: %w", err)
+				return xerrors.Errorf("Failed to create directory. err: %w", err)
 			}
 
 			if err := func() error {
 				f, err := os.Create(filePath)
 				if err != nil {
-					return xerrors.Errorf("Failed to create file: %w", err)
+					return xerrors.Errorf("Failed to create file. err: %w", err)
 				}
 				defer f.Close()
 
 				if _, err := io.Copy(f, tr); err != nil {
-					return xerrors.Errorf("Failed to write file: %w", err)
+					return xerrors.Errorf("Failed to write file. err: %w", err)
 				}
 
 				return nil
 			}(); err != nil {
-				return xerrors.Errorf("Failed to create file: %w", err)
+				return xerrors.Errorf("Failed to create file. err: %w", err)
 			}
 		default:
 		}

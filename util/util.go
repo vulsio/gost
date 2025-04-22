@@ -5,6 +5,8 @@ import (
 	"io"
 	"iter"
 	"maps"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -14,7 +16,6 @@ import (
 
 	"github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
-	"github.com/parnurzeal/gorequest"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
 )
@@ -57,13 +58,28 @@ func TrimSpaceNewline(str string) string {
 	return strings.Trim(str, "\r\n")
 }
 
-// FetchURL returns HTTP response body
-func FetchURL(url string) ([]byte, error) {
-	resp, body, err := gorequest.New().Proxy(viper.GetString("http-proxy")).Get(url).Type("text").EndBytes()
-	if len(err) > 0 || resp == nil || resp.StatusCode != 200 {
-		return nil, xerrors.Errorf("HTTP error. url: %s, err: %w", url, err)
+// FetchURL returns HTTP response
+func FetchURL(fetchURL string) (*http.Response, error) {
+	client := &http.Client{}
+	if proxy := viper.GetString("http-proxy"); proxy != "" {
+		proxyURL, err := url.Parse(proxy)
+		if err != nil {
+			return nil, xerrors.Errorf("Failed to parse proxy URL. proxy: %s, err: %w", proxy, err)
+		}
+		client.Transport = &http.Transport{Proxy: http.ProxyURL(proxyURL)}
 	}
-	return body, nil
+
+	req, err := http.NewRequest("GET", fetchURL, nil)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to create HTTP request. url: %s, err: %w", fetchURL, err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, xerrors.Errorf("Failed to send HTTP request. url: %s, err: %w", fetchURL, err)
+	}
+
+	return resp, nil
 }
 
 // FetchConcurrently fetches concurrently
@@ -94,12 +110,30 @@ func FetchConcurrently(urls []string, concurrency, wait int) (responses [][]byte
 			var err error
 			for i := 1; i <= 3; i++ {
 				var res []byte
-				res, err = FetchURL(url)
-				if err == nil {
-					resChan <- res
-					return
+				res, err = func() ([]byte, error) {
+					resp, err := FetchURL(url)
+					if err != nil {
+						return nil, xerrors.Errorf("Failed to fetch URL. url: %s, err: %w", url, err)
+					}
+					defer resp.Body.Close()
+
+					if resp.StatusCode != http.StatusOK {
+						return nil, xerrors.Errorf("Failed to fetch URL. url: %s, err: status code: %d", url, resp.StatusCode)
+					}
+
+					bs, err := io.ReadAll(resp.Body)
+					if err != nil {
+						return nil, xerrors.Errorf("Failed to read response body. url: %s, err: %w", url, err)
+					}
+
+					return bs, nil
+				}()
+				if err != nil {
+					time.Sleep(time.Duration(i*2) * time.Second)
+					continue
 				}
-				time.Sleep(time.Duration(i*2) * time.Second)
+				resChan <- res
+				return
 			}
 			errChan <- err
 		}
