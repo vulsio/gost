@@ -46,7 +46,7 @@ func FetchUbuntuVulnList() (iter.Seq2[models.UbuntuCVEJSON, error], error) {
 	log15.Debug(fmt.Sprintf("Ubuntu updated files: %d", len(targets)))
 
 	return func(yield func(models.UbuntuCVEJSON, error) bool) {
-		var yeildErr = errors.New("yield error")
+		var yieldErr = errors.New("yield error")
 		err = util.FileWalk(rootDir, targets, func(r io.Reader, _ string) error {
 			cve := models.UbuntuCVEJSON{}
 			if err = json.NewDecoder(r).Decode(&cve); err != nil {
@@ -54,12 +54,12 @@ func FetchUbuntuVulnList() (iter.Seq2[models.UbuntuCVEJSON, error], error) {
 			}
 
 			if !yield(cve, nil) {
-				return yeildErr
+				return yieldErr
 			}
 			return nil
 		})
 		if err != nil {
-			if errors.Is(err, yeildErr) { // No need to call yield with error
+			if errors.Is(err, yieldErr) { // No need to call yield with error
 				return
 			}
 			if !yield(models.UbuntuCVEJSON{}, xerrors.Errorf("error in Ubuntu walk: %w", err)) {
