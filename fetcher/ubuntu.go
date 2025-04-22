@@ -4,65 +4,60 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"io/fs"
 	"iter"
+	"os"
 	"path/filepath"
 
-	"github.com/inconshreveable/log15"
 	"golang.org/x/xerrors"
 
-	"github.com/vulsio/gost/git"
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
 )
 
 const (
-	ubuntuRepoURL = "https://github.com/aquasecurity/vuln-list.git"
+	ubuntuRepoURL = "https://github.com/aquasecurity/vuln-list/archive/refs/heads/main.tar.gz"
 	ubuntuDir     = "ubuntu"
 )
 
 // FetchUbuntuVulnList clones vuln-list and returns CVE JSONs
 func FetchUbuntuVulnList() (iter.Seq2[models.UbuntuCVEJSON, error], error) {
-	// Clone vuln-list repository
-	dir := filepath.Join(util.CacheDir(), "vuln-list")
-	updatedFiles, err := git.CloneOrPull(ubuntuRepoURL, dir, ubuntuDir)
-	if err != nil {
-		return nil, xerrors.Errorf("error in vulnsrc clone or pull: %w", err)
+	if err := fetchGitArchive(ubuntuRepoURL, filepath.Join(util.CacheDir(), "vuln-list"), fmt.Sprintf("vuln-list-main/%s", ubuntuDir)); err != nil {
+		return nil, xerrors.Errorf("Failed to fetch vuln-list-ubuntu: %w", err)
 	}
-
-	// Only last_updated.json
-	if len(updatedFiles) <= 1 {
-		return nil, nil
-	}
-
-	rootDir := filepath.Join(dir, ubuntuDir)
-	targets, err := util.FilterTargets(ubuntuDir, updatedFiles)
-	if err != nil {
-		return nil, xerrors.Errorf("failed to filter target files: %w", err)
-	} else if len(targets) == 0 {
-		log15.Debug("Ubuntu: no update file")
-		return nil, nil
-	}
-	log15.Debug(fmt.Sprintf("Ubuntu updated files: %d", len(targets)))
 
 	return func(yield func(models.UbuntuCVEJSON, error) bool) {
 		var yieldErr = errors.New("yield error")
-		err = util.FileWalk(rootDir, targets, func(r io.Reader, _ string) error {
+		if err := filepath.WalkDir(filepath.Join(util.CacheDir(), "vuln-list"), func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if d.IsDir() {
+				return nil
+			}
+
+			f, err := os.Open(path)
+			if err != nil {
+				return xerrors.Errorf("Failed to open file: %w", err)
+			}
+			defer f.Close()
+
 			cve := models.UbuntuCVEJSON{}
-			if err = json.NewDecoder(r).Decode(&cve); err != nil {
+			if err = json.NewDecoder(f).Decode(&cve); err != nil {
 				return xerrors.Errorf("failed to decode Ubuntu JSON: %w", err)
 			}
 
 			if !yield(cve, nil) {
 				return yieldErr
 			}
+
 			return nil
-		})
-		if err != nil {
+		}); err != nil {
 			if errors.Is(err, yieldErr) { // No need to call yield with error
 				return
 			}
-			if !yield(models.UbuntuCVEJSON{}, xerrors.Errorf("error in Ubuntu walk: %w", err)) {
+			if !yield(models.UbuntuCVEJSON{}, xerrors.Errorf("Failed to walk %s: %w", filepath.Join(util.CacheDir(), "vuln-list"), err)) {
 				return
 			}
 		}

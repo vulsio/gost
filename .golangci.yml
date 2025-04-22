@@ -48,6 +48,9 @@ linters:
       - source: "defer .+\\.Close\\(\\)"
         linters:
           - errcheck
+      - source: "defer os.RemoveAll\\(.+\\)"
+        linters:
+          - errcheck
 
 formatters:
   enable:

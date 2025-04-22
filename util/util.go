@@ -1,20 +1,17 @@
 package util
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"iter"
 	"maps"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/cheggaaa/pb/v3"
 	"github.com/inconshreveable/log15"
 	"github.com/parnurzeal/gorequest"
@@ -182,168 +179,6 @@ func CacheDir() string {
 		tmpDir = os.TempDir()
 	}
 	return filepath.Join(tmpDir, "gost")
-}
-
-// FileWalk walks the file tree rooted at root
-func FileWalk(root string, targetFiles map[string]struct{}, walkFn func(r io.Reader, path string) error) error {
-	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return xerrors.Errorf("prevent panic by handling failure accessing a path %q: %w\n", path, err)
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		rel, err := filepath.Rel(root, path)
-		if err != nil {
-			return xerrors.Errorf("error in filepath rel: %w", err)
-		}
-
-		if _, ok := targetFiles[rel]; !ok {
-			return nil
-		}
-
-		if info.Size() == 0 {
-			log15.Debug("invalid size: %s", path)
-			return nil
-		}
-
-		f, err := os.Open(path)
-		if err != nil {
-			return xerrors.Errorf("failed to open file: %w", err)
-		}
-		defer f.Close()
-
-		return walkFn(f, path)
-	})
-	if err != nil {
-		return xerrors.Errorf("error in file walk: %w", err)
-	}
-	return nil
-}
-
-// IsCommandAvailable check if command is available.
-func IsCommandAvailable(name string) bool {
-	cmd := exec.Command(name, "--help")
-	if err := cmd.Run(); err != nil {
-		return false
-	}
-	return true
-}
-
-// Exists check if path exists
-func Exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return true, err
-}
-
-// Exec run the command
-func Exec(command string, args []string) (string, error) {
-	cmd := exec.Command(command, args...)
-	var stdoutBuf, stderrBuf bytes.Buffer
-	cmd.Stdout = &stdoutBuf
-	cmd.Stderr = &stderrBuf
-	if err := cmd.Run(); err != nil {
-		log15.Debug(stderrBuf.String())
-		return "", xerrors.Errorf("failed to exec: %w", err)
-	}
-	return stdoutBuf.String(), nil
-}
-
-// FilterTargets filter targets
-func FilterTargets(prefixPath string, targets map[string]struct{}) (map[string]struct{}, error) {
-	filtered := map[string]struct{}{}
-	for filename := range targets {
-		if strings.HasPrefix(filename, prefixPath) {
-			rel, err := filepath.Rel(prefixPath, filename)
-			if err != nil {
-				return nil, xerrors.Errorf("error in filepath rel: %w", err)
-			}
-			if strings.HasPrefix(rel, "../") {
-				continue
-			}
-			filtered[rel] = struct{}{}
-		}
-	}
-	return filtered, nil
-}
-
-var (
-	// Quiet manages the display of NewSpinner, ProgressBar
-	Quiet = false
-)
-
-// Spinner has Spinner client
-type Spinner struct {
-	client *spinner.Spinner
-}
-
-// NewSpinner creates a Spinner
-func NewSpinner(suffix string) *Spinner {
-	if Quiet {
-		return &Spinner{}
-	}
-	s := spinner.New(spinner.CharSets[36], 100*time.Millisecond)
-	s.Suffix = suffix
-	return &Spinner{client: s}
-}
-
-// Start will start Spinner
-func (s *Spinner) Start() {
-	if s.client == nil {
-		return
-	}
-	s.client.Start()
-}
-
-// Stop will stop the Spinner
-func (s *Spinner) Stop() {
-	if s.client == nil {
-		return
-	}
-	s.client.Stop()
-}
-
-// ProgressBar has ProgressBar client
-type ProgressBar struct {
-	client *pb.ProgressBar
-}
-
-// PbStartNew creates a ProgressBar
-func PbStartNew(total int) *ProgressBar {
-	if Quiet {
-		return &ProgressBar{}
-	}
-	bar := pb.StartNew(total).SetWriter(func() io.Writer {
-		if viper.GetBool("log-json") {
-			return io.Discard
-		}
-		return os.Stderr
-	}())
-	return &ProgressBar{client: bar}
-}
-
-// Increment increments the ProgressBar
-func (p *ProgressBar) Increment() {
-	if p.client == nil {
-		return
-	}
-	p.client.Increment()
-}
-
-// Finish to exit the ProgressBar
-func (p *ProgressBar) Finish() {
-	if p.client == nil {
-		return
-	}
-	p.client.Finish()
 }
 
 // Chunk chunks the sequence into n-sized chunks
