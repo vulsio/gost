@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"iter"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -65,7 +66,7 @@ func fetchRedHatAPI(_ *cobra.Command, _ []string) (err error) {
 
 	log15.Info("Fetch the list of CVEs")
 	entries, err := fetcher.ListAllRedhatCves(
-		viper.GetString("before"), viper.GetString("after"), viper.GetInt("threads"))
+		viper.GetString("before"), viper.GetString("after"), viper.GetInt("wait"))
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch the list of CVEs. err: %w", err)
 	}
@@ -86,13 +87,17 @@ func fetchRedHatAPI(_ *cobra.Command, _ []string) (err error) {
 	if err != nil {
 		return xerrors.Errorf("Failed to fetch the CVE details. err: %w", err)
 	}
-	cves, err := models.ConvertRedhat(cveJSONs)
-	if err != nil {
-		return xerrors.Errorf("Failed to convert RedhatCVE. err: %w", err)
-	}
 
 	log15.Info("Insert RedHat into DB", "db", driver.Name())
-	if err := driver.InsertRedhat(cves); err != nil {
+	if err := driver.InsertRedhat(models.ConvertRedhat(func() iter.Seq2[models.RedhatCVEJSON, error] {
+		return func(yield func(models.RedhatCVEJSON, error) bool) {
+			for _, cveJSON := range cveJSONs {
+				if !yield(cveJSON, nil) {
+					return
+				}
+			}
+		}
+	}())); err != nil {
 		return xerrors.Errorf("Failed to insert. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 

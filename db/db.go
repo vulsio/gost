@@ -47,7 +47,7 @@ type DB interface {
 	GetUnfixedAdvsArch(string) (map[string]models.ArchADV, error)
 	GetAdvisoriesArch() (map[string][]string, error)
 
-	InsertRedhat([]models.RedhatCVE) error
+	InsertRedhat(iter.Seq2[models.RedhatCVE, error]) error
 	InsertDebian([]models.DebianCVE) error
 	InsertUbuntu(iter.Seq2[models.UbuntuCVE, error]) error
 	InsertMicrosoft([]models.MicrosoftCVE, []models.MicrosoftKBRelation) error

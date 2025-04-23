@@ -40,8 +40,6 @@ func fetchUbuntu(_ *cobra.Command, _ []string) (err error) {
 	}
 	defer os.RemoveAll(filepath.Join(util.CacheDir(), "vuln-list"))
 
-	cves := models.ConvertUbuntu(cveJSONs)
-
 	log15.Info("Initialize Database")
 	driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
@@ -64,7 +62,7 @@ func fetchUbuntu(_ *cobra.Command, _ []string) (err error) {
 	}
 
 	log15.Info("Insert Ubuntu into DB", "db", driver.Name())
-	if err := driver.InsertUbuntu(cves); err != nil {
+	if err := driver.InsertUbuntu(models.ConvertUbuntu(cveJSONs)); err != nil {
 		return xerrors.Errorf("Failed to insert. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 

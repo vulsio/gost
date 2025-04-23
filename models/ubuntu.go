@@ -107,9 +107,13 @@ type UbuntuUpstreamLink struct {
 func ConvertUbuntu(cveJSONs iter.Seq2[UbuntuCVEJSON, error]) iter.Seq2[UbuntuCVE, error] {
 	return func(yield func(UbuntuCVE, error) bool) {
 		for cve, err := range cveJSONs {
-			if err != nil && !yield(UbuntuCVE{}, err) {
-				return
+			if err != nil {
+				if !yield(UbuntuCVE{}, err) {
+					return
+				}
+				continue
 			}
+
 			if strings.Contains(cve.Description, "** REJECT **") {
 				continue
 			}

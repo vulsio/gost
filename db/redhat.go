@@ -4,13 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"os"
-	"slices"
 	"strings"
 	"time"
 
 	"github.com/cheggaaa/pb/v3"
-	"github.com/inconshreveable/log15"
 	"github.com/spf13/viper"
 	"golang.org/x/xerrors"
 	"gorm.io/gorm"
@@ -185,7 +184,7 @@ func (r *RDBDriver) GetAdvisoriesRedHat() (map[string][]string, error) {
 }
 
 // InsertRedhat :
-func (r *RDBDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
+func (r *RDBDriver) InsertRedhat(cves iter.Seq2[models.RedhatCVE, error]) (err error) {
 	if err := r.deleteAndInsertRedhat(cves); err != nil {
 		return xerrors.Errorf("Failed to insert RedHat CVE data. err: %w", err)
 	}
@@ -193,16 +192,15 @@ func (r *RDBDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 	return nil
 }
 
-func (r *RDBDriver) deleteAndInsertRedhat(cves []models.RedhatCVE) (err error) {
-	log15.Info(fmt.Sprintf("Insert %d CVEs", len(cves)))
-
-	bar := pb.StartNew(len(cves)).SetWriter(func() io.Writer {
+func (r *RDBDriver) deleteAndInsertRedhat(cves iter.Seq2[models.RedhatCVE, error]) (err error) {
+	bar := pb.ProgressBarTemplate(`{{cycle . "[                    ]" "[=>                  ]" "[===>                ]" "[=====>              ]" "[======>             ]" "[========>           ]" "[==========>         ]" "[============>       ]" "[==============>     ]" "[================>   ]" "[==================> ]" "[===================>]"}} {{counters .}} files processed. ({{speed .}})`).New(0).Start().SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
 		}
 		return os.Stderr
 	}())
 	tx := r.conn.Begin()
+
 	defer func() {
 		if err != nil {
 			tx.Rollback()
@@ -223,7 +221,11 @@ func (r *RDBDriver) deleteAndInsertRedhat(cves []models.RedhatCVE) (err error) {
 		return fmt.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
 	}
 
-	for chunk := range slices.Chunk(cves, batchSize) {
+	for chunk, err := range util.Chunk(cves, batchSize) {
+		if err != nil {
+			return xerrors.Errorf("Failed to chunk RedHat CVE data. err: %w", err)
+		}
+
 		if err = tx.Create(chunk).Error; err != nil {
 			return xerrors.Errorf("Failed to insert. err: %w", err)
 		}

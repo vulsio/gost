@@ -1,10 +1,9 @@
 package models
 
 import (
+	"iter"
 	"strings"
 	"time"
-
-	"golang.org/x/xerrors"
 
 	"github.com/vulsio/gost/util"
 )
@@ -187,56 +186,63 @@ type RedhatPackageState struct {
 }
 
 // ConvertRedhat :
-func ConvertRedhat(cveJSONs []RedhatCVEJSON) (cves []RedhatCVE, err error) {
-	for _, cve := range cveJSONs {
-		details := []RedhatDetail{}
-		for _, d := range cve.Details {
-			d = util.TrimSpaceNewline(d)
-			details = append(details, RedhatDetail{Detail: d})
-		}
-
-		references := []RedhatReference{}
-		for _, r := range cve.References {
-			r = util.TrimSpaceNewline(r)
-			references = append(references, RedhatReference{Reference: r})
-		}
-
-		cve.Bugzilla.Description = util.TrimSpaceNewline(cve.Bugzilla.Description)
-		cve.Statement = util.TrimSpaceNewline(cve.Statement)
-
-		var publicDate time.Time
-		if cve.PublicDate != "" {
-			if strings.HasSuffix(cve.PublicDate, "Z") {
-				publicDate, err = time.Parse("2006-01-02T15:04:05Z", cve.PublicDate)
-			} else {
-				publicDate, err = time.Parse("2006-01-02T15:04:05", cve.PublicDate)
-			}
+func ConvertRedhat(cveJSONs iter.Seq2[RedhatCVEJSON, error]) iter.Seq2[RedhatCVE, error] {
+	return func(yield func(RedhatCVE, error) bool) {
+		for cve, err := range cveJSONs {
 			if err != nil {
-				return nil, xerrors.Errorf("Failed to parse date. date: %s err: %w", cve.PublicDate, err)
+				if !yield(RedhatCVE{}, err) {
+					return
+				}
+				continue
+			}
+
+			if !yield(RedhatCVE{
+				ThreatSeverity: cve.ThreatSeverity,
+				PublicDate: func() time.Time {
+					if cve.PublicDate != "" {
+						for _, layout := range []string{"2006-01-02T15:04:05Z", "2006-01-02T15:04:05"} {
+							t, err := time.Parse(layout, cve.PublicDate)
+							if err == nil {
+								return t
+							}
+						}
+					}
+					return time.Date(1000, time.January, 1, 0, 0, 0, 0, time.UTC)
+				}(),
+				Bugzilla: RedhatBugzilla{
+					Description: util.TrimSpaceNewline(cve.Bugzilla.Description),
+					BugzillaID:  cve.Bugzilla.BugzillaID,
+					URL:         cve.Bugzilla.URL,
+				},
+				Cvss:                 cve.Cvss,
+				Cvss3:                cve.Cvss3,
+				Iava:                 cve.Iava,
+				Cwe:                  cve.Cwe,
+				Statement:            util.TrimSpaceNewline(cve.Statement),
+				Acknowledgement:      cve.Acknowledgement,
+				Mitigation:           cve.Mitigation,
+				AffectedRelease:      cve.AffectedRelease,
+				PackageState:         cve.PackageState,
+				Name:                 cve.Name,
+				DocumentDistribution: cve.DocumentDistribution,
+
+				Details: func() []RedhatDetail {
+					details := make([]RedhatDetail, 0, len(cve.Details))
+					for _, d := range cve.Details {
+						details = append(details, RedhatDetail{Detail: util.TrimSpaceNewline(d)})
+					}
+					return details
+				}(),
+				References: func() []RedhatReference {
+					references := make([]RedhatReference, 0, len(cve.References))
+					for _, r := range cve.References {
+						references = append(references, RedhatReference{Reference: util.TrimSpaceNewline(r)})
+					}
+					return references
+				}(),
+			}, nil) {
+				return
 			}
 		}
-
-		// TODO: more efficient
-		c := RedhatCVE{
-			ThreatSeverity:       cve.ThreatSeverity,
-			PublicDate:           publicDate,
-			Bugzilla:             cve.Bugzilla,
-			Cvss:                 cve.Cvss,
-			Cvss3:                cve.Cvss3,
-			Iava:                 cve.Iava,
-			Cwe:                  cve.Cwe,
-			Statement:            cve.Statement,
-			Acknowledgement:      cve.Acknowledgement,
-			Mitigation:           cve.Mitigation,
-			AffectedRelease:      cve.AffectedRelease,
-			PackageState:         cve.PackageState,
-			Name:                 cve.Name,
-			DocumentDistribution: cve.DocumentDistribution,
-
-			Details:    details,
-			References: references,
-		}
-		cves = append(cves, c)
 	}
-	return cves, nil
 }
