@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -36,6 +38,8 @@ func fetchUbuntu(_ *cobra.Command, _ []string) (err error) {
 	if err != nil {
 		return xerrors.Errorf("Failed to initialize vulnerability DB. err: %w", err)
 	}
+	defer os.RemoveAll(filepath.Join(util.CacheDir(), "vuln-list"))
+
 	cves := models.ConvertUbuntu(cveJSONs)
 
 	log15.Info("Initialize Database")

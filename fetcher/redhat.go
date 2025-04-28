@@ -4,51 +4,47 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 
-	"github.com/inconshreveable/log15"
 	"golang.org/x/xerrors"
 
-	"github.com/vulsio/gost/git"
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
 )
 
 const (
-	redhatRepoURL = "https://github.com/aquasecurity/vuln-list-redhat.git"
+	redhatRepoURL = "https://github.com/aquasecurity/vuln-list-redhat/archive/refs/heads/main.tar.gz"
 	redhatDir     = "api"
 )
 
 // FetchRedHatVulnList clones vuln-list and returns CVE JSONs
 func FetchRedHatVulnList() (entries []models.RedhatCVEJSON, err error) {
-	// Clone vuln-list repository
-	dir := filepath.Join(util.CacheDir(), "vuln-list-redhat")
-	updatedFiles, err := git.CloneOrPull(redhatRepoURL, dir, redhatDir)
-	if err != nil {
-		return nil, xerrors.Errorf("error in vulnsrc clone or pull: %w", err)
+	if err := fetchGitArchive(redhatRepoURL, filepath.Join(util.CacheDir(), "vuln-list-redhat"), fmt.Sprintf("vuln-list-redhat-main/%s", redhatDir)); err != nil {
+		return nil, xerrors.Errorf("Failed to fetch vuln-list-redhat: %w", err)
 	}
-
-	// Only last_updated.json
-	if len(updatedFiles) <= 1 {
-		return nil, nil
-	}
-
-	rootDir := filepath.Join(dir, redhatDir)
-	targets, err := util.FilterTargets(redhatDir, updatedFiles)
-	if err != nil {
-		return nil, xerrors.Errorf("failed to filter target files: %w", err)
-	} else if len(targets) == 0 {
-		log15.Debug("Red Hat: no updated file")
-		return nil, nil
-	}
-	log15.Debug(fmt.Sprintf("Red Hat updated files: %d", len(targets)))
 
 	var cves []RedhatCVE
-	err = util.FileWalk(rootDir, targets, func(r io.Reader, _ string) error {
-		content, err := io.ReadAll(r)
+	if err := filepath.WalkDir(filepath.Join(util.CacheDir(), "vuln-list-redhat"), func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
+
+		if d.IsDir() {
+			return nil
+		}
+
+		f, err := os.Open(path)
+		if err != nil {
+			return xerrors.Errorf("Failed to open file: %w", err)
+		}
+		defer f.Close()
+
+		content, err := io.ReadAll(f)
+		if err != nil {
+			return err
+		}
+
 		cve := RedhatCVE{}
 		if err = json.Unmarshal(content, &cve); err != nil {
 			return xerrors.Errorf("failed to decode RedHat JSON: %w", err)
@@ -88,11 +84,12 @@ func FetchRedHatVulnList() (entries []models.RedhatCVEJSON, err error) {
 		default:
 			return xerrors.New("unknown package_state type")
 		}
+
 		cves = append(cves, cve)
+
 		return nil
-	})
-	if err != nil {
-		return nil, xerrors.Errorf("error in RedHat walk: %w", err)
+	}); err != nil {
+		return nil, xerrors.Errorf("Failed to walk %s: %w", filepath.Join(util.CacheDir(), "vuln-list-redhat"), err)
 	}
 
 	for _, c := range cves {

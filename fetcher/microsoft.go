@@ -1,12 +1,13 @@
 package fetcher
 
 import (
-	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"net/http"
 
 	"github.com/vulsio/gost/models"
 	"github.com/vulsio/gost/util"
+	"golang.org/x/xerrors"
 )
 
 const (
@@ -16,11 +17,17 @@ const (
 
 // RetrieveMicrosoftCveDetails :
 func RetrieveMicrosoftCveDetails() ([]models.MicrosoftVulnerability, []models.MicrosoftSupercedence, error) {
-	bs, err := util.FetchURL(vulnerabilityURL)
+	resp, err := util.FetchURL(vulnerabilityURL)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, xerrors.Errorf("Failed to fetch Microsoft Vulnerability data. err: %w", err)
 	}
-	gz, err := gzip.NewReader(bytes.NewReader(bs))
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, nil, xerrors.Errorf("Failed to fetch Microsoft Vulnerability data. err: status code: %d", resp.StatusCode)
+	}
+
+	gz, err := gzip.NewReader(resp.Body)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -30,11 +37,17 @@ func RetrieveMicrosoftCveDetails() ([]models.MicrosoftVulnerability, []models.Mi
 		return nil, nil, err
 	}
 
-	bs, err = util.FetchURL(supercedenceURL)
+	resp, err = util.FetchURL(supercedenceURL)
 	if err != nil {
 		return nil, nil, err
 	}
-	gz, err = gzip.NewReader(bytes.NewReader(bs))
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, nil, xerrors.Errorf("Failed to fetch Microsoft Supercedence data. err: status code: %d", resp.StatusCode)
+	}
+
+	gz, err = gzip.NewReader(resp.Body)
 	if err != nil {
 		return nil, nil, err
 	}

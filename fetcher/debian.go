@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -59,13 +60,18 @@ func RetrieveDebianCveDetails() (models.DebianJSON, error) {
 }
 
 func retrieveDebianSecurityTrackerAPI() (models.DebianJSON, error) {
-	bs, err := util.FetchURL("https://security-tracker.debian.org/tracker/data/json")
+	resp, err := util.FetchURL("https://security-tracker.debian.org/tracker/data/json")
 	if err != nil {
 		return nil, xerrors.Errorf("Failed to fetch cve data from Debian Security Tracker API. err: %w", err)
 	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, xerrors.Errorf("Failed to fetch cve data from Debian Security Tracker API. err: status code: %d", resp.StatusCode)
+	}
 
 	var cves models.DebianJSON
-	if err := json.Unmarshal(bs, &cves); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&cves); err != nil {
 		return nil, xerrors.Errorf("Failed to decode Debian JSON. err: %w", err)
 	}
 

@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -18,8 +20,8 @@ import (
 // redhatCmd represents the redhat command
 var redHatCmd = &cobra.Command{
 	Use:   "redhat",
-	Short: "Fetch the CVE information from aquasecurity/vuln-list",
-	Long:  `Fetch the CVE information from aquasecurity/vuln-list`,
+	Short: "Fetch the CVE information from aquasecurity/vuln-list-redhat",
+	Long:  `Fetch the CVE information from aquasecurity/vuln-list-redhat`,
 	RunE:  fetchRedHat,
 }
 
@@ -36,6 +38,8 @@ func fetchRedHat(_ *cobra.Command, _ []string) (err error) {
 	if err != nil {
 		return xerrors.Errorf("Failed to initialize vulnerability DB. err: %w", err)
 	}
+	defer os.RemoveAll(filepath.Join(util.CacheDir(), "vuln-list-redhat"))
+
 	cves, err := models.ConvertRedhat(cveJSONs)
 	if err != nil {
 		return xerrors.Errorf("Failed to convert RedhatCVE. err: %w", err)

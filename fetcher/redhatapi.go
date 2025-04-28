@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/spf13/viper"
@@ -22,13 +23,18 @@ func ListAllRedhatCves(before, after string, wait int) (entries []models.RedhatE
 			url += fmt.Sprintf("&before=%s", before)
 
 		}
-		body, err := util.FetchURL(url)
+		resp, err := util.FetchURL(url)
 		if err != nil {
 			return entries, xerrors.Errorf("Failed to fetch RedHat CVEs: url: %s, err: %w", url, err)
 		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return entries, xerrors.Errorf("Failed to fetch RedHat CVEs: url: %s, err: status code: %d", url, resp.StatusCode)
+		}
 
 		entryList := []models.RedhatEntry{}
-		if err = json.Unmarshal(body, &entryList); err != nil {
+		if err = json.NewDecoder(resp.Body).Decode(&entryList); err != nil {
 			return nil, err
 		}
 		if len(entryList) == 0 {
