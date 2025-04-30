@@ -117,7 +117,7 @@ func (r *RDBDriver) deleteAndInsertUbuntu(cves iter.Seq2[models.UbuntuCVE, error
 
 	for chunk, err := range util.Chunk(cves, batchSize) {
 		if err != nil {
-			return xerrors.Errorf("failed to insert Ubuntu CVE data. err: %w", err)
+			return xerrors.Errorf("Failed to chunk Ubuntu CVE data. err: %w", err)
 		}
 
 		if err = tx.Create(chunk).Error; err != nil {

@@ -883,21 +883,11 @@ func (r *RedisDriver) getAdvisories(key string) (map[string][]string, error) {
 }
 
 // InsertRedhat :
-func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
+func (r *RedisDriver) InsertRedhat(cves iter.Seq2[models.RedhatCVE, error]) (err error) {
 	ctx := context.Background()
 	batchSize := viper.GetInt("batch-size")
 	if batchSize < 1 {
 		return xerrors.Errorf("Failed to set batch-size. err: batch-size option is not set properly")
-	}
-
-	advs := map[string][]string{}
-	for _, c := range cves {
-		for _, r := range c.AffectedRelease {
-			advs[r.Advisory] = append(advs[r.Advisory], c.Name)
-		}
-	}
-	for k := range advs {
-		advs[k] = util.Unique(advs[k])
 	}
 
 	// newDeps, oldDeps: {"CVEID": {"PKGNAME": {}}, "advisories": {"ADVISORYID": {}}}
@@ -914,14 +904,26 @@ func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 		return xerrors.Errorf("Failed to unmarshal JSON. err: %w", err)
 	}
 
-	log15.Info("Insert CVEs", "cves", len(cves))
-	bar := pb.StartNew(len(cves)).SetWriter(func() io.Writer {
+	log15.Info("Insert CVEs")
+	bar := pb.ProgressBarTemplate(`{{cycle . "[                    ]" "[=>                  ]" "[===>                ]" "[=====>              ]" "[======>             ]" "[========>           ]" "[==========>         ]" "[============>       ]" "[==============>     ]" "[================>   ]" "[==================> ]" "[===================>]"}} {{counters .}} files processed. ({{speed .}})`).New(0).Start().SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
 		}
 		return os.Stderr
 	}())
-	for chunk := range slices.Chunk(cves, batchSize) {
+	advs := map[string][]string{}
+
+	for chunk, err := range util.Chunk(cves, batchSize) {
+		if err != nil {
+			return xerrors.Errorf("Failed to chunk cves. err: %w", err)
+		}
+
+		for _, c := range chunk {
+			for _, r := range c.AffectedRelease {
+				advs[r.Advisory] = append(advs[r.Advisory], c.Name)
+			}
+		}
+
 		pipe := r.conn.Pipeline()
 		cvekey := fmt.Sprintf(cveKeyFormat, redhatName)
 		for _, cve := range chunk {
@@ -955,8 +957,8 @@ func (r *RedisDriver) InsertRedhat(cves []models.RedhatCVE) (err error) {
 	}
 	bar.Finish()
 
-	log15.Info("Insert Advisories", "advisories", len(advs))
-	bar = pb.StartNew(len(advs)).SetWriter(func() io.Writer {
+	log15.Info("Insert Advisories")
+	bar = pb.ProgressBarTemplate(`{{cycle . "[                    ]" "[=>                  ]" "[===>                ]" "[=====>              ]" "[======>             ]" "[========>           ]" "[==========>         ]" "[============>       ]" "[==============>     ]" "[================>   ]" "[==================> ]" "[===================>]"}} {{counters .}} advisories processed. ({{speed .}})`).New(0).Start().SetWriter(func() io.Writer {
 		if viper.GetBool("log-json") {
 			return io.Discard
 		}

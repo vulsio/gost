@@ -228,8 +228,11 @@ func Chunk[T any](s iter.Seq2[T, error], n int) iter.Seq2[[]T, error] {
 
 		chunk := make([]T, 0, n)
 		for t, err := range s {
-			if err != nil && !yield(nil, err) {
-				return
+			if err != nil {
+				if !yield(nil, err) {
+					return
+				}
+				continue
 			}
 			chunk = append(chunk, t)
 			if len(chunk) != n {

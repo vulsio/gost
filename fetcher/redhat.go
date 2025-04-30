@@ -2,8 +2,10 @@ package fetcher
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"os"
 	"path/filepath"
 
@@ -19,140 +21,140 @@ const (
 )
 
 // FetchRedHatVulnList clones vuln-list and returns CVE JSONs
-func FetchRedHatVulnList() (entries []models.RedhatCVEJSON, err error) {
+func FetchRedHatVulnList() (iter.Seq2[models.RedhatCVEJSON, error], error) {
 	if err := fetchGitArchive(redhatRepoURL, filepath.Join(util.CacheDir(), "vuln-list-redhat"), fmt.Sprintf("vuln-list-redhat-main/%s", redhatDir)); err != nil {
 		return nil, xerrors.Errorf("Failed to fetch vuln-list-redhat: %w", err)
 	}
 
-	var cves []RedhatCVE
-	if err := filepath.WalkDir(filepath.Join(util.CacheDir(), "vuln-list-redhat"), func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
+	return func(yield func(models.RedhatCVEJSON, error) bool) {
+		yieldErr := errors.New("yield error")
+		if err := filepath.WalkDir(filepath.Join(util.CacheDir(), "vuln-list-redhat"), func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
 
-		if d.IsDir() {
+			if d.IsDir() {
+				return nil
+			}
+
+			f, err := os.Open(path)
+			if err != nil {
+				return xerrors.Errorf("Failed to open file: %w", err)
+			}
+			defer f.Close()
+
+			content, err := io.ReadAll(f)
+			if err != nil {
+				return err
+			}
+
+			cve := RedhatCVE{}
+			if err = json.Unmarshal(content, &cve); err != nil {
+				return xerrors.Errorf("failed to decode RedHat JSON: %w", err)
+			}
+			switch cve.TempAffectedRelease.(type) {
+			case []interface{}:
+				var ar RedhatCVEAffectedReleaseArray
+				if err = json.Unmarshal(content, &ar); err != nil {
+					return xerrors.Errorf("unknown affected_release type: %w", err)
+				}
+				cve.AffectedRelease = ar.AffectedRelease
+			case map[string]interface{}:
+				var ar RedhatCVEAffectedReleaseObject
+				if err = json.Unmarshal(content, &ar); err != nil {
+					return xerrors.Errorf("unknown affected_release type: %w", err)
+				}
+				cve.AffectedRelease = []RedhatAffectedRelease{ar.AffectedRelease}
+			case nil:
+			default:
+				return xerrors.New("unknown affected_release type")
+			}
+
+			switch cve.TempPackageState.(type) {
+			case []interface{}:
+				var ps RedhatCVEPackageStateArray
+				if err = json.Unmarshal(content, &ps); err != nil {
+					return xerrors.Errorf("unknown package_state type: %w", err)
+				}
+				cve.PackageState = ps.PackageState
+			case map[string]interface{}:
+				var ps RedhatCVEPackageStateObject
+				if err = json.Unmarshal(content, &ps); err != nil {
+					return xerrors.Errorf("unknown package_state type: %w", err)
+				}
+				cve.PackageState = []RedhatPackageState{ps.PackageState}
+			case nil:
+			default:
+				return xerrors.New("unknown package_state type")
+			}
+
+			if !yield(models.RedhatCVEJSON{
+				ThreatSeverity: cve.ThreatSeverity,
+				PublicDate:     cve.PublicDate,
+				Bugzilla: models.RedhatBugzilla{
+					Description: cve.Bugzilla.Description,
+					BugzillaID:  cve.Bugzilla.BugzillaID,
+					URL:         cve.Bugzilla.URL,
+				},
+				Cvss: models.RedhatCvss{
+					CvssBaseScore:     cve.Cvss.CvssBaseScore,
+					CvssScoringVector: cve.Cvss.CvssScoringVector,
+					Status:            cve.Cvss.Status,
+				},
+				Cvss3: models.RedhatCvss3{
+					Cvss3BaseScore:     cve.Cvss3.Cvss3BaseScore,
+					Cvss3ScoringVector: cve.Cvss3.Cvss3ScoringVector,
+					Status:             cve.Cvss3.Status,
+				},
+				Iava:                cve.Iava,
+				Cwe:                 cve.Cwe,
+				Statement:           cve.Statement,
+				Acknowledgement:     cve.Acknowledgement,
+				Mitigation:          cve.Mitigation,
+				TempAffectedRelease: cve.TempAffectedRelease,
+				AffectedRelease: func() []models.RedhatAffectedRelease {
+					releases := make([]models.RedhatAffectedRelease, 0, len(cve.AffectedRelease))
+					for _, affected := range cve.AffectedRelease {
+						releases = append(releases, models.RedhatAffectedRelease{
+							ProductName: affected.ProductName,
+							ReleaseDate: affected.ReleaseDate,
+							Advisory:    affected.Advisory,
+							Package:     affected.Package,
+							Cpe:         affected.Cpe,
+						})
+					}
+					return releases
+				}(),
+				PackageState: func() []models.RedhatPackageState {
+					states := make([]models.RedhatPackageState, 0, len(cve.PackageState))
+					for _, state := range cve.PackageState {
+						states = append(states, models.RedhatPackageState{
+							ProductName: state.ProductName,
+							FixState:    state.FixState,
+							PackageName: state.PackageName,
+							Cpe:         state.Cpe,
+						})
+					}
+					return states
+				}(),
+				Name:                 cve.Name,
+				DocumentDistribution: cve.DocumentDistribution,
+				Details:              cve.Details,
+				References:           cve.References,
+			}, nil) {
+				return yieldErr
+			}
+
 			return nil
-		}
-
-		f, err := os.Open(path)
-		if err != nil {
-			return xerrors.Errorf("Failed to open file: %w", err)
-		}
-		defer f.Close()
-
-		content, err := io.ReadAll(f)
-		if err != nil {
-			return err
-		}
-
-		cve := RedhatCVE{}
-		if err = json.Unmarshal(content, &cve); err != nil {
-			return xerrors.Errorf("failed to decode RedHat JSON: %w", err)
-		}
-		switch cve.TempAffectedRelease.(type) {
-		case []interface{}:
-			var ar RedhatCVEAffectedReleaseArray
-			if err = json.Unmarshal(content, &ar); err != nil {
-				return xerrors.Errorf("unknown affected_release type: %w", err)
+		}); err != nil {
+			if errors.Is(err, yieldErr) { // No need to call yield with error
+				return
 			}
-			cve.AffectedRelease = ar.AffectedRelease
-		case map[string]interface{}:
-			var ar RedhatCVEAffectedReleaseObject
-			if err = json.Unmarshal(content, &ar); err != nil {
-				return xerrors.Errorf("unknown affected_release type: %w", err)
+			if !yield(models.RedhatCVEJSON{}, xerrors.Errorf("Failed to walk %s: %w", filepath.Join(util.CacheDir(), "vuln-list-redhat"), err)) {
+				return
 			}
-			cve.AffectedRelease = []RedhatAffectedRelease{ar.AffectedRelease}
-		case nil:
-		default:
-			return xerrors.New("unknown affected_release type")
 		}
-
-		switch cve.TempPackageState.(type) {
-		case []interface{}:
-			var ps RedhatCVEPackageStateArray
-			if err = json.Unmarshal(content, &ps); err != nil {
-				return xerrors.Errorf("unknown package_state type: %w", err)
-			}
-			cve.PackageState = ps.PackageState
-		case map[string]interface{}:
-			var ps RedhatCVEPackageStateObject
-			if err = json.Unmarshal(content, &ps); err != nil {
-				return xerrors.Errorf("unknown package_state type: %w", err)
-			}
-			cve.PackageState = []RedhatPackageState{ps.PackageState}
-		case nil:
-		default:
-			return xerrors.New("unknown package_state type")
-		}
-
-		cves = append(cves, cve)
-
-		return nil
-	}); err != nil {
-		return nil, xerrors.Errorf("Failed to walk %s: %w", filepath.Join(util.CacheDir(), "vuln-list-redhat"), err)
-	}
-
-	for _, c := range cves {
-		bugzilla := models.RedhatBugzilla{
-			Description: c.Bugzilla.Description,
-			BugzillaID:  c.Bugzilla.BugzillaID,
-			URL:         c.Bugzilla.URL,
-		}
-
-		cvss := models.RedhatCvss{
-			CvssBaseScore:     c.Cvss.CvssBaseScore,
-			CvssScoringVector: c.Cvss.CvssScoringVector,
-			Status:            c.Cvss.Status,
-		}
-
-		cvss3 := models.RedhatCvss3{
-			Cvss3BaseScore:     c.Cvss3.Cvss3BaseScore,
-			Cvss3ScoringVector: c.Cvss3.Cvss3ScoringVector,
-			Status:             c.Cvss3.Status,
-		}
-
-		releases := []models.RedhatAffectedRelease{}
-		for _, affected := range c.AffectedRelease {
-			releases = append(releases, models.RedhatAffectedRelease{
-				ProductName: affected.ProductName,
-				ReleaseDate: affected.ReleaseDate,
-				Advisory:    affected.Advisory,
-				Package:     affected.Package,
-				Cpe:         affected.Cpe,
-			})
-		}
-
-		states := []models.RedhatPackageState{}
-		for _, state := range c.PackageState {
-			states = append(states, models.RedhatPackageState{
-				ProductName: state.ProductName,
-				FixState:    state.FixState,
-				PackageName: state.PackageName,
-				Cpe:         state.Cpe,
-			})
-		}
-
-		entries = append(entries, models.RedhatCVEJSON{
-			ThreatSeverity:       c.ThreatSeverity,
-			PublicDate:           c.PublicDate,
-			Bugzilla:             bugzilla,
-			Cvss:                 cvss,
-			Cvss3:                cvss3,
-			Iava:                 c.Iava,
-			Cwe:                  c.Cwe,
-			Statement:            c.Statement,
-			Acknowledgement:      c.Acknowledgement,
-			Mitigation:           c.Mitigation,
-			TempAffectedRelease:  c.TempAffectedRelease,
-			AffectedRelease:      releases,
-			PackageState:         states,
-			Name:                 c.Name,
-			DocumentDistribution: c.DocumentDistribution,
-			Details:              c.Details,
-			References:           c.References,
-		})
-	}
-	return entries, nil
+	}, nil
 }
 
 // RedhatCVE :

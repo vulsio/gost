@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"iter"
 
 	"github.com/BurntSushi/toml"
 	"github.com/inconshreveable/log15"
@@ -61,12 +62,6 @@ func notifyRedhat(conf config.Config) error {
 		return err
 	}
 
-	cves, err := models.ConvertRedhat(cveJSONs)
-	if err != nil {
-		return nil
-
-	}
-
 	log15.Info("Initialize Database")
 	driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
@@ -84,7 +79,19 @@ func notifyRedhat(conf config.Config) error {
 		return xerrors.Errorf("Failed to notify command. err: SchemaVersion is old. SchemaVersion: %+v", map[string]uint{"latest": models.LatestSchemaVersion, "DB": fetchMeta.SchemaVersion})
 	}
 
-	for _, cve := range cves {
+	for cve, err := range models.ConvertRedhat(func() iter.Seq2[models.RedhatCVEJSON, error] {
+		return func(yield func(models.RedhatCVEJSON, error) bool) {
+			for _, cveJSON := range cveJSONs {
+				if !yield(cveJSON, nil) {
+					return
+				}
+			}
+		}
+	}()) {
+		if err != nil {
+			return xerrors.Errorf("Failed to convert RedHat CVE JSON. err: %w", err)
+		}
+
 		// Select CVE information from DB
 		c, err := driver.GetRedhat(cve.Name)
 		if err != nil {

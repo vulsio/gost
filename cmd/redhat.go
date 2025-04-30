@@ -40,11 +40,6 @@ func fetchRedHat(_ *cobra.Command, _ []string) (err error) {
 	}
 	defer os.RemoveAll(filepath.Join(util.CacheDir(), "vuln-list-redhat"))
 
-	cves, err := models.ConvertRedhat(cveJSONs)
-	if err != nil {
-		return xerrors.Errorf("Failed to convert RedhatCVE. err: %w", err)
-	}
-
 	log15.Info("Initialize Database")
 	driver, err := db.NewDB(viper.GetString("dbtype"), viper.GetString("dbpath"), viper.GetBool("debug-sql"), db.Option{})
 	if err != nil {
@@ -67,7 +62,7 @@ func fetchRedHat(_ *cobra.Command, _ []string) (err error) {
 	}
 
 	log15.Info("Insert RedHat into DB", "db", driver.Name())
-	if err := driver.InsertRedhat(cves); err != nil {
+	if err := driver.InsertRedhat(models.ConvertRedhat(cveJSONs)); err != nil {
 		return xerrors.Errorf("Failed to insert. dbpath: %s, err: %w", viper.GetString("dbpath"), err)
 	}
 
