@@ -64,7 +64,7 @@ type MicrosoftSupercedence struct {
 type MicrosoftCVE struct {
 	ID              int64              `json:"-"`
 	CveID           string             `json:"cve_id" gorm:"type:varchar(255);index:idx_microsoft_cves_cveid"`
-	Title           string             `json:"title" gorm:"type:varchar(255)"`
+	Title           string             `json:"title" gorm:"type:text"`
 	Description     string             `json:"description" gorm:"type:text"`
 	FAQ             string             `json:"faq" gorm:"type:text"`
 	Tag             string             `json:"tag" gorm:"type:varchar(255)"`
