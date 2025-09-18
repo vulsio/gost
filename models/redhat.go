@@ -234,11 +234,13 @@ func ConvertRedhat(cveJSONs iter.Seq2[RedhatCVEJSON, error]) iter.Seq2[RedhatCVE
 					return details
 				}(),
 				References: func() []RedhatReference {
-					references := make([]RedhatReference, 0, len(cve.References))
+					var rs []RedhatReference
 					for _, r := range cve.References {
-						references = append(references, RedhatReference{Reference: util.TrimSpaceNewline(r)})
+						for l := range strings.Lines(r) {
+							rs = append(rs, RedhatReference{Reference: util.TrimSpaceNewline(l)})
+						}
 					}
-					return references
+					return rs
 				}(),
 			}, nil) {
 				return
