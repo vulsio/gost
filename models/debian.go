@@ -60,7 +60,7 @@ func ConvertDebian(cveJSONs DebianJSON) []DebianCVE {
 	uniqCve := map[string]DebianCVE{}
 	for pkgName, cveMap := range cveJSONs {
 		for cveID, cve := range cveMap {
-			var releases []DebianRelease
+			releases := make([]DebianRelease, 0, len(cve.Releases))
 			for release, releaseInfo := range cve.Releases {
 				r := DebianRelease{
 					ProductName:  release,

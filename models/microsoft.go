@@ -128,7 +128,7 @@ type MicrosoftSupersededBy struct {
 
 // ConvertMicrosoft :
 func ConvertMicrosoft(vulns []MicrosoftVulnerability, supercedences []MicrosoftSupercedence) ([]MicrosoftCVE, []MicrosoftKBRelation) {
-	cves := []MicrosoftCVE{}
+	cves := make([]MicrosoftCVE, 0, len(vulns))
 	for _, v := range vulns {
 		cve := MicrosoftCVE{
 			CveID:          v.CveID,
@@ -173,7 +173,7 @@ func ConvertMicrosoft(vulns []MicrosoftVulnerability, supercedences []MicrosoftS
 			cve.Products = append(cve.Products, product)
 		}
 
-		as := []string{}
+		as := make([]string, 0, len(v.Acknowledgments))
 		for _, a := range v.Acknowledgments {
 			as = append(as, a.Name)
 		}
@@ -203,7 +203,7 @@ func ConvertMicrosoft(vulns []MicrosoftVulnerability, supercedences []MicrosoftS
 		cves = append(cves, cve)
 	}
 
-	relations := []MicrosoftKBRelation{}
+	relations := make([]MicrosoftKBRelation, 0, len(supercedences))
 	for _, s := range supercedences {
 		r := MicrosoftKBRelation{
 			KBID: s.KBID,

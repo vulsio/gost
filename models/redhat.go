@@ -100,7 +100,7 @@ type RedhatCVE struct {
 
 // GetDetail returns details
 func (r RedhatCVE) GetDetail(sep string) string {
-	details := []string{}
+	details := make([]string, 0, len(r.Details))
 	for _, d := range r.Details {
 		details = append(details, d.Detail)
 	}
@@ -114,7 +114,7 @@ func (r RedhatCVE) GetPackages(sep string) (result string) {
 		pkgs[d.PackageName] = struct{}{}
 	}
 
-	pkgNames := []string{}
+	pkgNames := make([]string, 0, len(pkgs))
 	for p := range pkgs {
 		pkgNames = append(pkgNames, p)
 	}
@@ -234,7 +234,7 @@ func ConvertRedhat(cveJSONs iter.Seq2[RedhatCVEJSON, error]) iter.Seq2[RedhatCVE
 					return details
 				}(),
 				References: func() []RedhatReference {
-					var rs []RedhatReference
+					rs := make([]RedhatReference, 0, len(cve.References))
 					for _, r := range cve.References {
 						for l := range strings.Lines(r) {
 							rs = append(rs, RedhatReference{Reference: util.TrimSpaceNewline(l)})
