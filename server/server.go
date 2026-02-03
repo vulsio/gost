@@ -105,14 +105,14 @@ func newRequestLoggerConfig(writer io.Writer) middleware.RequestLoggerConfig {
 			}
 
 			return json.NewEncoder(writer).Encode(logFormat{
-				Time:         v.StartTime.Format(time.RFC3339Nano),
-				ID:           v.RequestID,
-				RemoteIP:     v.RemoteIP,
-				Host:         v.Host,
-				Method:       v.Method,
-				URI:          v.URI,
-				UserAgent:    v.UserAgent,
-				Status:       v.Status,
+				Time:      v.StartTime.Format(time.RFC3339Nano),
+				ID:        v.RequestID,
+				RemoteIP:  v.RemoteIP,
+				Host:      v.Host,
+				Method:    v.Method,
+				URI:       v.URI,
+				UserAgent: v.UserAgent,
+				Status:    v.Status,
 				Error: func() string {
 					if v.Error != nil {
 						return v.Error.Error()
