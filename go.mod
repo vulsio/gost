@@ -10,8 +10,8 @@ require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/inconshreveable/log15 v3.0.0-testing.5+incompatible
-	github.com/labstack/echo/v4 v4.15.0
-	github.com/mattn/go-runewidth v0.0.19
+	github.com/labstack/echo/v4 v4.15.1
+	github.com/mattn/go-runewidth v0.0.20
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/parnurzeal/gorequest v0.3.0
