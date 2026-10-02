@@ -118,7 +118,11 @@ jobs:
         run: ./gost fetch --dbtype sqlite3 ubuntu
       - name: fetch mysql
         if: ${{ steps.build.conclusion == 'success' && ( success() || failure() )}}
-        run: ./gost fetch --dbtype mysql --dbpath "root:password@tcp(127.0.0.1:3306)/test?parseTime=true" ubuntu
+        # The Ubuntu data no longer fits in one transaction under MySQL's default
+        # 128MB buffer pool (Error 1206: lock table size exceeded), so double it.
+        run: |
+          docker exec "${{ job.services.mysql.id }}" mysql -uroot -ppassword -e "SET GLOBAL innodb_buffer_pool_size = 256 * 1024 * 1024"
+          ./gost fetch --dbtype mysql --dbpath "root:password@tcp(127.0.0.1:3306)/test?parseTime=true" ubuntu
       - name: fetch postgres
         if: ${{ steps.build.conclusion == 'success' && ( success() || failure() )}}
         run: ./gost fetch --dbtype postgres --dbpath "host=127.0.0.1 user=postgres dbname=test sslmode=disable password=password" ubuntu
